@@ -1,0 +1,208 @@
+import React, { useState } from 'react';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  KeyboardAvoidingView,
+  Platform,
+  Alert,
+  ActivityIndicator,
+} from 'react-native';
+import { scale, fontSize, spacing } from '../../../Theme/responsive';
+import colors from '../../../Theme/colors';
+import authService from '../../../Services/authService';
+
+const ForgotPasswordPage = ({ navigation }) => {
+  const [email, setEmail] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const validateEmail = () => {
+    if (!email.trim()) {
+      setError('Vui lòng nhập email');
+      return false;
+    }
+    if (!/\S+@\S+\.\S+/.test(email)) {
+      setError('Email không hợp lệ');
+      return false;
+    }
+    setError('');
+    return true;
+  };
+
+  const handleSendOTP = async () => {
+    if (!validateEmail()) return;
+
+    setLoading(true);
+    try {
+      await authService.forgotPassword(email);
+      Alert.alert(
+        'Thành công',
+        'Mã OTP đã được gửi đến email của bạn',
+        [
+          {
+            text: 'OK',
+            onPress: () => navigation.navigate('ResetPassword', { email }),
+          },
+        ]
+      );
+    } catch (error) {
+      Alert.alert('Lỗi', error.message || 'Gửi mã OTP thất bại');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
+      <View style={styles.content}>
+        {/* Lock Icon */}
+        <View style={styles.iconContainer}>
+          <View style={styles.iconCircle}>
+            <Text style={styles.icon}>🔒</Text>
+          </View>
+        </View>
+
+        <Text style={styles.title}>Quên mật khẩu?</Text>
+        <Text style={styles.subtitle}>
+          Nhập email bạn đã dùng để đăng ký, chúng tôi sẽ gửi mã OTP để đặt lại mật khẩu.
+        </Text>
+
+        {/* Email Input */}
+        <View style={styles.inputContainer}>
+          <Text style={styles.label}>Email</Text>
+          <TextInput
+            style={[styles.input, error && styles.inputError]}
+            placeholder="email@example.com"
+            placeholderTextColor="#9CA3AF"
+            value={email}
+            onChangeText={(text) => {
+              setEmail(text);
+              setError('');
+            }}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
+          {error && <Text style={styles.errorText}>{error}</Text>}
+        </View>
+
+        {/* Send OTP Button */}
+        <TouchableOpacity
+          style={styles.sendButton}
+          onPress={handleSendOTP}
+          disabled={loading}
+        >
+          {loading ? (
+            <ActivityIndicator color="#FFFFFF" />
+          ) : (
+            <Text style={styles.sendButtonText}>Gửi mã OTP</Text>
+          )}
+        </TouchableOpacity>
+
+        {/* Back to Login */}
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.navigate('Login')}
+        >
+          <Text style={styles.backButtonText}>Quay lại Đăng nhập</Text>
+        </TouchableOpacity>
+      </View>
+    </KeyboardAvoidingView>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+  },
+  content: {
+    flex: 1,
+    padding: spacing.xl,
+    justifyContent: 'center',
+  },
+  iconContainer: {
+    alignItems: 'center',
+    marginBottom: spacing.xl,
+  },
+  iconCircle: {
+    width: scale(100),
+    height: scale(100),
+    borderRadius: scale(50),
+    backgroundColor: '#E0F2FE',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  icon: {
+    fontSize: scale(50),
+  },
+  title: {
+    fontSize: fontSize.xxxl,
+    fontWeight: 'bold',
+    color: '#1F2937',
+    marginBottom: spacing.md,
+    textAlign: 'center',
+  },
+  subtitle: {
+    fontSize: fontSize.base,
+    color: '#6B7280',
+    marginBottom: spacing.xxl,
+    textAlign: 'center',
+    lineHeight: scale(24),
+  },
+  inputContainer: {
+    marginBottom: spacing.xl,
+  },
+  label: {
+    fontSize: fontSize.base,
+    fontWeight: '600',
+    color: '#374151',
+    marginBottom: spacing.sm,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: scale(12),
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    fontSize: fontSize.base,
+    color: '#1F2937',
+    backgroundColor: '#F9FAFB',
+  },
+  inputError: {
+    borderColor: '#EF4444',
+  },
+  errorText: {
+    color: '#EF4444',
+    fontSize: fontSize.sm,
+    marginTop: spacing.xs,
+  },
+  sendButton: {
+    backgroundColor: colors.primary,
+    borderRadius: scale(12),
+    paddingVertical: spacing.lg,
+    alignItems: 'center',
+    marginBottom: spacing.lg,
+  },
+  sendButtonText: {
+    color: '#FFFFFF',
+    fontSize: fontSize.md,
+    fontWeight: 'bold',
+  },
+  backButton: {
+    alignItems: 'center',
+  },
+  backButtonText: {
+    color: colors.secondary,
+    fontSize: fontSize.base,
+    fontWeight: '600',
+  },
+});
+
+export default ForgotPasswordPage;
