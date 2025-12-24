@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, Animated } from 'react-native';
 import { useFadeIn } from '../../Theme/animations';
-import { scale, fontSize, spacing } from '../../Theme/responsive';
+import { scale } from '../../Theme/responsive';
 
 const WelcomeFooter = React.memo(() => {
   const fadeIn = useFadeIn(800, 1000);
@@ -45,35 +45,35 @@ WelcomeFooter.displayName = 'WelcomeFooter';
 const styles = StyleSheet.create({
   container: {
     backgroundColor: '#1E293B',
-    padding: spacing.xl,
+    padding: 32,
   },
   brand: {
-    fontSize: fontSize.lg,
+    fontSize: 18,
     fontWeight: 'bold',
     color: '#FFFFFF',
-    marginBottom: spacing.lg,
+    marginBottom: 24,
   },
   columns: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: spacing.xl,
+    marginBottom: 32,
   },
   column: {
     flex: 1,
   },
   columnTitle: {
-    fontSize: fontSize.base,
+    fontSize: 14,
     fontWeight: 'bold',
     color: '#FFFFFF',
-    marginBottom: spacing.sm,
+    marginBottom: 8,
   },
   link: {
-    fontSize: fontSize.sm,
+    fontSize: 12,
     color: '#94A3B8',
-    marginBottom: spacing.sm,
+    marginBottom: 8,
   },
   copyright: {
-    fontSize: fontSize.sm,
+    fontSize: 12,
     color: '#64748B',
     textAlign: 'center',
   },

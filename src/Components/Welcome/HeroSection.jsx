@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Image, Animated } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFadeIn, useSlideIn } from '../../Theme/animations';
-import { scale, verticalScale, fontSize, spacing } from '../../Theme/responsive';
+import { scale, verticalScale } from '../../Theme/responsive';
 import colors from '../../Theme/colors';
 
 const GradientButton = React.memo(({ title, onPress, style, textStyle }) => {
@@ -72,38 +72,38 @@ HeroSection.displayName = 'HeroSection';
 
 const styles = StyleSheet.create({
   container: {
-    padding: spacing.xl,
+    padding: 32,
     backgroundColor: '#FFFFFF',
   },
   content: {
-    marginBottom: spacing.xl,
+    marginBottom: 32,
   },
   title: {
-    fontSize: fontSize.xxxl,
+    fontSize: 32,
     fontWeight: 'bold',
     color: '#1E293B',
-    marginBottom: spacing.md,
+    marginBottom: 16,
     lineHeight: scale(40),
   },
   description: {
-    fontSize: fontSize.md,
+    fontSize: 16,
     color: '#64748B',
-    marginBottom: spacing.md,
+    marginBottom: 16,
     lineHeight: scale(24),
   },
   ratingContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: spacing.lg,
-    gap: spacing.sm,
+    marginBottom: 24,
+    gap: 8,
   },
   rating: {
-    fontSize: fontSize.md,
+    fontSize: 16,
     fontWeight: 'bold',
     color: '#F59E0B',
   },
   reviews: {
-    fontSize: fontSize.base,
+    fontSize: 14,
     color: '#64748B',
   },
   buttonContainer: {
@@ -112,16 +112,16 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
   },
   gradient: {
-    paddingHorizontal: spacing.xl,
-    paddingVertical: spacing.md,
+    paddingHorizontal: 32,
+    paddingVertical: 16,
   },
   buttonText: {
     color: '#FFFFFF',
-    fontSize: fontSize.md,
+    fontSize: 16,
     fontWeight: 'bold',
   },
   ctaButton: {
-    marginTop: spacing.sm,
+    marginTop: 8,
   },
   image: {
     width: '100%',

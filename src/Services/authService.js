@@ -10,11 +10,33 @@ const authService = {
         password,
       });
 
+      // Backend trả về ServiceResponse với Data = AuthResponseDto { AccessToken, RefreshToken, User }
+      // axiosClient interceptor trả về response.data, nên response có thể là:
+      // - { success, data: { AccessToken, RefreshToken, User } } nếu là ServiceResponse
+      // - { AccessToken, RefreshToken, User } nếu là AuthResponseDto trực tiếp
+      
+      let authData = null;
+      if (response && response.data) {
+        authData = response.data; // Nếu là ServiceResponse
+      } else if (response && (response.AccessToken || response.accessToken)) {
+        authData = response; // Nếu là AuthResponseDto trực tiếp
+      }
+
       // Save tokens and user info
-      if (response.accessToken) {
-        await AsyncStorage.setItem('accessToken', response.accessToken);
-        await AsyncStorage.setItem('refreshToken', response.refreshToken);
-        await AsyncStorage.setItem('user', JSON.stringify(response.user));
+      if (authData) {
+        const accessToken = authData.AccessToken || authData.accessToken;
+        const refreshToken = authData.RefreshToken || authData.refreshToken;
+        const user = authData.User || authData.user;
+        
+        if (accessToken) {
+          await AsyncStorage.setItem('accessToken', accessToken);
+          if (refreshToken) {
+            await AsyncStorage.setItem('refreshToken', refreshToken);
+          }
+          if (user) {
+            await AsyncStorage.setItem('user', JSON.stringify(user));
+          }
+        }
       }
 
       return response;
@@ -28,11 +50,29 @@ const authService = {
     try {
       const response = await axiosClient.post('/auth/register', userData);
       
+      // Backend trả về ServiceResponse với Data = AuthResponseDto
+      let authData = null;
+      if (response && response.data) {
+        authData = response.data;
+      } else if (response && (response.AccessToken || response.accessToken)) {
+        authData = response;
+      }
+
       // Auto login after register
-      if (response.accessToken) {
-        await AsyncStorage.setItem('accessToken', response.accessToken);
-        await AsyncStorage.setItem('refreshToken', response.refreshToken);
-        await AsyncStorage.setItem('user', JSON.stringify(response.user));
+      if (authData) {
+        const accessToken = authData.AccessToken || authData.accessToken;
+        const refreshToken = authData.RefreshToken || authData.refreshToken;
+        const user = authData.User || authData.user;
+        
+        if (accessToken) {
+          await AsyncStorage.setItem('accessToken', accessToken);
+          if (refreshToken) {
+            await AsyncStorage.setItem('refreshToken', refreshToken);
+          }
+          if (user) {
+            await AsyncStorage.setItem('user', JSON.stringify(user));
+          }
+        }
       }
 
       return response;
@@ -64,13 +104,52 @@ const authService = {
     }
   },
 
-  // Reset Password with OTP
-  resetPassword: async (email, otp, newPassword) => {
+  // Verify Email OTP (for registration)
+  verifyEmail: async (email, otpCode) => {
     try {
-      const response = await axiosClient.post('/auth/reset-password', {
+      const response = await axiosClient.post('/auth/verify-email', {
         email,
-        otp,
+        otpCode,
+      });
+      return response;
+    } catch (error) {
+      throw error.response?.data || error;
+    }
+  },
+
+  // Verify OTP (for forgot password)
+  verifyOtp: async (email, otpCode) => {
+    try {
+      const response = await axiosClient.post('/auth/verify-otp', {
+        email,
+        otpCode,
+      });
+      return response;
+    } catch (error) {
+      throw error.response?.data || error;
+    }
+  },
+
+  // Set New Password (after OTP verification for forgot password)
+  setNewPassword: async (email, otpCode, newPassword, confirmPassword) => {
+    try {
+      const response = await axiosClient.post('/auth/set-new-password', {
+        email,
+        otpCode,
         newPassword,
+        confirmPassword,
+      });
+      return response;
+    } catch (error) {
+      throw error.response?.data || error;
+    }
+  },
+
+  // Resend OTP
+  resendOtp: async (email) => {
+    try {
+      const response = await axiosClient.post('/auth/resend-otp', {
+        email,
       });
       return response;
     } catch (error) {

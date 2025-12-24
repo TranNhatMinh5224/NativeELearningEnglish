@@ -6,10 +6,10 @@ const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const baseWidth = 375;
 const baseHeight = 812;
 
-// Scaling functions
-export const scale = (size) => (SCREEN_WIDTH / baseWidth) * size;
-export const verticalScale = (size) => (SCREEN_HEIGHT / baseHeight) * size;
-export const moderateScale = (size, factor = 0.5) => size + (scale(size) - size) * factor;
+// Scaling functions - Round to avoid precision errors
+export const scale = (size) => Math.round((SCREEN_WIDTH / baseWidth) * size);
+export const verticalScale = (size) => Math.round((SCREEN_HEIGHT / baseHeight) * size);
+export const moderateScale = (size, factor = 0.5) => Math.round(size + (scale(size) - size) * factor);
 
 // Font scaling
 export const scaleFont = (size) => size * PixelRatio.getFontScale();

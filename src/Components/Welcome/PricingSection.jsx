@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Animated } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFadeIn, useSlideIn } from '../../Theme/animations';
-import { scale, fontSize, spacing } from '../../Theme/responsive';
+import { scale } from '../../Theme/responsive';
 import colors from '../../Theme/colors';
 
 const PricingCard = React.memo(({ plan, onSelect, isHighlight = false }) => {
@@ -111,39 +111,39 @@ PricingSection.displayName = 'PricingSection';
 
 const styles = StyleSheet.create({
   container: {
-    padding: spacing.xl,
+    padding: 32,
     backgroundColor: '#F8FAFC',
   },
   title: {
-    fontSize: fontSize.xxl,
+    fontSize: 24,
     fontWeight: 'bold',
     color: '#1E293B',
-    marginBottom: spacing.xs,
+    marginBottom: 4,
   },
   subtitle: {
-    fontSize: fontSize.lg,
+    fontSize: 18,
     color: colors.primary,
-    marginBottom: spacing.sm,
+    marginBottom: 8,
   },
   promoBadge: {
     backgroundColor: colors.primary,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
+    paddingHorizontal: 16,
+    paddingVertical: 4,
     borderRadius: scale(15),
     alignSelf: 'flex-start',
-    marginBottom: spacing.lg,
+    marginBottom: 24,
   },
   promoBadgeText: {
     color: '#FFFFFF',
-    fontSize: fontSize.sm,
+    fontSize: 12,
     fontWeight: '600',
   },
   cards: {
-    gap: spacing.md,
+    gap: 16,
   },
   card: {
     backgroundColor: '#FFFFFF',
-    padding: spacing.lg,
+    padding: 24,
     borderRadius: scale(15),
     borderWidth: 2,
     borderColor: '#E2E8F0',
@@ -153,35 +153,35 @@ const styles = StyleSheet.create({
   },
   badge: {
     position: 'absolute',
-    top: -spacing.sm,
-    right: spacing.lg,
+    top: -8,
+    right: 24,
     backgroundColor: colors.secondary,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
+    paddingHorizontal: 16,
+    paddingVertical: 4,
     borderRadius: scale(15),
   },
   badgeText: {
     color: '#FFFFFF',
-    fontSize: fontSize.sm,
+    fontSize: 12,
     fontWeight: 'bold',
   },
   duration: {
-    fontSize: fontSize.md,
+    fontSize: 16,
     fontWeight: '600',
     color: '#1E293B',
-    marginBottom: spacing.sm,
+    marginBottom: 8,
   },
   priceContainer: {
-    marginBottom: spacing.md,
+    marginBottom: 16,
   },
   oldPrice: {
-    fontSize: fontSize.base,
+    fontSize: 14,
     color: '#94A3B8',
     textDecorationLine: 'line-through',
-    marginBottom: spacing.xs,
+    marginBottom: 4,
   },
   price: {
-    fontSize: fontSize.xxxl,
+    fontSize: 32,
     fontWeight: 'bold',
     color: colors.secondary,
   },
@@ -189,16 +189,16 @@ const styles = StyleSheet.create({
     color: colors.primary,
   },
   features: {
-    gap: spacing.sm,
-    marginBottom: spacing.lg,
+    gap: 8,
+    marginBottom: 24,
   },
   feature: {
-    fontSize: fontSize.base,
+    fontSize: 14,
     color: '#64748B',
   },
   button: {
     backgroundColor: '#F1F5F9',
-    paddingVertical: spacing.md,
+    paddingVertical: 16,
     borderRadius: scale(12),
     alignItems: 'center',
   },
@@ -206,7 +206,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
   },
   buttonText: {
-    fontSize: fontSize.md,
+    fontSize: 16,
     fontWeight: '600',
     color: '#64748B',
   },

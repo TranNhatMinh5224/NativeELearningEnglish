@@ -8,12 +8,12 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  Alert,
   ActivityIndicator,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import colors from '../../../Theme/colors';
 import authService from '../../../Services/authService';
+import Toast from '../../../Components/Common/Toast';
 
 const RegisterPage = ({ navigation }) => {
   const [formData, setFormData] = useState({
@@ -32,6 +32,7 @@ const RegisterPage = ({ navigation }) => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
+  const [toast, setToast] = useState({ visible: false, message: '', type: 'success' });
 
   const validateForm = () => {
     const newErrors = {};
@@ -82,11 +83,38 @@ const RegisterPage = ({ navigation }) => {
         birthDate: `${formData.birthYear}-${formData.birthMonth.padStart(2, '0')}-${formData.birthDay.padStart(2, '0')}`,
       };
 
-      await authService.register(userData);
-      Alert.alert('Thành công', 'Đăng ký thành công!');
-      navigation.navigate('Login');
+      const response = await authService.register(userData);
+      
+      // Navigate to OTP verification screen
+      setToast({
+        visible: true,
+        message: 'Đăng ký thành công! Vui lòng kiểm tra email để lấy mã OTP.',
+        type: 'success',
+      });
+      setTimeout(() => {
+        navigation.navigate('OTPVerification', {
+          email: formData.email,
+          type: 'register',
+        });
+      }, 1500);
     } catch (error) {
-      Alert.alert('Lỗi', error.message || 'Đăng ký thất bại');
+      // Extract detailed error message from backend
+      let errorMessage = 'Đăng ký thất bại';
+      
+      if (error?.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error?.message) {
+        errorMessage = error.message;
+      } else if (typeof error === 'string') {
+        errorMessage = error;
+      }
+      
+      // Show detailed error in toast
+      setToast({
+        visible: true,
+        message: errorMessage,
+        type: 'error',
+      });
     } finally {
       setLoading(false);
     }
@@ -110,6 +138,13 @@ const RegisterPage = ({ navigation }) => {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <ScrollView contentContainerStyle={styles.scrollContent}>
+        <Toast
+          visible={toast.visible}
+          message={toast.message}
+          type={toast.type}
+          onHide={() => setToast({ ...toast, visible: false })}
+          duration={3000}
+        />
         <View style={styles.content}>
           <Text style={styles.title}>Tạo tài khoản của bạn</Text>
 

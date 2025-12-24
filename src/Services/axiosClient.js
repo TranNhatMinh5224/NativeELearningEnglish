@@ -1,8 +1,22 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Constants from 'expo-constants';
 
-// Base URL from env or default
-const BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5000/api';
+// ==========================================
+// API Configuration
+// ==========================================
+// URL được lấy từ file .env thông qua app.json
+// Nếu không có .env, sử dụng fallback mặc định
+// ==========================================
+const BASE_URL = Constants.expoConfig?.extra?.apiBaseUrl;
+
+if (!BASE_URL) {
+  console.error(
+    '⚠️ API URL chưa được cấu hình!\n' +
+    '📝 Vui lòng tạo file .env từ .env.example\n' +
+    '🔧 Xem SETUP.md để biết thêm chi tiết'
+  );
+}
 
 // Create axios instance
 const axiosClient = axios.create({
@@ -41,17 +55,30 @@ axiosClient.interceptors.response.use(
 
       try {
         const refreshToken = await AsyncStorage.getItem('refreshToken');
-        const response = await axios.post(`${BASE_URL}/auth/refresh`, {
+        if (!refreshToken) {
+          throw new Error('No refresh token');
+        }
+        // Backend endpoint là /auth/refresh-token
+        const response = await axios.post(`${BASE_URL}/auth/refresh-token`, {
           refreshToken,
         });
 
-        const { accessToken } = response.data;
-        await AsyncStorage.setItem('accessToken', accessToken);
-
-        // Retry original request with new token
-        originalRequest.headers.Authorization = `Bearer ${accessToken}`;
-        return axiosClient(originalRequest);
+        // Backend trả về ServiceResponse với Data = { AccessToken, ... }
+        let refreshData = response.data;
+        if (refreshData && refreshData.data) {
+          refreshData = refreshData.data; // Nếu là ServiceResponse
+        }
+        
+        const accessToken = refreshData?.AccessToken || refreshData?.accessToken;
+        if (accessToken) {
+          await AsyncStorage.setItem('accessToken', accessToken);
+          // Retry original request with new token
+          originalRequest.headers.Authorization = `Bearer ${accessToken}`;
+          return axiosClient(originalRequest);
+        }
+        throw new Error('No access token in response');
       } catch (refreshError) {
+        console.error('Token refresh failed:', refreshError);
         // Refresh failed, logout user
         await AsyncStorage.multiRemove(['accessToken', 'refreshToken', 'user']);
         return Promise.reject(refreshError);

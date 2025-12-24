@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, Image, Animated } from 'react
 import { LinearGradient } from 'expo-linear-gradient';
 import { GradientButton } from './HeroSection';
 import { useFadeIn, useSlideIn } from '../../Theme/animations';
-import { scale, verticalScale, fontSize, spacing, screen } from '../../Theme/responsive';
+import { scale, verticalScale, screen } from '../../Theme/responsive';
 
 const FeatureSectionOne = React.memo(({ featureImage, onJoinGroup }) => {
   const fadeIn = useFadeIn(800, 400);
@@ -52,42 +52,42 @@ FeatureSectionOne.displayName = 'FeatureSectionOne';
 
 const styles = StyleSheet.create({
   container: {
-    padding: spacing.xl,
+    padding: 32,
     alignItems: 'center',
   },
   image: {
     width: scale(200),
     height: scale(200),
-    marginBottom: spacing.lg,
+    marginBottom: 24,
   },
   content: {
     alignItems: 'center',
   },
   title: {
-    fontSize: fontSize.xxl,
+    fontSize: 24,
     fontWeight: 'bold',
     color: '#1E293B',
     textAlign: 'center',
-    marginBottom: spacing.md,
+    marginBottom: 16,
     lineHeight: scale(32),
   },
   description: {
-    fontSize: fontSize.base,
+    fontSize: 14,
     color: '#64748B',
     textAlign: 'center',
-    marginBottom: spacing.lg,
+    marginBottom: 24,
     lineHeight: scale(22),
   },
   button: {
-    marginBottom: spacing.sm,
+    marginBottom: 8,
   },
   subText: {
-    fontSize: fontSize.base,
+    fontSize: 14,
     color: '#A78BFA',
-    marginBottom: spacing.sm,
+    marginBottom: 8,
   },
   note: {
-    fontSize: fontSize.sm,
+    fontSize: 12,
     color: '#64748B',
     fontStyle: 'italic',
   },

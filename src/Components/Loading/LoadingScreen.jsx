@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, Image, Animated } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { mochiLoading } from '../../../assets/images';
+import { mochiLoading, mochiWelcome } from '../../../assets/images';
 import { useFadeIn, useScale, usePulse } from '../../Theme/animations';
-import { scale, verticalScale, fontSize, spacing, screen } from '../../Theme/responsive';
+import { scale, verticalScale, screen } from '../../Theme/responsive';
 import colors from '../../Theme/colors';
 
 const LoadingScreen = ({ onFinish, duration = 2000 }) => {
@@ -58,7 +58,11 @@ const LoadingScreen = ({ onFinish, duration = 2000 }) => {
       <Animated.View style={[styles.header, { opacity: fadeIn }]}>
         <View style={styles.logoContainer}>
           <View style={styles.logoCircle}>
-            <Text style={styles.logoText}>C</Text>
+            <Image
+              source={mochiWelcome}
+              style={styles.logoImage}
+              resizeMode="contain"
+            />
           </View>
           <Text style={styles.appName}>Catalunya English</Text>
         </View>
@@ -130,8 +134,8 @@ const styles = StyleSheet.create({
     paddingTop: verticalScale(50),
   },
   header: {
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.md,
+    paddingHorizontal: 24,
+    paddingTop: 16,
   },
   logoContainer: {
     flexDirection: 'row',
@@ -141,33 +145,42 @@ const styles = StyleSheet.create({
     width: scale(32),
     height: scale(32),
     borderRadius: scale(16),
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    backgroundColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: spacing.sm,
+    marginRight: 8,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
-  logoText: {
-    fontSize: fontSize.lg,
-    fontWeight: 'bold',
-    color: colors.primary,
+  logoImage: {
+    width: scale(28),
+    height: scale(28),
+    borderRadius: scale(14),
   },
   appName: {
-    fontSize: fontSize.md,
+    fontSize: 16,
     color: '#FFFFFF',
     fontWeight: '600',
   },
   loadingText: {
-    fontSize: fontSize.base,
+    fontSize: 14,
     color: 'rgba(255, 255, 255, 0.9)',
     fontWeight: '600',
-    marginBottom: spacing.sm,
+    marginBottom: 8,
     textAlign: 'center',
   },
   content: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: spacing.xl,
+    paddingHorizontal: 32,
   },
   characterContainer: {
     width: scale(180),
@@ -176,7 +189,7 @@ const styles = StyleSheet.create({
     borderRadius: scale(20),
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: spacing.xl,
+    marginBottom: 32,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
@@ -188,7 +201,7 @@ const styles = StyleSheet.create({
     height: '90%',
   },
   welcomeText: {
-    fontSize: fontSize.xxl,
+    fontSize: 24,
     fontWeight: 'bold',
     color: '#FFFFFF',
     textAlign: 'center',
@@ -197,8 +210,8 @@ const styles = StyleSheet.create({
   progressContainer: {
     position: 'absolute',
     bottom: verticalScale(100),
-    left: spacing.xl,
-    right: spacing.xl,
+    left: 32,
+    right: 32,
   },
   progressBar: {
     height: scale(8),

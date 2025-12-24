@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Image, Animated } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFadeIn, useSlideIn } from '../../Theme/animations';
-import { scale, fontSize, spacing } from '../../Theme/responsive';
+import { scale } from '../../Theme/responsive';
 import colors from '../../Theme/colors';
 
 const FeatureSectionTwo = React.memo(({ featureImage, onLearnMore }) => {
@@ -48,32 +48,32 @@ FeatureSectionTwo.displayName = 'FeatureSectionTwo';
 
 const styles = StyleSheet.create({
   container: {
-    padding: spacing.xl,
+    padding: 32,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
   content: {
     flex: 1,
-    paddingRight: spacing.lg,
+    paddingRight: 24,
   },
   title: {
-    fontSize: fontSize.xl,
+    fontSize: 20,
     fontWeight: 'bold',
     color: '#FFFFFF',
-    marginBottom: spacing.lg,
+    marginBottom: 24,
     lineHeight: scale(28),
   },
   button: {
     backgroundColor: '#FFFFFF',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
     borderRadius: scale(20),
     alignSelf: 'flex-start',
   },
   buttonText: {
     color: colors.secondary,
-    fontSize: fontSize.sm,
+    fontSize: 12,
     fontWeight: '600',
   },
   image: {

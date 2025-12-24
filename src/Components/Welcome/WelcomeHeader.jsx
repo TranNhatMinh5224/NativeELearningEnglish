@@ -1,9 +1,10 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Animated } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Animated, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFadeIn, useSlideIn } from '../../Theme/animations';
-import { scale, fontSize, spacing } from '../../Theme/responsive';
+import { scale } from '../../Theme/responsive';
 import colors from '../../Theme/colors';
+import { mochiWelcome } from '../../../assets/images';
 
 const WelcomeHeader = React.memo(({ onLoginPress, onRegisterPress }) => {
   const fadeIn = useFadeIn(600);
@@ -27,7 +28,11 @@ const WelcomeHeader = React.memo(({ onLoginPress, onRegisterPress }) => {
       >
         <View style={styles.logoContainer}>
           <View style={styles.logoCircle}>
-            <Text style={styles.logoText}>C</Text>
+            <Image
+              source={mochiWelcome}
+              style={styles.logoImage}
+              resizeMode="contain"
+            />
           </View>
           <Text style={styles.appName}>Catalunya English</Text>
         </View>
@@ -59,8 +64,8 @@ WelcomeHeader.displayName = 'WelcomeHeader';
 const styles = StyleSheet.create({
   header: {
     paddingTop: scale(50),
-    paddingBottom: spacing.md,
-    paddingHorizontal: spacing.lg,
+    paddingBottom: 16,
+    paddingHorizontal: 24,
   },
   headerContent: {
     flexDirection: 'row',
@@ -78,45 +83,54 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: spacing.sm,
+    marginRight: 8,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
-  logoText: {
-    fontSize: fontSize.lg,
-    fontWeight: 'bold',
-    color: colors.primary,
+  logoImage: {
+    width: scale(28),
+    height: scale(28),
+    borderRadius: scale(14),
   },
   appName: {
-    fontSize: fontSize.md,
+    fontSize: 16,
     color: '#FFFFFF',
     fontWeight: '600',
   },
   authButtons: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.xs,
+    gap: 4,
   },
   loginButton: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
+    paddingHorizontal: 16,
+    paddingVertical: 4,
     justifyContent: 'center',
     alignItems: 'center',
   },
   loginText: {
     color: '#FFFFFF',
-    fontSize: fontSize.base,
+    fontSize: 14,
     fontWeight: '600',
   },
   registerButton: {
     backgroundColor: '#FFFFFF',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
+    paddingHorizontal: 16,
+    paddingVertical: 4,
     borderRadius: scale(20),
     justifyContent: 'center',
     alignItems: 'center',
   },
   registerText: {
     color: colors.secondary,
-    fontSize: fontSize.base,
+    fontSize: 14,
     fontWeight: '600',
   },
 });

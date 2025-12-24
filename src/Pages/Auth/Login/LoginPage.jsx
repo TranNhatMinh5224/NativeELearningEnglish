@@ -12,9 +12,10 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { scale, fontSize, spacing } from '../../../Theme/responsive';
+import { scale } from '../../../Theme/responsive';
 import colors from '../../../Theme/colors';
 import authService from '../../../Services/authService';
+import Toast from '../../../Components/Common/Toast';
 
 const LoginPage = ({ navigation }) => {
   const [email, setEmail] = useState('');
@@ -23,6 +24,7 @@ const LoginPage = ({ navigation }) => {
   const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
+  const [toast, setToast] = useState({ visible: false, message: '', type: 'success' });
 
   const validateForm = () => {
     const newErrors = {};
@@ -49,11 +51,22 @@ const LoginPage = ({ navigation }) => {
     setLoading(true);
     try {
       const response = await authService.login(email, password);
-      Alert.alert('Thành công', 'Đăng nhập thành công!');
-      // Navigate to home or main app
-      // navigation.navigate('Home');
+      // Hiển thị toast notification
+      setToast({
+        visible: true,
+        message: 'Đăng nhập thành công!',
+        type: 'success',
+      });
+      // Navigate sau 1.5 giây để user thấy toast
+      setTimeout(() => {
+        navigation.navigate('MainApp');
+      }, 1500);
     } catch (error) {
-      Alert.alert('Lỗi', error.message || 'Đăng nhập thất bại');
+      setToast({
+        visible: true,
+        message: error.message || 'Đăng nhập thất bại',
+        type: 'error',
+      });
     } finally {
       setLoading(false);
     }
@@ -79,6 +92,13 @@ const LoginPage = ({ navigation }) => {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
+      <Toast
+        visible={toast.visible}
+        message={toast.message}
+        type={toast.type}
+        onHide={() => setToast({ ...toast, visible: false })}
+        duration={toast.type === 'success' ? 2000 : 3000}
+      />
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.content}>
           <Text style={styles.title}>Chào mừng trở lại!</Text>

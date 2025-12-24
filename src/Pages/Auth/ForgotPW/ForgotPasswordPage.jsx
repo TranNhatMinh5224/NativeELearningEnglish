@@ -7,17 +7,18 @@ import {
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
-  Alert,
   ActivityIndicator,
 } from 'react-native';
-import { scale, fontSize, spacing } from '../../../Theme/responsive';
+import { scale } from '../../../Theme/responsive';
 import colors from '../../../Theme/colors';
 import authService from '../../../Services/authService';
+import Toast from '../../../Components/Common/Toast';
 
 const ForgotPasswordPage = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [toast, setToast] = useState({ visible: false, message: '', type: 'success' });
 
   const validateEmail = () => {
     if (!email.trim()) {
@@ -38,18 +39,27 @@ const ForgotPasswordPage = ({ navigation }) => {
     setLoading(true);
     try {
       await authService.forgotPassword(email);
-      Alert.alert(
-        'Thành công',
-        'Mã OTP đã được gửi đến email của bạn',
-        [
-          {
-            text: 'OK',
-            onPress: () => navigation.navigate('ResetPassword', { email }),
-          },
-        ]
-      );
+      // Show success toast
+      setToast({
+        visible: true,
+        message: 'Mã OTP đã được gửi đến email của bạn',
+        type: 'success',
+      });
+      // Navigate to OTP verification screen after a short delay
+      setTimeout(() => {
+        navigation.navigate('OTPVerification', {
+          email: email,
+          type: 'forgot-password',
+        });
+      }, 1500);
     } catch (error) {
-      Alert.alert('Lỗi', error.message || 'Gửi mã OTP thất bại');
+      // Extract detailed error message
+      const errorMessage = error?.response?.data?.message || error?.message || 'Gửi mã OTP thất bại';
+      setToast({
+        visible: true,
+        message: errorMessage,
+        type: 'error',
+      });
     } finally {
       setLoading(false);
     }
@@ -60,6 +70,13 @@ const ForgotPasswordPage = ({ navigation }) => {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
+      <Toast
+        visible={toast.visible}
+        message={toast.message}
+        type={toast.type}
+        onHide={() => setToast({ ...toast, visible: false })}
+        duration={3000}
+      />
       <View style={styles.content}>
         {/* Lock Icon */}
         <View style={styles.iconContainer}>
@@ -124,12 +141,12 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    padding: spacing.xl,
+    padding: 32,
     justifyContent: 'center',
   },
   iconContainer: {
     alignItems: 'center',
-    marginBottom: spacing.xl,
+    marginBottom: 32,
   },
   iconCircle: {
     width: scale(100),
@@ -143,35 +160,35 @@ const styles = StyleSheet.create({
     fontSize: scale(50),
   },
   title: {
-    fontSize: fontSize.xxxl,
+    fontSize: 32,
     fontWeight: 'bold',
     color: '#1F2937',
-    marginBottom: spacing.md,
+    marginBottom: 16,
     textAlign: 'center',
   },
   subtitle: {
-    fontSize: fontSize.base,
+    fontSize: 14,
     color: '#6B7280',
-    marginBottom: spacing.xxl,
+    marginBottom: 48,
     textAlign: 'center',
     lineHeight: scale(24),
   },
   inputContainer: {
-    marginBottom: spacing.xl,
+    marginBottom: 32,
   },
   label: {
-    fontSize: fontSize.base,
+    fontSize: 14,
     fontWeight: '600',
     color: '#374151',
-    marginBottom: spacing.sm,
+    marginBottom: 8,
   },
   input: {
     borderWidth: 1,
     borderColor: '#E5E7EB',
     borderRadius: scale(12),
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    fontSize: fontSize.base,
+    paddingHorizontal: 24,
+    paddingVertical: 16,
+    fontSize: 14,
     color: '#1F2937',
     backgroundColor: '#F9FAFB',
   },
@@ -180,19 +197,19 @@ const styles = StyleSheet.create({
   },
   errorText: {
     color: '#EF4444',
-    fontSize: fontSize.sm,
-    marginTop: spacing.xs,
+    fontSize: 12,
+    marginTop: 4,
   },
   sendButton: {
     backgroundColor: colors.primary,
     borderRadius: scale(12),
-    paddingVertical: spacing.lg,
+    paddingVertical: 24,
     alignItems: 'center',
-    marginBottom: spacing.lg,
+    marginBottom: 24,
   },
   sendButtonText: {
     color: '#FFFFFF',
-    fontSize: fontSize.md,
+    fontSize: 16,
     fontWeight: 'bold',
   },
   backButton: {
@@ -200,7 +217,7 @@ const styles = StyleSheet.create({
   },
   backButtonText: {
     color: colors.secondary,
-    fontSize: fontSize.base,
+    fontSize: 14,
     fontWeight: '600',
   },
 });
