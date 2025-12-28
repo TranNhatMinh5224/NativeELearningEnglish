@@ -7,45 +7,30 @@ Mobile application học tiếng Anh, được xây dựng với React Native v�
 ```
 src/
 ├── Components/          # Các component UI tái sử dụng
-│   ├── Assignment/     # Components cho bài tập
-│   ├── Auth/          # Components cho authentication
-│   ├── Common/        # Components chung (Button, Input, Card...)
-│   ├── CourseLearn/   # Components cho màn học
-│   ├── Courses/       # Components hiển thị khóa học
-│   ├── FlashCardDetail/
-│   ├── FlashCardReview/
-│   ├── Header/
-│   ├── Home/
-│   ├── LectureDetail/
-│   ├── LessonDetail/
-│   ├── PaymentHistory/
-│   ├── PronunciationDetail/
-│   ├── Quiz/
-│   └── Welcome/
-│
-├── Context/            # React Context providers
-│   ├── AuthContext.jsx          # Quản lý authentication
-│   ├── NotificationContext.jsx  # Quản lý notifications
-│   └── StreakContext.jsx        # Quản lý streak
-│
-├── hooks/              # Custom hooks
-│   ├── useFacebookLogin.js
-│   └── useGoogleLogin.js
+│   ├── Common/         # Components chung (Logo, Toast...)
+│   ├── Courses/        # Components hiển thị khóa học
+│   ├── Home/           # Components cho Home screen
+│   └── Loading/        # Loading screen components
 │
 ├── Pages/              # Màn hình chính của app
-│   ├── Login.jsx
-│   ├── Register.jsx
-│   ├── ForgotPassword.jsx
-│   ├── Home.jsx
-│   ├── Welcome.jsx
-│   ├── Profile.jsx
-│   ├── CourseDetail.jsx
-│   ├── LessonDetail.jsx
-│   └── ... (các pages khác)
+│   ├── Auth/           # Các màn hình authentication
+│   │   ├── Login/
+│   │   ├── Register/
+│   │   ├── ForgotPW/
+│   │   ├── OTPVerification/
+│   │   └── ResetPassword/
+│   ├── Course/         # Course detail screen
+│   ├── Gym/            # Notebook screen (Sổ tay từ vựng)
+│   ├── Home/           # Home screen
+│   ├── Loading/        # Loading screen
+│   ├── Onion/          # My Courses screen
+│   ├── Pro/            # Premium upgrade screen
+│   ├── Profile/        # Profile screen
+│   ├── Search/         # Search screen
+│   └── Vocabulary/     # Vocabulary review screen
 │
 ├── Routes/             # Navigation configuration
-│   ├── index.jsx      # Main navigator
-│   └── Paths.jsx      # Route paths constants
+│   └── index.jsx       # Main navigator with Tab & Stack
 │
 ├── Services/           # API services
 │   ├── axiosClient.js         # Axios setup với interceptors

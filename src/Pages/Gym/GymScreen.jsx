@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -7,34 +7,56 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   RefreshControl,
+  Image,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import { scale, verticalScale, SAFE_AREA_PADDING } from '../../Theme/responsive';
 import colors from '../../Theme/colors';
 import flashcardReviewService from '../../Services/flashcardReviewService';
+import authService from '../../Services/authService';
 import Toast from '../../Components/Common/Toast';
+import { mochiWelcome } from '../../../assets/images';
 
 const GymScreen = ({ navigation }) => {
   const [statistics, setStatistics] = useState(null);
   const [masteredWords, setMasteredWords] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [toast, setToast] = useState({ visible: false, message: '', type: 'success' });
 
-  useEffect(() => {
-    loadData();
-  }, []);
+  // Reload khi màn hình được focus
+  useFocusEffect(
+    useCallback(() => {
+      checkLoginAndLoadData();
+    }, [])
+  );
+
+  const checkLoginAndLoadData = async () => {
+    try {
+      setLoading(true);
+      const loggedIn = await authService.isLoggedIn();
+      setIsLoggedIn(loggedIn);
+      
+      if (loggedIn) {
+        await loadData();
+      }
+    } catch (error) {
+      // Error handled silently
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const loadData = async () => {
     try {
-      setLoading(true);
-      
-      // Load statistics và mastered words in parallel
       const [statsRes, masteredRes] = await Promise.all([
         flashcardReviewService.getStatistics().catch(() => ({ data: null })),
         flashcardReviewService.getMasteredFlashCards().catch(() => ({ data: null })),
       ]);
 
-      // Parse statistics
       let statsData = null;
       if (statsRes && statsRes.data) {
         statsData = statsRes.data;
@@ -42,7 +64,6 @@ const GymScreen = ({ navigation }) => {
         statsData = statsRes;
       }
 
-      // Parse mastered words
       let masteredData = [];
       if (masteredRes && masteredRes.data) {
         const data = masteredRes.data;
@@ -60,16 +81,60 @@ const GymScreen = ({ navigation }) => {
         totalCount: 0,
       });
       setMasteredWords([]);
-    } finally {
-      setLoading(false);
     }
   };
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await loadData();
+    await checkLoginAndLoadData();
     setRefreshing(false);
   };
+
+  const handleLogin = () => {
+    navigation.navigate('Login');
+  };
+
+  // Render UI khi chưa đăng nhập
+  const renderGuestUI = () => (
+    <View style={styles.guestContainer}>
+      <View style={styles.guestHeader}>
+        <Text style={styles.guestHeaderTitle}>Sổ tay từ vựng</Text>
+      </View>
+      
+      <View style={styles.guestContent}>
+        <View style={styles.guestCard}>
+          <View style={styles.guestIconContainer}>
+            <Image
+              source={mochiWelcome}
+              style={styles.guestImage}
+              resizeMode="contain"
+            />
+          </View>
+          
+          <Text style={styles.guestTitle}>Đăng nhập để xem sổ tay</Text>
+          <Text style={styles.guestMessage}>
+            Bạn cần đăng nhập để xem và quản lý sổ tay từ vựng của mình.
+          </Text>
+
+          <TouchableOpacity
+            style={styles.loginButton}
+            onPress={handleLogin}
+            activeOpacity={0.8}
+          >
+            <LinearGradient
+              colors={[colors.primary, colors.secondary]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.loginButtonGradient}
+            >
+              <Ionicons name="log-in-outline" size={scale(20)} color="#FFFFFF" />
+              <Text style={styles.loginButtonText}>Đăng nhập</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </View>
+  );
 
   if (loading) {
     return (
@@ -78,6 +143,11 @@ const GymScreen = ({ navigation }) => {
         <Text style={styles.loadingText}>Đang tải...</Text>
       </View>
     );
+  }
+
+  // Nếu chưa đăng nhập
+  if (!isLoggedIn) {
+    return renderGuestUI();
   }
 
   const masteredCount = statistics?.masteredCount || masteredWords.length || 0;
@@ -170,6 +240,88 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.textSecondary,
   },
+  // Guest UI Styles
+  guestContainer: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  guestHeader: {
+    paddingHorizontal: 24,
+    paddingTop: 32 + SAFE_AREA_PADDING.top,
+    paddingBottom: 16,
+  },
+  guestHeaderTitle: {
+    fontSize: 32,
+    fontWeight: '700',
+    color: colors.text,
+    textAlign: 'center',
+  },
+  guestContent: {
+    flex: 1,
+    paddingHorizontal: 24,
+    paddingTop: 32,
+    justifyContent: 'center',
+  },
+  guestCard: {
+    backgroundColor: colors.surface,
+    borderRadius: scale(20),
+    padding: 32,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  guestIconContainer: {
+    width: scale(100),
+    height: scale(100),
+    borderRadius: scale(50),
+    backgroundColor: colors.primary + '15',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 24,
+    overflow: 'hidden',
+  },
+  guestImage: {
+    width: scale(80),
+    height: scale(80),
+  },
+  guestTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: colors.text,
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  guestMessage: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: 24,
+  },
+  loginButton: {
+    borderRadius: scale(12),
+    overflow: 'hidden',
+    width: '100%',
+  },
+  loginButtonGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+    gap: 8,
+  },
+  loginButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  // Logged in UI Styles
   scrollView: {
     flex: 1,
   },

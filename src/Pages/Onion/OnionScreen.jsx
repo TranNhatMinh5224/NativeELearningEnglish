@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -9,35 +9,56 @@ import {
   Modal,
   TextInput,
   RefreshControl,
+  Image,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import { scale, verticalScale, SAFE_AREA_PADDING } from '../../Theme/responsive';
 import colors from '../../Theme/colors';
 import courseService from '../../Services/courseService';
+import authService from '../../Services/authService';
 import CourseCard from '../../Components/Courses/CourseCard';
-import EmptyState from '../../Components/Home/EmptyState';
 import Toast from '../../Components/Common/Toast';
+import { mochiWelcome } from '../../../assets/images';
 
 const OnionScreen = ({ navigation }) => {
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [showJoinModal, setShowJoinModal] = useState(false);
   const [classCode, setClassCode] = useState('');
   const [joining, setJoining] = useState(false);
   const [toast, setToast] = useState({ visible: false, message: '', type: 'success' });
 
-  useEffect(() => {
-    loadCourses();
-  }, []);
+  // Reload khi màn hình được focus
+  useFocusEffect(
+    useCallback(() => {
+      checkLoginAndLoadCourses();
+    }, [])
+  );
+
+  const checkLoginAndLoadCourses = async () => {
+    try {
+      setLoading(true);
+      const loggedIn = await authService.isLoggedIn();
+      setIsLoggedIn(loggedIn);
+      
+      if (loggedIn) {
+        await loadCourses();
+      }
+    } catch (error) {
+      // Error handled silently
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const loadCourses = async () => {
     try {
-      setLoading(true);
       const response = await courseService.getMyCourses();
       
-      // Backend trả về ServiceResponse với Data là array
       let coursesData = [];
       if (response && response.data) {
         coursesData = Array.isArray(response.data) ? response.data : [response.data];
@@ -45,7 +66,6 @@ const OnionScreen = ({ navigation }) => {
         coursesData = response;
       }
 
-      // Map dữ liệu từ backend sang format CourseCard
       const mappedCourses = coursesData.map((course) => ({
         id: course.courseId || course.id,
         courseId: course.courseId || course.id,
@@ -60,7 +80,6 @@ const OnionScreen = ({ navigation }) => {
         isNew: course.isNew || course.IsNew || false,
         isCompleted: course.isCompleted || course.IsCompleted || false,
         enrolledAt: course.enrolledAt || course.EnrolledAt,
-        // Giữ nguyên toàn bộ dữ liệu gốc để dùng sau
         ...course,
       }));
 
@@ -68,14 +87,12 @@ const OnionScreen = ({ navigation }) => {
     } catch (error) {
       console.error('Load courses error:', error);
       setCourses([]);
-    } finally {
-      setLoading(false);
     }
   };
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await loadCourses();
+    await checkLoginAndLoadCourses();
     setRefreshing(false);
   };
 
@@ -113,8 +130,61 @@ const OnionScreen = ({ navigation }) => {
   };
 
   const handleCoursePress = (course) => {
-    navigation.navigate('CourseDetail', { courseId: course.courseId || course.id });
+    const courseId = course.courseId || course.id;
+    const courseTitle = course.title || course.Title || course.courseName || 'Khóa học';
+    
+    // Navigate to lesson list instead of course detail for enrolled courses
+    navigation.navigate('LessonList', { 
+      courseId, 
+      courseTitle 
+    });
   };
+
+  const handleLogin = () => {
+    navigation.navigate('Login');
+  };
+
+  // Render UI khi chưa đăng nhập
+  const renderGuestUI = () => (
+    <View style={styles.guestContainer}>
+      <View style={styles.guestHeader}>
+        <Text style={styles.guestHeaderTitle}>Khóa học của tôi</Text>
+      </View>
+      
+      <View style={styles.guestContent}>
+        <View style={styles.guestCard}>
+          <View style={styles.guestIconContainer}>
+            <Image
+              source={mochiWelcome}
+              style={styles.guestImage}
+              resizeMode="contain"
+            />
+          </View>
+          
+          <Text style={styles.guestTitle}>Đăng nhập để xem khóa học</Text>
+          <Text style={styles.guestMessage}>
+            Bạn cần đăng nhập để xem và quản lý các khóa học đã đăng ký.
+          </Text>
+
+          <TouchableOpacity
+            style={styles.loginButton}
+            onPress={handleLogin}
+            activeOpacity={0.8}
+          >
+            <LinearGradient
+              colors={[colors.primary, colors.secondary]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.loginButtonGradient}
+            >
+              <Ionicons name="log-in-outline" size={scale(20)} color="#FFFFFF" />
+              <Text style={styles.loginButtonText}>Đăng nhập</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </View>
+  );
 
   if (loading) {
     return (
@@ -123,6 +193,11 @@ const OnionScreen = ({ navigation }) => {
         <Text style={styles.loadingText}>Đang tải...</Text>
       </View>
     );
+  }
+
+  // Nếu chưa đăng nhập
+  if (!isLoggedIn) {
+    return renderGuestUI();
   }
 
   return (
@@ -298,6 +373,88 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.textSecondary,
   },
+  // Guest UI Styles
+  guestContainer: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  guestHeader: {
+    paddingHorizontal: 24,
+    paddingTop: 32 + SAFE_AREA_PADDING.top,
+    paddingBottom: 16,
+    backgroundColor: colors.surface,
+  },
+  guestHeaderTitle: {
+    fontSize: 32,
+    fontWeight: '700',
+    color: colors.text,
+  },
+  guestContent: {
+    flex: 1,
+    paddingHorizontal: 24,
+    paddingTop: 32,
+    justifyContent: 'center',
+  },
+  guestCard: {
+    backgroundColor: colors.surface,
+    borderRadius: scale(20),
+    padding: 32,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  guestIconContainer: {
+    width: scale(100),
+    height: scale(100),
+    borderRadius: scale(50),
+    backgroundColor: colors.primary + '15',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 24,
+    overflow: 'hidden',
+  },
+  guestImage: {
+    width: scale(80),
+    height: scale(80),
+  },
+  guestTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: colors.text,
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  guestMessage: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: 24,
+  },
+  loginButton: {
+    borderRadius: scale(12),
+    overflow: 'hidden',
+    width: '100%',
+  },
+  loginButtonGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+    gap: 8,
+  },
+  loginButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  // Logged in UI Styles
   scrollView: {
     flex: 1,
   },

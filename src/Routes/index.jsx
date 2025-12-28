@@ -6,7 +6,7 @@ import { View, Text, StyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 // Import Pages
-import WelcomePage from '../Pages/Welcome';
+import LoadingPage from '../Pages/Loading';
 import { LoginPage, RegisterPage, ForgotPasswordPage, OTPVerificationPage, ResetPasswordPage } from '../Pages/Auth';
 import HomeScreen from '../Pages/Home/HomeScreen';
 import OnionScreen from '../Pages/Onion/OnionScreen';
@@ -16,6 +16,8 @@ import ProfileScreen from '../Pages/Profile/ProfileScreen';
 import VocabularyScreen from '../Pages/Vocabulary/VocabularyScreen';
 import CourseDetailScreen from '../Pages/Course/CourseDetailScreen';
 import SearchScreen from '../Pages/Search/SearchScreen';
+import LessonListScreen from '../Pages/Lesson/LessonListScreen';
+import LessonDetailScreen from '../Pages/Lesson/LessonDetailScreen';
 
 // Theme
 import colors from '../Theme/colors';
@@ -72,7 +74,7 @@ const ProfileStack = () => {
   );
 };
 
-// Main Tab Navigator - 4 tabs giống web
+// Main Tab Navigator - 5 tabs
 const MainTabs = () => {
   return (
     <Tab.Navigator
@@ -138,7 +140,13 @@ const AppNavigator = () => {
   return (
     <NavigationContainer>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="Welcome" component={WelcomePage} />
+        {/* Loading Screen - Màn đầu tiên */}
+        <Stack.Screen name="Loading" component={LoadingPage} />
+        
+        {/* Main App - Sau khi loading xong */}
+        <Stack.Screen name="MainApp" component={MainTabs} />
+        
+        {/* Auth Screens */}
         <Stack.Screen name="Login" component={LoginPage} />
         <Stack.Screen name="Register" component={RegisterPage} />
         <Stack.Screen name="ForgotPassword" component={ForgotPasswordPage} />
@@ -156,7 +164,8 @@ const AppNavigator = () => {
             headerShown: false,
           }}
         />
-        <Stack.Screen name="MainApp" component={MainTabs} />
+        
+        {/* Detail Screens */}
         <Stack.Screen
           name="CourseDetail"
           component={CourseDetailScreen}
@@ -168,6 +177,22 @@ const AppNavigator = () => {
         <Stack.Screen
           name="Search"
           component={SearchScreen}
+          options={{
+            headerShown: false,
+            presentation: 'card',
+          }}
+        />
+        <Stack.Screen
+          name="LessonList"
+          component={LessonListScreen}
+          options={{
+            headerShown: false,
+            presentation: 'card',
+          }}
+        />
+        <Stack.Screen
+          name="LessonDetail"
+          component={LessonDetailScreen}
           options={{
             headerShown: false,
             presentation: 'card',

@@ -9,11 +9,15 @@ import {
   Platform,
   ScrollView,
   ActivityIndicator,
+  Image,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
+import { scale, verticalScale, SAFE_AREA_PADDING } from '../../../Theme/responsive';
 import colors from '../../../Theme/colors';
 import authService from '../../../Services/authService';
 import Toast from '../../../Components/Common/Toast';
+import { mochiWelcome } from '../../../../assets/images';
 
 const RegisterPage = ({ navigation }) => {
   const [formData, setFormData] = useState({
@@ -80,7 +84,9 @@ const RegisterPage = ({ navigation }) => {
         email: formData.email,
         password: formData.password,
         phone: formData.phone,
-        birthDate: `${formData.birthYear}-${formData.birthMonth.padStart(2, '0')}-${formData.birthDay.padStart(2, '0')}`,
+        birthDate: formData.birthYear && formData.birthMonth && formData.birthDay
+          ? `${formData.birthYear}-${formData.birthMonth.padStart(2, '0')}-${formData.birthDay.padStart(2, '0')}`
+          : null,
       };
 
       const response = await authService.register(userData);
@@ -125,276 +131,414 @@ const RegisterPage = ({ navigation }) => {
     setErrors({ ...errors, [key]: null });
   };
 
-  const formatDate = (date) => {
-    const day = date.getDate();
-    const month = date.getMonth() + 1;
-    const year = date.getFullYear();
-    return `${day}/${month}/${year}`;
+  const handleGuestLogin = () => {
+    navigation.reset({
+      index: 0,
+      routes: [{ name: 'MainApp' }],
+    });
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        <Toast
-          visible={toast.visible}
-          message={toast.message}
-          type={toast.type}
-          onHide={() => setToast({ ...toast, visible: false })}
-          duration={3000}
-        />
-        <View style={styles.content}>
-          <Text style={styles.title}>Tạo tài khoản của bạn</Text>
-
-          {/* First Name & Last Name */}
-          <View style={styles.row}>
-            <View style={[styles.inputContainer, styles.halfWidth]}>
-              <TextInput
-                style={[styles.input, errors.firstName && styles.inputError]}
-                placeholder="Tên"
-                placeholderTextColor="#9CA3AF"
-                value={formData.firstName}
-                onChangeText={(text) => updateFormData('firstName', text)}
-              />
-              {errors.firstName && (
-                <Text style={styles.errorText}>{errors.firstName}</Text>
-              )}
-            </View>
-
-            <View style={[styles.inputContainer, styles.halfWidth]}>
-              <TextInput
-                style={[styles.input, errors.lastName && styles.inputError]}
-                placeholder="Họ"
-                placeholderTextColor="#9CA3AF"
-                value={formData.lastName}
-                onChangeText={(text) => updateFormData('lastName', text)}
-              />
-              {errors.lastName && (
-                <Text style={styles.errorText}>{errors.lastName}</Text>
-              )}
-            </View>
-          </View>
-
-          {/* Email */}
-          <View style={styles.inputContainer}>
-            <TextInput
-              style={[styles.input, errors.email && styles.inputError]}
-              placeholder="Email"
-              placeholderTextColor="#9CA3AF"
-              value={formData.email}
-              onChangeText={(text) => updateFormData('email', text)}
-              keyboardType="email-address"
-              autoCapitalize="none"
-            />
-            {errors.email && (
-              <Text style={styles.errorText}>{errors.email}</Text>
-            )}
-          </View>
-
-          {/* Password */}
-          <View style={styles.inputContainer}>
-            <View style={[styles.input, errors.password && styles.inputError]}>
-              <TextInput
-                style={styles.passwordInput}
-                placeholder="Tạo mật khẩu"
-                placeholderTextColor="#9CA3AF"
-                value={formData.password}
-                onChangeText={(text) => updateFormData('password', text)}
-                secureTextEntry={!showPassword}
-                autoCapitalize="none"
-              />
-              <TouchableOpacity
-                onPress={() => setShowPassword(!showPassword)}
-                style={styles.eyeIcon}
-              >
-                <Text style={styles.eyeIconText}>{showPassword ? '👁️' : '👁️‍🗨️'}</Text>
-              </TouchableOpacity>
-            </View>
-            {errors.password && (
-              <Text style={styles.errorText}>{errors.password}</Text>
-            )}
-          </View>
-
-          {/* Confirm Password */}
-          <View style={styles.inputContainer}>
-            <View style={[styles.input, errors.confirmPassword && styles.inputError]}>
-              <TextInput
-                style={styles.passwordInput}
-                placeholder="Xác nhận mật khẩu"
-                placeholderTextColor="#9CA3AF"
-                value={formData.confirmPassword}
-                onChangeText={(text) => updateFormData('confirmPassword', text)}
-                secureTextEntry={!showConfirmPassword}
-                autoCapitalize="none"
-              />
-              <TouchableOpacity
-                onPress={() => setShowConfirmPassword(!showConfirmPassword)}
-                style={styles.eyeIcon}
-              >
-                <Text style={styles.eyeIconText}>
-                  {showConfirmPassword ? '👁️' : '👁️‍🗨️'}
-                </Text>
-              </TouchableOpacity>
-            </View>
-            {errors.confirmPassword && (
-              <Text style={styles.errorText}>{errors.confirmPassword}</Text>
-            )}
-          </View>
-
-          {/* Phone */}
-          <View style={styles.inputContainer}>
-            <TextInput
-              style={[styles.input, errors.phone && styles.inputError]}
-              placeholder="Số điện thoại"
-              placeholderTextColor="#9CA3AF"
-              value={formData.phone}
-              onChangeText={(text) => updateFormData('phone', text)}
-              keyboardType="phone-pad"
-            />
-            {errors.phone && (
-              <Text style={styles.errorText}>{errors.phone}</Text>
-            )}
-          </View>
-
-          {/* Birth Date */}
-          <View style={styles.dateContainer}>
-            <View style={styles.dateRow}>
-              <View style={[styles.inputContainer, styles.dateInput]}>
-                <TextInput
-                  style={styles.input}
-                  placeholder="8"
-                  placeholderTextColor="#9CA3AF"
-                  value={formData.birthDay}
-                  onChangeText={(text) => updateFormData('birthDay', text)}
-                  keyboardType="number-pad"
-                  maxLength={2}
-                />
-              </View>
-
-              <View style={[styles.inputContainer, styles.dateInput]}>
-                <TextInput
-                  style={styles.input}
-                  placeholder="5"
-                  placeholderTextColor="#9CA3AF"
-                  value={formData.birthMonth}
-                  onChangeText={(text) => updateFormData('birthMonth', text)}
-                  keyboardType="number-pad"
-                  maxLength={2}
-                />
-              </View>
-
-              <View style={[styles.inputContainer, styles.dateInput]}>
-                <TextInput
-                  style={styles.input}
-                  placeholder="2005"
-                  placeholderTextColor="#9CA3AF"
-                  value={formData.birthYear}
-                  onChangeText={(text) => updateFormData('birthYear', text)}
-                  keyboardType="number-pad"
-                  maxLength={4}
-                />
-              </View>
-
-              <View style={styles.genderContainer}>
-                <TouchableOpacity
-                  style={[
-                    styles.genderButton,
-                    formData.gender === 'Nam' && styles.genderButtonActive,
-                  ]}
-                  onPress={() => updateFormData('gender', 'Nam')}
-                >
-                  <Text
-                    style={[
-                      styles.genderButtonText,
-                      formData.gender === 'Nam' && styles.genderButtonTextActive,
-                    ]}
-                  >
-                    Nam
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[
-                    styles.genderButton,
-                    formData.gender === 'Nữ' && styles.genderButtonActive,
-                  ]}
-                  onPress={() => updateFormData('gender', 'Nữ')}
-                >
-                  <Text
-                    style={[
-                      styles.genderButtonText,
-                      formData.gender === 'Nữ' && styles.genderButtonTextActive,
-                    ]}
-                  >
-                    Nữ
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            {/* Date Labels */}
-            <View style={styles.dateLabels}>
-              <Text style={styles.dateLabel}>Ngày</Text>
-              <Text style={styles.dateLabel}>Tháng</Text>
-              <Text style={styles.dateLabel}>Năm</Text>
-              <Text style={styles.dateLabel}></Text>
-            </View>
-          </View>
-
-          {/* Register Button */}
-          <TouchableOpacity
-            style={styles.registerButton}
-            onPress={handleRegister}
-            disabled={loading}
+    <View style={styles.container}>
+      <Toast
+        visible={toast.visible}
+        message={toast.message}
+        type={toast.type}
+        onHide={() => setToast({ ...toast, visible: false })}
+        duration={toast.type === 'success' ? 2000 : 3000}
+      />
+      
+      <KeyboardAvoidingView
+        style={styles.keyboardView}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
+        <ScrollView 
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+        >
+          {/* Header with Gradient */}
+          <LinearGradient
+            colors={[colors.primary, colors.secondary]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.header}
           >
-            <LinearGradient
-              colors={[colors.primary, colors.accent]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.registerGradient}
+            {/* Back Button */}
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={() => navigation.goBack()}
             >
-              {loading ? (
-                <ActivityIndicator color="#FFFFFF" />
-              ) : (
-                <Text style={styles.registerButtonText}>Đăng ký</Text>
-              )}
-            </LinearGradient>
-          </TouchableOpacity>
+              <Ionicons name="arrow-back" size={scale(24)} color="#FFFFFF" />
+            </TouchableOpacity>
 
-          {/* Login Link */}
-          <View style={styles.loginRow}>
-            <Text style={styles.loginText}>Đã có tài khoản? </Text>
-            <TouchableOpacity onPress={() => navigation.navigate('Login')}>
-              <Text style={styles.loginLink}>Đăng nhập ngay</Text>
+            {/* Logo */}
+            <View style={styles.logoContainer}>
+              <View style={styles.logoCircle}>
+                <Image
+                  source={mochiWelcome}
+                  style={styles.logoImage}
+                  resizeMode="contain"
+                />
+              </View>
+            </View>
+
+            <Text style={styles.headerTitle}>Tạo tài khoản mới</Text>
+            <Text style={styles.headerSubtitle}>
+              Bắt đầu hành trình học tiếng Anh của bạn
+            </Text>
+          </LinearGradient>
+
+          {/* Form Content */}
+          <View style={styles.formContainer}>
+            {/* Name Row */}
+            <View style={styles.nameRow}>
+              <View style={[styles.inputContainer, styles.halfWidth]}>
+                <Text style={styles.inputLabel}>Tên</Text>
+                <View style={[styles.inputWrapper, errors.firstName && styles.inputError]}>
+                  <Ionicons name="person-outline" size={scale(18)} color={colors.textSecondary} style={styles.inputIcon} />
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Tên"
+                    placeholderTextColor={colors.textLight}
+                    value={formData.firstName}
+                    onChangeText={(text) => updateFormData('firstName', text)}
+                  />
+                </View>
+                {errors.firstName && (
+                  <Text style={styles.errorText}>{errors.firstName}</Text>
+                )}
+              </View>
+
+              <View style={[styles.inputContainer, styles.halfWidth]}>
+                <Text style={styles.inputLabel}>Họ</Text>
+                <View style={[styles.inputWrapper, errors.lastName && styles.inputError]}>
+                  <Ionicons name="person-outline" size={scale(18)} color={colors.textSecondary} style={styles.inputIcon} />
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Họ"
+                    placeholderTextColor={colors.textLight}
+                    value={formData.lastName}
+                    onChangeText={(text) => updateFormData('lastName', text)}
+                  />
+                </View>
+                {errors.lastName && (
+                  <Text style={styles.errorText}>{errors.lastName}</Text>
+                )}
+              </View>
+            </View>
+
+            {/* Email Input */}
+            <View style={styles.inputContainer}>
+              <Text style={styles.inputLabel}>Email</Text>
+              <View style={[styles.inputWrapper, errors.email && styles.inputError]}>
+                <Ionicons name="mail-outline" size={scale(20)} color={colors.textSecondary} style={styles.inputIcon} />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Nhập email của bạn"
+                  placeholderTextColor={colors.textLight}
+                  value={formData.email}
+                  onChangeText={(text) => updateFormData('email', text)}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                />
+              </View>
+              {errors.email && (
+                <Text style={styles.errorText}>{errors.email}</Text>
+              )}
+            </View>
+
+            {/* Password Input */}
+            <View style={styles.inputContainer}>
+              <Text style={styles.inputLabel}>Mật khẩu</Text>
+              <View style={[styles.inputWrapper, errors.password && styles.inputError]}>
+                <Ionicons name="lock-closed-outline" size={scale(20)} color={colors.textSecondary} style={styles.inputIcon} />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Tạo mật khẩu (ít nhất 6 ký tự)"
+                  placeholderTextColor={colors.textLight}
+                  value={formData.password}
+                  onChangeText={(text) => updateFormData('password', text)}
+                  secureTextEntry={!showPassword}
+                  autoCapitalize="none"
+                />
+                <TouchableOpacity
+                  onPress={() => setShowPassword(!showPassword)}
+                  style={styles.eyeButton}
+                >
+                  <Ionicons 
+                    name={showPassword ? 'eye-off-outline' : 'eye-outline'} 
+                    size={scale(22)} 
+                    color={colors.textSecondary} 
+                  />
+                </TouchableOpacity>
+              </View>
+              {errors.password && (
+                <Text style={styles.errorText}>{errors.password}</Text>
+              )}
+            </View>
+
+            {/* Confirm Password Input */}
+            <View style={styles.inputContainer}>
+              <Text style={styles.inputLabel}>Xác nhận mật khẩu</Text>
+              <View style={[styles.inputWrapper, errors.confirmPassword && styles.inputError]}>
+                <Ionicons name="shield-checkmark-outline" size={scale(20)} color={colors.textSecondary} style={styles.inputIcon} />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Nhập lại mật khẩu"
+                  placeholderTextColor={colors.textLight}
+                  value={formData.confirmPassword}
+                  onChangeText={(text) => updateFormData('confirmPassword', text)}
+                  secureTextEntry={!showConfirmPassword}
+                  autoCapitalize="none"
+                />
+                <TouchableOpacity
+                  onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                  style={styles.eyeButton}
+                >
+                  <Ionicons 
+                    name={showConfirmPassword ? 'eye-off-outline' : 'eye-outline'} 
+                    size={scale(22)} 
+                    color={colors.textSecondary} 
+                  />
+                </TouchableOpacity>
+              </View>
+              {errors.confirmPassword && (
+                <Text style={styles.errorText}>{errors.confirmPassword}</Text>
+              )}
+            </View>
+
+            {/* Phone Input */}
+            <View style={styles.inputContainer}>
+              <Text style={styles.inputLabel}>Số điện thoại (tùy chọn)</Text>
+              <View style={[styles.inputWrapper, errors.phone && styles.inputError]}>
+                <Ionicons name="call-outline" size={scale(20)} color={colors.textSecondary} style={styles.inputIcon} />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Nhập số điện thoại"
+                  placeholderTextColor={colors.textLight}
+                  value={formData.phone}
+                  onChangeText={(text) => updateFormData('phone', text)}
+                  keyboardType="phone-pad"
+                />
+              </View>
+              {errors.phone && (
+                <Text style={styles.errorText}>{errors.phone}</Text>
+              )}
+            </View>
+
+            {/* Birth Date & Gender */}
+            <View style={styles.inputContainer}>
+              <Text style={styles.inputLabel}>Ngày sinh & Giới tính (tùy chọn)</Text>
+              <View style={styles.dateGenderRow}>
+                <View style={[styles.dateInputWrapper, styles.smallInput]}>
+                  <TextInput
+                    style={styles.dateInput}
+                    placeholder="DD"
+                    placeholderTextColor={colors.textLight}
+                    value={formData.birthDay}
+                    onChangeText={(text) => updateFormData('birthDay', text)}
+                    keyboardType="number-pad"
+                    maxLength={2}
+                  />
+                </View>
+
+                <View style={[styles.dateInputWrapper, styles.smallInput]}>
+                  <TextInput
+                    style={styles.dateInput}
+                    placeholder="MM"
+                    placeholderTextColor={colors.textLight}
+                    value={formData.birthMonth}
+                    onChangeText={(text) => updateFormData('birthMonth', text)}
+                    keyboardType="number-pad"
+                    maxLength={2}
+                  />
+                </View>
+
+                <View style={[styles.dateInputWrapper, styles.yearInput]}>
+                  <TextInput
+                    style={styles.dateInput}
+                    placeholder="YYYY"
+                    placeholderTextColor={colors.textLight}
+                    value={formData.birthYear}
+                    onChangeText={(text) => updateFormData('birthYear', text)}
+                    keyboardType="number-pad"
+                    maxLength={4}
+                  />
+                </View>
+
+                <View style={styles.genderContainer}>
+                  <TouchableOpacity
+                    style={[
+                      styles.genderButton,
+                      formData.gender === 'Nam' && styles.genderButtonActive,
+                    ]}
+                    onPress={() => updateFormData('gender', 'Nam')}
+                  >
+                    <Ionicons 
+                      name="male" 
+                      size={scale(16)} 
+                      color={formData.gender === 'Nam' ? '#FFFFFF' : colors.textSecondary} 
+                    />
+                    <Text
+                      style={[
+                        styles.genderButtonText,
+                        formData.gender === 'Nam' && styles.genderButtonTextActive,
+                      ]}
+                    >
+                      Nam
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[
+                      styles.genderButton,
+                      formData.gender === 'Nữ' && styles.genderButtonActive,
+                    ]}
+                    onPress={() => updateFormData('gender', 'Nữ')}
+                  >
+                    <Ionicons 
+                      name="female" 
+                      size={scale(16)} 
+                      color={formData.gender === 'Nữ' ? '#FFFFFF' : colors.textSecondary} 
+                    />
+                    <Text
+                      style={[
+                        styles.genderButtonText,
+                        formData.gender === 'Nữ' && styles.genderButtonTextActive,
+                      ]}
+                    >
+                      Nữ
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+
+            {/* Register Button */}
+            <TouchableOpacity
+              style={styles.registerButton}
+              onPress={handleRegister}
+              disabled={loading}
+              activeOpacity={0.8}
+            >
+              <LinearGradient
+                colors={[colors.primary, colors.secondary]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.registerGradient}
+              >
+                {loading ? (
+                  <ActivityIndicator color="#FFFFFF" />
+                ) : (
+                  <>
+                    <Text style={styles.registerButtonText}>Đăng ký</Text>
+                    <Ionicons name="arrow-forward" size={scale(20)} color="#FFFFFF" style={styles.registerButtonIcon} />
+                  </>
+                )}
+              </LinearGradient>
+            </TouchableOpacity>
+
+            {/* Login Link */}
+            <View style={styles.loginRow}>
+              <Text style={styles.loginText}>Đã có tài khoản? </Text>
+              <TouchableOpacity onPress={() => navigation.navigate('Login')}>
+                <Text style={styles.loginLink}>Đăng nhập ngay</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Divider */}
+            <View style={styles.divider}>
+              <View style={styles.dividerLine} />
+              <Text style={styles.dividerText}>hoặc</Text>
+              <View style={styles.dividerLine} />
+            </View>
+
+            {/* Guest Login */}
+            <TouchableOpacity
+              style={styles.guestButton}
+              onPress={handleGuestLogin}
+            >
+              <Ionicons name="person-outline" size={scale(18)} color={colors.textSecondary} />
+              <Text style={styles.guestButtonText}>Tiếp tục với tư cách khách</Text>
             </TouchableOpacity>
           </View>
-        </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.background,
+  },
+  keyboardView: {
+    flex: 1,
   },
   scrollContent: {
     flexGrow: 1,
   },
-  content: {
-    padding: 32,
-    paddingTop: 72,
+  // Header Styles
+  header: {
+    paddingTop: verticalScale(8) + SAFE_AREA_PADDING.top,
+    paddingBottom: verticalScale(16),
+    paddingHorizontal: 20,
+    borderBottomLeftRadius: scale(24),
+    borderBottomRightRadius: scale(24),
   },
-  title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#1F2937',
-    marginBottom: 32,
+  backButton: {
+    width: scale(34),
+    height: scale(34),
+    borderRadius: scale(17),
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  logoContainer: {
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  logoCircle: {
+    width: scale(56),
+    height: scale(56),
+    borderRadius: scale(28),
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 6,
+  },
+  logoImage: {
+    width: scale(44),
+    height: scale(44),
+    borderRadius: scale(22),
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    textAlign: 'center',
+    marginBottom: 4,
+  },
+  headerSubtitle: {
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.9)',
     textAlign: 'center',
   },
-  row: {
+  // Form Styles
+  formContainer: {
+    flex: 1,
+    paddingHorizontal: 24,
+    paddingTop: 24,
+    paddingBottom: 24,
+  },
+  nameRow: {
     flexDirection: 'row',
     gap: 12,
   },
@@ -402,73 +546,85 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   inputContainer: {
-    marginBottom: 24,
+    marginBottom: 16,
+  },
+  inputLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 6,
+  },
+  inputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.surface,
+    borderRadius: scale(12),
+    borderWidth: 1,
+    borderColor: colors.border,
+    paddingHorizontal: 14,
+  },
+  inputIcon: {
+    marginRight: 10,
   },
   input: {
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    borderRadius: 12,
-    paddingHorizontal: 16,
+    flex: 1,
     paddingVertical: 14,
     fontSize: 14,
-    color: '#1F2937',
-    backgroundColor: '#F9FAFB',
-    flexDirection: 'row',
-    alignItems: 'center',
+    color: colors.text,
   },
   inputError: {
-    borderColor: '#EF4444',
+    borderColor: colors.error,
   },
-  passwordInput: {
-    flex: 1,
-    fontSize: 14,
-    color: '#1F2937',
-  },
-  eyeIcon: {
-    padding: 8,
-    marginLeft: 4,
-  },
-  eyeIconText: {
-    fontSize: 20,
+  eyeButton: {
+    padding: 4,
   },
   errorText: {
-    color: '#EF4444',
-    fontSize: 12,
+    color: colors.error,
+    fontSize: 11,
     marginTop: 4,
   },
-  datePickerButton: {
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    backgroundColor: '#F3F4F6',
-    marginBottom: 8,
-  },
-  dateContainer: {
-    marginBottom: 24,
-  },
-  dateRow: {
+  // Date & Gender Styles
+  dateGenderRow: {
     flexDirection: 'row',
     gap: 8,
-    alignItems: 'flex-start',
+    alignItems: 'center',
+  },
+  dateInputWrapper: {
+    backgroundColor: colors.surface,
+    borderRadius: scale(10),
+    borderWidth: 1,
+    borderColor: colors.border,
+    paddingHorizontal: 10,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  smallInput: {
+    width: scale(50),
+  },
+  yearInput: {
+    width: scale(65),
   },
   dateInput: {
-    flex: 1,
-    marginBottom: 0,
+    fontSize: 14,
+    color: colors.text,
+    textAlign: 'center',
   },
   genderContainer: {
-    flex: 1.2,
-    flexDirection: 'column',
-    gap: 4,
+    flex: 1,
+    flexDirection: 'row',
+    gap: 6,
   },
   genderButton: {
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    borderRadius: 12,
-    paddingVertical: 4,
-    backgroundColor: '#F9FAFB',
+    flex: 1,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: scale(10),
+    paddingVertical: 12,
+    backgroundColor: colors.surface,
   },
   genderButtonActive: {
     backgroundColor: colors.primary,
@@ -476,55 +632,78 @@ const styles = StyleSheet.create({
   },
   genderButtonText: {
     fontSize: 12,
-    color: '#6B7280',
+    color: colors.textSecondary,
     fontWeight: '600',
   },
   genderButtonTextActive: {
     color: '#FFFFFF',
   },
-  dateText: {
-    fontSize: 18,
-    color: '#1F2937',
-    textAlign: 'center',
-  },
-  dateLabels: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 4,
-    paddingHorizontal: 4,
-  },
-  dateLabel: {
-    fontSize: 12,
-    color: '#6B7280',
-    flex: 1,
-    textAlign: 'center',
-  },
+  // Register Button
   registerButton: {
-    borderRadius: 12,
+    borderRadius: scale(12),
     overflow: 'hidden',
-    marginBottom: 24,
+    marginTop: 8,
+    marginBottom: 16,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
   },
   registerGradient: {
+    flexDirection: 'row',
     paddingVertical: 16,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   registerButtonText: {
     color: '#FFFFFF',
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '700',
+  },
+  registerButtonIcon: {
+    marginLeft: 8,
   },
   loginRow: {
     flexDirection: 'row',
     justifyContent: 'center',
+    marginBottom: 20,
   },
   loginText: {
     fontSize: 14,
-    color: '#6B7280',
+    color: colors.textSecondary,
   },
   loginLink: {
     fontSize: 14,
-    color: colors.secondary,
+    color: colors.primary,
     fontWeight: '600',
+  },
+  divider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: colors.border,
+  },
+  dividerText: {
+    marginHorizontal: 16,
+    fontSize: 13,
+    color: colors.textSecondary,
+  },
+  guestButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
+    gap: 8,
+  },
+  guestButtonText: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    fontWeight: '500',
   },
 });
 

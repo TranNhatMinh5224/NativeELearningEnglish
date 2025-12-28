@@ -1,84 +1,75 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Image, Animated } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { useFadeIn, useSlideIn } from '../../Theme/animations';
-import { scale } from '../../Theme/responsive';
+import { View, Text, StyleSheet, Image } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { scale, verticalScale } from '../../Theme/responsive';
 import colors from '../../Theme/colors';
 
-const FeatureSectionTwo = React.memo(({ featureImage, onLearnMore }) => {
-  const fadeIn = useFadeIn(800, 600);
-  const slideUp = useSlideIn('up', 600, 700);
+const FeatureSectionTwo = ({ featureImage }) => {
+  const features = [
+    { icon: 'book-outline', text: 'Hàng ngàn bài học miễn phí' },
+    { icon: 'trophy-outline', text: 'Theo dõi tiến trình học tập' },
+    { icon: 'people-outline', text: 'Cộng đồng học viên sôi động' },
+    { icon: 'time-outline', text: 'Học mọi lúc, mọi nơi' },
+  ];
 
   return (
-    <Animated.View
-      style={{
-        opacity: fadeIn,
-        transform: [{ translateY: slideUp }],
-      }}
-    >
-      <LinearGradient
-        colors={[colors.primary, colors.accent]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 0 }}
-        style={styles.container}
-      >
-        <View style={styles.content}>
-          <Text style={styles.title}>
-            Đạt 6.5 IELTS sau 1 khóa học{'\n'}với Adaptive Learning
-          </Text>
-
-          <TouchableOpacity
-            style={styles.button}
-            onPress={onLearnMore}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.buttonText}>Tìm hiểu thêm</Text>
-          </TouchableOpacity>
-        </View>
-
-        {featureImage && (
-          <Image source={featureImage} style={styles.image} resizeMode="contain" />
-        )}
-      </LinearGradient>
-    </Animated.View>
+    <View style={styles.container}>
+      <Text style={styles.title}>Tại sao chọn Catalunya English?</Text>
+      <View style={styles.featuresGrid}>
+        {features.map((feature, index) => (
+          <View key={index} style={styles.featureItem}>
+            <View style={styles.iconContainer}>
+              <Ionicons name={feature.icon} size={24} color={colors.primary} />
+            </View>
+            <Text style={styles.featureText}>{feature.text}</Text>
+          </View>
+        ))}
+      </View>
+    </View>
   );
-});
-
-FeatureSectionTwo.displayName = 'FeatureSectionTwo';
+};
 
 const styles = StyleSheet.create({
   container: {
-    padding: 32,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  content: {
-    flex: 1,
-    paddingRight: 24,
+    paddingVertical: verticalScale(32),
+    paddingHorizontal: scale(24),
+    backgroundColor: '#FFFFFF',
   },
   title: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-    marginBottom: 24,
-    lineHeight: scale(28),
+    fontSize: 22,
+    fontWeight: '700',
+    color: colors.text,
+    marginBottom: verticalScale(24),
+    textAlign: 'center',
   },
-  button: {
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: scale(20),
-    alignSelf: 'flex-start',
+  featuresGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
   },
-  buttonText: {
-    color: colors.secondary,
-    fontSize: 12,
-    fontWeight: '600',
+  featureItem: {
+    width: '48%',
+    backgroundColor: colors.surface,
+    borderRadius: scale(12),
+    padding: scale(16),
+    marginBottom: verticalScale(16),
+    alignItems: 'center',
   },
-  image: {
-    width: scale(150),
-    height: scale(150),
+  iconContainer: {
+    width: scale(48),
+    height: scale(48),
+    borderRadius: scale(24),
+    backgroundColor: colors.primaryLight,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: verticalScale(12),
+  },
+  featureText: {
+    fontSize: 13,
+    color: colors.text,
+    textAlign: 'center',
+    fontWeight: '500',
+    lineHeight: 18,
   },
 });
 

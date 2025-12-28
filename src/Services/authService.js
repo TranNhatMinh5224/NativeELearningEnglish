@@ -167,6 +167,15 @@ const authService = {
     }
   },
 
+  // Save user to AsyncStorage
+  saveUser: async (userData) => {
+    try {
+      await AsyncStorage.setItem('user', JSON.stringify(userData));
+    } catch (error) {
+      // Error saving user
+    }
+  },
+
   // Check if logged in
   isLoggedIn: async () => {
     try {

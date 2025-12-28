@@ -1,119 +1,113 @@
 import React from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { scale, verticalScale } from '../../Theme/responsive';
 import colors from '../../Theme/colors';
 import { mochiKhoaHoc } from '../../../assets/images';
 
 const CourseCard = ({ course, onPress, showProgress = false }) => {
-  // Map dữ liệu từ backend (hỗ trợ cả PascalCase và camelCase)
-  const {
-    title = course.Title || course.courseName || 'Khóa học',
-    description = course.Description || course.courseDescription || '',
-    thumbnail = course.ImageUrl || course.imageUrl || course.thumbnail,
-    level = course.Level || course.level || null,
-    totalLessons = course.TotalLessons || course.totalLessons || course.lessonCount || course.LessonCount || 0,
-    completedLessons = course.CompletedLessons || course.completedLessons || 0,
-    difficulty = course.Difficulty || course.difficulty || null,
-    isNew = course.IsNew || course.isNew || false,
-    progressPercentage = course.ProgressPercentage || course.progressPercentage || 0,
-  } = course;
+  // Defensive check
+  if (!course) return null;
 
-  // Calculate progress percentage (ưu tiên progressPercentage từ backend, nếu không có thì tính từ completed/total)
+  // Map dữ liệu từ backend (hỗ trợ cả PascalCase và camelCase)
+  const title = course.title || course.Title || course.courseName || 'Khóa học';
+  const thumbnail = course.ImageUrl || course.imageUrl || course.thumbnail || null;
+  const totalLessons = course.TotalLessons || course.totalLessons || course.lessonCount || course.LessonCount || 0;
+  const completedLessons = course.CompletedLessons || course.completedLessons || 0;
+  const difficulty = course.Difficulty || course.difficulty || null;
+  const isNew = course.IsNew || course.isNew || false;
+  const isPro = course.IsPro || course.isPro || false;
+  const price = course.Price || course.price || 0;
+  const progressPercentage = course.ProgressPercentage || course.progressPercentage || 0;
+
+  // Calculate progress percentage
   const progress = progressPercentage > 0 
     ? progressPercentage 
     : (totalLessons > 0 ? (completedLessons / totalLessons) * 100 : 0);
 
   // Get difficulty badge
   const getDifficultyBadge = () => {
-    if (isNew) return { label: 'MỚI', color: colors.info };
+    if (isNew) return { label: 'MỚI', color: '#3B82F6' };
     
-    switch (difficulty?.toLowerCase()) {
+    const diff = difficulty ? String(difficulty).toLowerCase() : '';
+    switch (diff) {
       case 'easy':
-        return { label: 'DỄ', color: colors.success };
+        return { label: 'DỄ', color: '#10B981' };
       case 'medium':
-        return { label: 'VỪA', color: colors.warning };
+        return { label: 'VỪA', color: '#F59E0B' };
       case 'hard':
-        return { label: 'KHÓ', color: colors.error };
+        return { label: 'KHÓ', color: '#EF4444' };
       default:
-        return null;
+        return { label: 'DỄ', color: '#10B981' };
     }
   };
 
   const badge = getDifficultyBadge();
 
+  // Format price
+  const formatPrice = (p) => {
+    if (!p || p === 0) return 'Miễn phí';
+    try {
+      return String(p).replace(/\B(?=(\d{3})+(?!\d))/g, '.') + 'đ';
+    } catch {
+      return 'Miễn phí';
+    }
+  };
+
   return (
     <TouchableOpacity
       style={styles.container}
       onPress={onPress}
-      activeOpacity={0.8}
+      activeOpacity={0.9}
     >
-      <View style={styles.gradient}>
-        {/* Course Image */}
-        <View style={styles.imageContainer}>
-          <Image
-            source={
-              thumbnail
-                ? { uri: thumbnail }
-                : mochiKhoaHoc
-            }
-            style={styles.image}
-            resizeMode="cover"
-          />
-          
-          {/* Difficulty Badge */}
-          {badge && (
-            <View style={[styles.badge, { backgroundColor: badge.color }]}>
-              <Text style={styles.badgeText}>{badge.label}</Text>
-            </View>
-          )}
+      {/* Left Content */}
+      <View style={styles.leftContent}>
+        {/* Difficulty Badge */}
+        <View style={[styles.badge, { backgroundColor: badge.color }]}>
+          <Text style={styles.badgeText}>{badge.label}</Text>
         </View>
 
-        {/* Course Info */}
-        <View style={styles.content}>
-          {/* Level Tag */}
-          {level && (
-            <View style={styles.levelTag}>
-              <Text style={styles.levelText}>{level}</Text>
+        {/* Title */}
+        <Text style={styles.title} numberOfLines={2}>
+          {title}
+        </Text>
+
+        {/* Lessons Count or Price */}
+        <Text style={styles.lessons}>
+          {totalLessons > 0 ? `${totalLessons} Bài học` : formatPrice(price)}
+        </Text>
+
+        {/* Progress Bar */}
+        {showProgress && progress > 0 && (
+          <View style={styles.progressContainer}>
+            <View style={styles.progressBar}>
+              <View
+                style={[
+                  styles.progressFill,
+                  { width: `${Math.min(progress, 100)}%` },
+                ]}
+              />
             </View>
-          )}
+            <Text style={styles.progressText}>{Math.round(progress)}%</Text>
+          </View>
+        )}
+      </View>
 
-          {/* Title */}
-          <Text style={styles.title} numberOfLines={2}>
-            {title}
-          </Text>
-
-          {/* Description */}
-          {description && (
-            <Text style={styles.description} numberOfLines={2}>
-              {description}
-            </Text>
-          )}
-
-          {/* Lessons Count */}
-          <Text style={styles.lessons}>
-            {totalLessons} Bài học
-            {showProgress && completedLessons > 0 && ` • ${completedLessons} hoàn thành`}
-          </Text>
-
-          {/* Progress Bar (only if showProgress is true) */}
-          {showProgress && (
-            <View style={styles.progressContainer}>
-              <View style={styles.progressBar}>
-                <View
-                  style={[
-                    styles.progressFill,
-                    {
-                      width: `${progress}%`,
-                      backgroundColor:
-                        progress === 100 ? colors.success : colors.primary,
-                    },
-                  ]}
-                />
-              </View>
-              <Text style={styles.progressText}>{Math.round(progress)}%</Text>
-            </View>
-          )}
-        </View>
+      {/* Right Image */}
+      <View style={styles.imageContainer}>
+        <Image
+          source={thumbnail ? { uri: thumbnail } : mochiKhoaHoc}
+          style={styles.image}
+          resizeMode="cover"
+          defaultSource={mochiKhoaHoc}
+        />
+        
+        {/* Pro Badge */}
+        {isPro && (
+          <View style={styles.proBadge}>
+            <Ionicons name="crown" size={scale(14)} color="#F59E0B" />
+          </View>
+        )}
       </View>
     </TouchableOpacity>
   );
@@ -121,103 +115,93 @@ const CourseCard = ({ course, onPress, showProgress = false }) => {
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: 16,
+    flexDirection: 'row',
+    marginBottom: 12,
     borderRadius: scale(16),
     overflow: 'hidden',
+    backgroundColor: '#1F2937',
+    height: verticalScale(120),
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
-    shadowRadius: 12,
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
     elevation: 5,
-    backgroundColor: '#FFFFFF',
   },
-  gradient: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: scale(16),
-    overflow: 'hidden',
-  },
-  imageContainer: {
-    width: '100%',
-    height: verticalScale(180),
-    position: 'relative',
-    backgroundColor: '#F3F4F6',
-  },
-  image: {
-    width: '100%',
-    height: '100%',
-    backgroundColor: colors.background,
+  leftContent: {
+    flex: 1,
+    padding: 14,
+    justifyContent: 'center',
   },
   badge: {
-    position: 'absolute',
-    top: 8,
-    left: 8,
-    paddingHorizontal: 8,
-    paddingVertical: scale(4),
-    borderRadius: scale(6),
+    alignSelf: 'flex-start',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: scale(10),
+    marginBottom: 8,
   },
   badgeText: {
     fontSize: 10,
-    fontWeight: 'bold',
+    fontWeight: '700',
     color: '#FFFFFF',
-  },
-  content: {
-    padding: 16,
-  },
-  levelTag: {
-    alignSelf: 'flex-start',
-    backgroundColor: colors.primary,
-    paddingHorizontal: 8,
-    paddingVertical: scale(4),
-    borderRadius: scale(6),
-    marginBottom: 8,
-  },
-  levelText: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: '#FFFFFF',
+    letterSpacing: 0.3,
   },
   title: {
     fontSize: 16,
     fontWeight: '700',
-    color: colors.text,
+    color: '#FFFFFF',
     marginBottom: 6,
-    lineHeight: 16 * 1.3,
-  },
-  description: {
-    fontSize: 13,
-    color: colors.textSecondary,
-    marginBottom: 10,
-    lineHeight: 13 * 1.5,
+    lineHeight: 20,
   },
   lessons: {
     fontSize: 12,
-    color: colors.textSecondary,
-    marginBottom: 8,
+    color: 'rgba(255, 255, 255, 0.7)',
     fontWeight: '500',
   },
   progressContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 4,
+    marginTop: 8,
   },
   progressBar: {
     flex: 1,
-    height: scale(6),
-    backgroundColor: colors.border,
-    borderRadius: scale(3),
+    height: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 2,
     overflow: 'hidden',
     marginRight: 8,
   },
   progressFill: {
     height: '100%',
-    borderRadius: scale(3),
+    backgroundColor: '#10B981',
+    borderRadius: 2,
   },
   progressText: {
     fontSize: 10,
     fontWeight: '600',
-    color: colors.text,
-    minWidth: scale(35),
+    color: '#10B981',
+    minWidth: 28,
     textAlign: 'right',
+  },
+  imageContainer: {
+    width: scale(110),
+    height: '100%',
+    position: 'relative',
+    backgroundColor: '#374151',
+  },
+  image: {
+    width: '100%',
+    height: '100%',
+  },
+  proBadge: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    width: scale(24),
+    height: scale(24),
+    borderRadius: scale(12),
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });
 

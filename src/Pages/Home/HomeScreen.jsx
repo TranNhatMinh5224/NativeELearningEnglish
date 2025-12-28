@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -8,68 +8,62 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Image,
-  TextInput,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { scale, verticalScale } from '../../Theme/responsive';
+import { useFocusEffect } from '@react-navigation/native';
+import { scale, verticalScale, SAFE_AREA_PADDING } from '../../Theme/responsive';
 import colors from '../../Theme/colors';
-import { useFadeIn } from '../../Theme/animations';
 import CourseCard from '../../Components/Courses/CourseCard';
 import EmptyState from '../../Components/Home/EmptyState';
 import courseService from '../../Services/courseService';
 import authService from '../../Services/authService';
 import { mochiWelcome } from '../../../assets/images';
+import {
+  FeatureSectionOne,
+  FeatureSectionTwo,
+  WelcomeFooter,
+} from '../../Components/Welcome';
 
 const HomeScreen = ({ navigation }) => {
   const [user, setUser] = useState(null);
-  const [myCourses, setMyCourses] = useState([]);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [featuredCourses, setFeaturedCourses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  
-  const fadeIn = useFadeIn();
 
-  // Load initial data
-  useEffect(() => {
-    loadData();
-  }, []);
+  // Load data khi màn hình được focus (để reload sau khi đăng nhập)
+  useFocusEffect(
+    useCallback(() => {
+      loadData();
+    }, [])
+  );
 
   // Load user and courses data
   const loadData = async () => {
     try {
       setLoading(true);
       
-      // Get current user
-      const currentUser = await authService.getCurrentUser();
-      setUser(currentUser);
+      // Check if user is logged in
+      const loggedIn = await authService.isLoggedIn();
+      setIsLoggedIn(loggedIn);
+      
+      // Get current user if logged in
+      if (loggedIn) {
+        const currentUser = await authService.getCurrentUser();
+        setUser(currentUser);
+      }
 
-      // Load courses in parallel
-      const [myCoursesRes, featuredCoursesRes] = await Promise.all([
-        courseService.getMyCourses().catch((err) => {
-          console.error('Error loading my courses:', err);
-          return { data: [] };
-        }),
-        courseService.getFeaturedCourses().catch((err) => {
-          console.error('Error loading featured courses:', err);
-          return { data: [] };
-        }),
-      ]);
-
-      // Backend trả về ServiceResponse: { success, data, message, statusCode }
-      // axiosClient đã unwrap response.data, nên response trực tiếp là ServiceResponse
-      const myCoursesData = myCoursesRes?.data || myCoursesRes || [];
+      // Load featured courses (public - không cần đăng nhập)
+      const featuredCoursesRes = await courseService.getFeaturedCourses().catch((err) => {
+        console.error('Error loading featured courses:', err);
+        return { data: [] };
+      });
+      
       const featuredCoursesData = featuredCoursesRes?.data || featuredCoursesRes || [];
-
-      console.log('My courses count:', Array.isArray(myCoursesData) ? myCoursesData.length : 0);
-      console.log('Featured courses count:', Array.isArray(featuredCoursesData) ? featuredCoursesData.length : 0);
-
-      setMyCourses(Array.isArray(myCoursesData) ? myCoursesData : []);
       setFeaturedCourses(Array.isArray(featuredCoursesData) ? featuredCoursesData : []);
     } catch (error) {
       console.error('Error loading data:', error);
-      setMyCourses([]);
       setFeaturedCourses([]);
     } finally {
       setLoading(false);
@@ -91,7 +85,19 @@ const HomeScreen = ({ navigation }) => {
     }
   };
 
-  // Render header with gradient (compact)
+  // Navigate to Login
+  const handleLogin = () => {
+    navigation.navigate('Login');
+  };
+
+  // Navigate to Register
+  const handleRegister = () => {
+    navigation.navigate('Register');
+  };
+
+
+
+  // Render header with gradient
   const renderHeader = () => (
     <LinearGradient
       colors={[colors.primary, colors.secondary]}
@@ -113,12 +119,35 @@ const HomeScreen = ({ navigation }) => {
         </View>
         
         <View style={styles.headerRight}>
-          <TouchableOpacity style={styles.coinBadge}>
-            <Text style={styles.coinText}>💰 0 ngày</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.notificationButton}>
-            <Text style={styles.notificationIcon}>🔔</Text>
-          </TouchableOpacity>
+          {isLoggedIn ? (
+            <>
+              <TouchableOpacity style={styles.coinBadge}>
+                <Text style={styles.coinIcon}>💰</Text>
+                <Text style={styles.coinText}>0 ngày</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.notificationButton}>
+                <Ionicons name="notifications" size={scale(20)} color="#FFFFFF" />
+              </TouchableOpacity>
+            </>
+          ) : (
+            <View style={styles.authButtons}>
+              <TouchableOpacity
+                style={styles.loginButton}
+                onPress={handleLogin}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.loginText}>Đăng nhập</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.registerButton}
+                onPress={handleRegister}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.registerText}>Đăng ký</Text>
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
       </View>
     </LinearGradient>
@@ -150,96 +179,71 @@ const HomeScreen = ({ navigation }) => {
         {/* Header */}
         {renderHeader()}
 
-        {/* Content */}
-        <View style={styles.content}>
-          {/* Welcome Message - Outside header */}
-          <View style={styles.welcomeContainer}>
-            <Text style={styles.welcomeText}>
-              Chào mừng trở lại, {user?.firstName || 'bạn'} ✨
-            </Text>
-            <Text style={styles.welcomeSubtext}>
-              Hãy tiếp tục hành trình học tiếng Anh nào.
-            </Text>
-          </View>
-
-          {/* Search Bar */}
-          <TouchableOpacity
-            style={styles.searchContainer}
-            onPress={() => navigation.navigate('Search')}
-            activeOpacity={0.7}
-          >
-            <Ionicons name="search" size={scale(20)} color={colors.textSecondary} style={styles.searchIcon} />
-            <Text style={styles.searchPlaceholder}>Tìm kiếm khóa học...</Text>
-          </TouchableOpacity>
-
-          {/* My Courses Section */}
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Khóa học của tôi</Text>
-              {myCourses.length > 0 && (
-                <TouchableOpacity
-                  onPress={() => navigation.navigate('MyCourses')}
-                >
-                  <Text style={styles.seeAllText}>Xem tất cả →</Text>
-                </TouchableOpacity>
-              )}
-            </View>
-
-            {myCourses.length === 0 ? (
-              <EmptyState
-                title="Chưa có khóa học nào"
-                message="Hãy khám phá các khóa học dưới đây để bắt đầu hành trình học tập của bạn!"
-              />
-            ) : (
-              <View style={styles.coursesList}>
-                {myCourses.slice(0, 3).map((course) => (
-                  <CourseCard
-                    key={course.CourseId || course.courseId || course.id}
-                    course={course}
-                    showProgress={true}
-                    onPress={() => handleCoursePress(course)}
-                  />
-                ))}
-              </View>
-            )}
-          </View>
-
-          {/* Featured Courses Section */}
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>
-                Kho tàng khóa học nổi bật 💎
+        {/* Nội dung khác nhau tùy thuộc vào trạng thái đăng nhập */}
+        {isLoggedIn ? (
+          /* ===== GIAO DIỆN KHI ĐÃ ĐĂNG NHẬP ===== */
+          <View style={styles.content}>
+            {/* Welcome Message */}
+            <View style={styles.welcomeSection}>
+              <Text style={styles.welcomeTitle}>
+                Chào mừng trở lại, {user?.firstName || user?.lastName || 'Bạn'} ✨
+              </Text>
+              <Text style={styles.welcomeSubtitle}>
+                Hãy tiếp tục hành trình học tiếng Anh nào. 🎉
               </Text>
             </View>
 
-            {featuredCourses.length === 0 ? (
-              <EmptyState
-                title="Chưa có khóa học nào"
-                message="Các khóa học sẽ sớm được cập nhật!"
-              />
-            ) : (
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.horizontalCoursesList}
-                style={styles.horizontalScroll}
-              >
-                {featuredCourses.map((course) => (
-                  <View key={course.CourseId || course.courseId || course.id} style={styles.courseCardWrapper}>
+            {/* Search Bar */}
+            <TouchableOpacity
+              style={styles.searchContainer}
+              onPress={() => navigation.navigate('Search')}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="search" size={scale(20)} color={colors.textSecondary} style={styles.searchIcon} />
+              <Text style={styles.searchPlaceholder}>Tìm kiếm khóa học...</Text>
+            </TouchableOpacity>
+
+            {/* Featured Courses Section */}
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>
+                  Kho tàng khóa học nổi bật ⭐
+                </Text>
+              </View>
+
+              {featuredCourses.length === 0 ? (
+                <EmptyState
+                  title="Chưa có khóa học nào"
+                  message="Các khóa học sẽ sớm được cập nhật!"
+                />
+              ) : (
+                <View style={styles.coursesList}>
+                  {featuredCourses.map((course) => (
                     <CourseCard
+                      key={course.CourseId || course.courseId || course.id}
                       course={course}
                       showProgress={false}
                       onPress={() => handleCoursePress(course)}
                     />
-                  </View>
-                ))}
-              </ScrollView>
-            )}
+                  ))}
+                </View>
+              )}
+            </View>
           </View>
+        ) : (
+          /* ===== GIAO DIỆN KHI CHƯA ĐĂNG NHẬP - WELCOME PAGE ===== */
+          <>
+            {/* Feature Sections */}
+            <FeatureSectionOne featureImage={mochiWelcome} />
+            <FeatureSectionTwo featureImage={mochiWelcome} />
 
-          {/* Bottom Spacing for tab bar */}
-          <View style={styles.bottomSpacing} />
-        </View>
+            {/* Footer */}
+            <WelcomeFooter />
+          </>
+        )}
+
+        {/* Bottom Spacing for tab bar */}
+        <View style={styles.bottomSpacing} />
       </ScrollView>
     </View>
   );
@@ -262,9 +266,9 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
   header: {
-    paddingTop: verticalScale(50),
-    paddingBottom: verticalScale(20),
-    paddingHorizontal: 24,
+    paddingTop: verticalScale(8) + SAFE_AREA_PADDING.top,
+    paddingBottom: verticalScale(12),
+    paddingHorizontal: 20,
   },
   headerTop: {
     flexDirection: 'row',
@@ -289,68 +293,78 @@ const styles = StyleSheet.create({
       width: 0,
       height: 2,
     },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.15,
     shadowRadius: 4,
-    elevation: 3,
+    elevation: 4,
   },
   logoImage: {
-    width: scale(32),
-    height: scale(32),
-    borderRadius: scale(16),
+    width: scale(30),
+    height: scale(30),
+    borderRadius: scale(15),
   },
   appName: {
-    fontSize: 16,
+    fontSize: 15,
     color: '#FFFFFF',
-    fontWeight: '600',
+    fontWeight: '700',
   },
   headerRight: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  coinBadge: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    paddingHorizontal: 8,
-    paddingVertical: scale(4),
+  authButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  loginButton: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loginText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  registerButton: {
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
     borderRadius: scale(16),
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  registerText: {
+    color: colors.primary,
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  coinBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: scale(14),
     marginRight: 8,
+  },
+  coinIcon: {
+    fontSize: 12,
+    marginRight: 4,
   },
   coinText: {
     color: '#FFFFFF',
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: '600',
   },
   notificationButton: {
-    width: scale(36),
-    height: scale(36),
-    borderRadius: scale(18),
+    width: scale(34),
+    height: scale(34),
+    borderRadius: scale(17),
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 8,
-  },
-  notificationIcon: {
-    fontSize: 18,
-  },
-  avatarButton: {
-    marginLeft: 8,
-  },
-  avatar: {
-    width: scale(40),
-    height: scale(40),
-    borderRadius: scale(20),
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  avatarText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-  },
-  welcomeContainer: {
-    marginTop: 16,
-    marginBottom: 20,
-    paddingBottom: 8,
   },
   searchContainer: {
     flexDirection: 'row',
@@ -358,15 +372,15 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     borderRadius: scale(12),
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 14,
     marginBottom: 24,
     borderWidth: 1,
     borderColor: colors.border,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   searchIcon: {
     marginRight: 12,
@@ -376,65 +390,37 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.textSecondary,
   },
-  welcomeText: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: colors.text,
-    marginBottom: 4,
-    letterSpacing: 0.3,
-  },
-  welcomeSubtext: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    lineHeight: 14 * 1.5,
-  },
-  topNav: {
-    flexDirection: 'row',
-    backgroundColor: colors.surface,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  navTab: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    marginRight: 4,
-    borderRadius: scale(8),
-  },
-  navTabActive: {
-    backgroundColor: colors.primary + '15',
-  },
-  navTabText: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    fontWeight: '500',
-  },
-  navTabTextActive: {
-    color: colors.primary,
-    fontWeight: '700',
-  },
   content: {
     paddingHorizontal: 24,
-    paddingTop: 16,
+    paddingTop: 20,
     backgroundColor: colors.background,
   },
+  welcomeSection: {
+    marginBottom: 20,
+  },
+  welcomeTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: colors.primary,
+    marginBottom: 4,
+  },
+  welcomeSubtitle: {
+    fontSize: 14,
+    color: colors.textSecondary,
+  },
   section: {
-    marginBottom: 32,
-    paddingTop: 16,
+    marginBottom: 28,
   },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 16,
-    paddingBottom: 4,
   },
   sectionTitle: {
     fontSize: 20,
     fontWeight: '700',
     color: colors.text,
-    letterSpacing: 0.3,
   },
   seeAllText: {
     fontSize: 14,
@@ -442,7 +428,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   bottomSpacing: {
-    height: verticalScale(80),
+    height: verticalScale(100),
   },
   coursesList: {
     gap: 16,
@@ -458,6 +444,56 @@ const styles = StyleSheet.create({
   courseCardWrapper: {
     width: scale(280),
     marginRight: 16,
+  },
+  guestButtonsContainer: {
+    paddingHorizontal: scale(24),
+    paddingBottom: verticalScale(32),
+    backgroundColor: '#FFFFFF',
+  },
+  guestLoginButton: {
+    backgroundColor: colors.primary,
+    paddingHorizontal: 32,
+    paddingVertical: 14,
+    borderRadius: scale(12),
+    width: '100%',
+    marginBottom: 12,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  guestLoginText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '700',
+    textAlign: 'center',
+  },
+  guestRegisterButton: {
+    backgroundColor: colors.surface,
+    paddingHorizontal: 32,
+    paddingVertical: 14,
+    borderRadius: scale(12),
+    width: '100%',
+    borderWidth: 2,
+    borderColor: colors.primary,
+  },
+  guestRegisterText: {
+    color: colors.primary,
+    fontSize: 16,
+    fontWeight: '700',
+    textAlign: 'center',
+  },
+  guestCoursesSection: {
+    paddingVertical: verticalScale(32),
+    paddingHorizontal: scale(24),
+    backgroundColor: '#FFFFFF',
+  },
+  guestCoursesTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: colors.text,
+    marginBottom: verticalScale(20),
   },
 });
 

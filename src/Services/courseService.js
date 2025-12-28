@@ -41,7 +41,6 @@ const courseService = {
       // data là array của courses
       return response;
     } catch (error) {
-      console.error('Error fetching featured courses:', error);
       throw error.response?.data || error;
     }
   },
@@ -69,7 +68,7 @@ const courseService = {
   // Enroll in course
   enrollCourse: async (courseId) => {
     try {
-      const response = await axiosClient.post(`/user/enrollments/enroll`, {
+      const response = await axiosClient.post('/user/enrollments/course', {
         courseId,
       });
       return response;
