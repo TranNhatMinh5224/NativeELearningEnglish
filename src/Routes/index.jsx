@@ -19,6 +19,7 @@ import SearchScreen from '../Pages/Search/SearchScreen';
 import LessonListScreen from '../Pages/Lesson/LessonListScreen';
 import LessonDetailScreen from '../Pages/Lesson/LessonDetailScreen';
 import { PaymentScreen, PaymentSuccess, PaymentFailed } from '../Pages/Payment';
+import PaymentHistoryScreen from '../Pages/Payment/PaymentHistoryScreen';
 
 // Theme
 import colors from '../Theme/colors';
@@ -235,19 +236,11 @@ const AppNavigator = () => {
           }}
         />
         <Stack.Screen
-          name="PaymentSuccess"
-          component={PaymentSuccess}
+          name="PaymentHistory"
+          component={PaymentHistoryScreen}
           options={{
             headerShown: false,
-            presentation: 'modal',
-          }}
-        />
-        <Stack.Screen
-          name="PaymentFailed"
-          component={PaymentFailed}
-          options={{
-            headerShown: false,
-            presentation: 'modal',
+            presentation: 'card',
           }}
         />
       </Stack.Navigator>

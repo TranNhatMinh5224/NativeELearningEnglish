@@ -226,6 +226,14 @@ const ProfileScreen = ({ navigation }) => {
             <Text style={styles.actionText}>Nâng cấp tài khoản</Text>
             <Ionicons name="chevron-forward" size={scale(20)} color={colors.textLight} />
           </TouchableOpacity>
+
+          <TouchableOpacity style={styles.action} onPress={() => navigation.navigate('PaymentHistory')}>
+            <View style={styles.actionIcon}>
+              <Ionicons name="receipt-outline" size={scale(22)} color={colors.primary} />
+            </View>
+            <Text style={styles.actionText}>Lịch sử thanh toán</Text>
+            <Ionicons name="chevron-forward" size={scale(20)} color={colors.textLight} />
+          </TouchableOpacity>
         </View>
 
         <View style={styles.logoutSection}>
