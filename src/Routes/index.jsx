@@ -18,6 +18,7 @@ import CourseDetailScreen from '../Pages/Course/CourseDetailScreen';
 import SearchScreen from '../Pages/Search/SearchScreen';
 import LessonListScreen from '../Pages/Lesson/LessonListScreen';
 import LessonDetailScreen from '../Pages/Lesson/LessonDetailScreen';
+import { PaymentScreen, PaymentSuccess, PaymentFailed } from '../Pages/Payment';
 
 // Theme
 import colors from '../Theme/colors';
@@ -135,10 +136,37 @@ const MainTabs = () => {
   );
 };
 
+// Deep Linking Configuration
+const linking = {
+  prefixes: ['elearningenglish://', 'https://elearningenglish.com'], // Scheme và universal links
+  config: {
+    screens: {
+      PaymentSuccess: {
+        path: 'payment-success',
+        parse: {
+          paymentId: (paymentId: string) => paymentId,
+          orderCode: (orderCode: string) => orderCode,
+          courseId: (courseId: string) => courseId,
+        },
+      },
+      PaymentFailed: {
+        path: 'payment-failed',
+        parse: {
+          reason: (reason: string) => reason || 'Canceled',
+          orderCode: (orderCode: string) => orderCode,
+        },
+      },
+      // Các screens khác
+      MainApp: '',
+      Loading: '',
+    },
+  },
+};
+
 // App Navigator
 const AppNavigator = () => {
   return (
-    <NavigationContainer>
+    <NavigationContainer linking={linking}>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {/* Loading Screen - Màn đầu tiên */}
         <Stack.Screen name="Loading" component={LoadingPage} />
@@ -196,6 +224,30 @@ const AppNavigator = () => {
           options={{
             headerShown: false,
             presentation: 'card',
+          }}
+        />
+        <Stack.Screen
+          name="Payment"
+          component={PaymentScreen}
+          options={{
+            headerShown: false,
+            presentation: 'modal', // Hiện dạng modal trượt từ dưới lên cho đẹp
+          }}
+        />
+        <Stack.Screen
+          name="PaymentSuccess"
+          component={PaymentSuccess}
+          options={{
+            headerShown: false,
+            presentation: 'modal',
+          }}
+        />
+        <Stack.Screen
+          name="PaymentFailed"
+          component={PaymentFailed}
+          options={{
+            headerShown: false,
+            presentation: 'modal',
           }}
         />
       </Stack.Navigator>

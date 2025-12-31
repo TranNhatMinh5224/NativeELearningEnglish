@@ -55,6 +55,19 @@ const CourseDetailScreen = ({ route, navigation }) => {
   };
 
   const handleEnroll = async () => {
+    // Nếu khóa học có phí, chuyển sang màn hình thanh toán
+    if (coursePrice > 0) {
+      setShowConfirmModal(false);
+      navigation.navigate('Payment', {
+        courseId: course.courseId || course.id,
+        courseTitle: courseTitle,
+        price: coursePrice,
+        thumbnail: courseImage
+      });
+      return;
+    }
+
+    // Nếu miễn phí, gọi API enroll luôn
     try {
       setEnrolling(true);
       await courseService.enrollCourse(courseId);
@@ -66,11 +79,10 @@ const CourseDetailScreen = ({ route, navigation }) => {
         type: 'success',
       });
       
-      // Reload course để cập nhật trạng thái
-      setTimeout(() => {
-        loadCourseDetail();
-        navigation.goBack();
-      }, 1500);
+      // Reload course để cập nhật trạng thái nút bấm (Đã đăng ký)
+      // Không goBack để tránh lỗi nếu user vào từ Deep Link hoặc Home
+      loadCourseDetail(); 
+      
     } catch (error) {
       console.error('Error enrolling course:', error);
       setShowConfirmModal(false);
@@ -219,7 +231,9 @@ const CourseDetailScreen = ({ route, navigation }) => {
                   end={{ x: 1, y: 0 }}
                   style={styles.enrollGradient}
                 >
-                  <Text style={styles.enrollButtonText}>Đăng kí ngay</Text>
+                  <Text style={styles.enrollButtonText}>
+                    {coursePrice > 0 ? 'Mua ngay' : 'Đăng kí ngay'}
+                  </Text>
                 </LinearGradient>
               </TouchableOpacity>
             ) : (
@@ -252,10 +266,13 @@ const CourseDetailScreen = ({ route, navigation }) => {
             activeOpacity={1}
             onPress={(e) => e.stopPropagation()}
           >
-            <Text style={styles.modalTitle}>Xác nhận đăng ký khóa học</Text>
+            <Text style={styles.modalTitle}>
+              {coursePrice > 0 ? 'Xác nhận mua khóa học' : 'Xác nhận đăng ký khóa học'}
+            </Text>
             <Text style={styles.modalMessage}>
-              Bạn có muốn đăng ký khóa học{' '}
-              <Text style={styles.modalCourseName}>"{courseTitle}"</Text> không?
+              Bạn có muốn {coursePrice > 0 ? 'mua' : 'đăng ký'} khóa học{' '}
+              <Text style={styles.modalCourseName}>"{courseTitle}"</Text> với giá{' '}
+              <Text style={{ fontWeight: '700', color: colors.primary }}>{formatPrice(coursePrice)}</Text> không?
             </Text>
 
             <View style={styles.modalButtons}>
@@ -273,7 +290,9 @@ const CourseDetailScreen = ({ route, navigation }) => {
                 {enrolling ? (
                   <ActivityIndicator color="#FFFFFF" />
                 ) : (
-                  <Text style={styles.modalConfirmText}>Bắt đầu ngay</Text>
+                  <Text style={styles.modalConfirmText}>
+                    {coursePrice > 0 ? 'Thanh toán' : 'Bắt đầu ngay'}
+                  </Text>
                 )}
               </TouchableOpacity>
             </View>

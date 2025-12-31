@@ -8,13 +8,19 @@ export default {
     orientation: 'portrait',
     icon: './assets/icon.png',
     userInterfaceStyle: 'light',
+    scheme: 'elearningenglish', // Deep linking scheme
     splash: {
       image: './assets/splash.png',
       resizeMode: 'contain',
       backgroundColor: '#6366F1',
     },
     extra: {
-      apiBaseUrl: process.env.REACT_APP_API_BASE_URL || 'http://192.168.1.178:5029/api',
+      // API Base URL - Cấu hình từ file .env hoặc fallback mặc định
+      // Tạo file .env với: REACT_APP_API_BASE_URL=http://YOUR_IP:5030/api
+      // - Android Emulator: http://10.0.2.2:5030/api
+      // - iOS Simulator: http://localhost:5030/api
+      // - Device thật: http://YOUR_COMPUTER_IP:5030/api
+      apiBaseUrl: process.env.REACT_APP_API_BASE_URL || 'http://192.168.88.102:5030/api',
     },
     assetBundlePatterns: ['**/*'],
     ios: {

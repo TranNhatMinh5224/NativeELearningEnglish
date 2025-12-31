@@ -68,10 +68,24 @@ npm install
 ```
 
 ### Bước 2: Cấu hình API
-Mở file `src/Services/BaseURL.jsx` và cập nhật URL:
-- **Android Emulator**: `http://10.0.2.2:5029/api`
-- **iOS Simulator**: `http://localhost:5029/api`
-- **Device thật**: Sử dụng IP máy tính (VD: `http://192.168.1.100:5029/api`)
+Backend API đang chạy trên port **5030**. Cấu hình API URL trong `app.config.js` hoặc file `.env`:
+
+**Cách 1: Tạo file `.env` (Khuyến nghị)**
+```bash
+# Copy file .env.example (nếu có) hoặc tạo file .env mới
+REACT_APP_API_BASE_URL=http://YOUR_IP:5030/api
+```
+
+**Cách 2: Sửa trực tiếp trong `app.config.js`**
+Đổi dòng 17 thành URL phù hợp:
+- **Android Emulator**: `http://10.0.2.2:5030/api`
+- **iOS Simulator**: `http://localhost:5030/api`  
+- **Device thật (Expo Go)**: `http://192.168.88.102:5030/api` (thay bằng IP máy tính của bạn)
+  - Lấy IP: Windows (`ipconfig`), Mac/Linux (`ifconfig`)
+
+**Lưu ý:** 
+- Backend phải đang chạy trên port 5030
+- Device thật và máy tính phải cùng mạng WiFi
 
 ### Bước 3: Chạy app
 ```bash

@@ -262,9 +262,9 @@ const OnionScreen = ({ navigation }) => {
             </View>
           ) : (
             <View style={styles.coursesList}>
-              {courses.map((course) => (
+              {courses.map((course, index) => (
                 <CourseCard
-                  key={course.courseId || course.id}
+                  key={`${course.courseId || course.id}-${index}`}
                   course={course}
                   showProgress={true}
                   onPress={() => handleCoursePress(course)}
