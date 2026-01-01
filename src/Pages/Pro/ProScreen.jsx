@@ -9,44 +9,60 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { scale, verticalScale } from '../../Theme/responsive';
 import colors from '../../Theme/colors';
 import teacherPackageService from '../../Services/teacherPackageService';
+import authService from '../../Services/authService';
 import { formatPrice } from '../../Utils/formatters';
 
 const ProScreen = ({ navigation }) => {
+  const insets = useSafeAreaInsets();
   const [packages, setPackages] = useState([]);
+  const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadPackages();
+    loadData();
   }, []);
 
-  const loadPackages = async () => {
+  const loadData = async () => {
     try {
       setLoading(true);
-      const response = await teacherPackageService.getTeacherPackages();
+      
+      // Load user and packages in parallel
+      const [packagesRes, currentUser] = await Promise.all([
+        teacherPackageService.getTeacherPackages(),
+        authService.getCurrentUser()
+      ]);
+      
+      setUser(currentUser);
       
       // Backend trả về ServiceResponse với Data là array
       let packagesData = [];
-      if (response && response.data) {
-        packagesData = Array.isArray(response.data) ? response.data : [response.data];
-      } else if (Array.isArray(response)) {
-        packagesData = response;
+      if (packagesRes && packagesRes.data) {
+        packagesData = Array.isArray(packagesRes.data) ? packagesRes.data : [packagesRes.data];
+      } else if (Array.isArray(packagesRes)) {
+        packagesData = packagesRes;
       }
 
-      // Sắp xếp theo thứ tự: Basic, Standard, Premium
+      // Sắp xếp theo thứ tự: Basic, Standard, Premium, Professional
       const sortedPackages = packagesData.sort((a, b) => {
-        const order = { 'Basic': 1, 'Standard': 2, 'Premium': 3 };
-        const aLevel = a.packageLevel || a.name || '';
-        const bLevel = b.packageLevel || b.name || '';
-        return (order[aLevel] || 999) - (order[bLevel] || 999);
+        const getLevelValue = (pkg) => {
+          const level = pkg.Level || pkg.level;
+          if (typeof level === 'number') {
+            return level; // 1, 2, 3, 4
+          }
+          const order = { 'Basic': 1, 'Standard': 2, 'Premium': 3, 'Professional': 4 };
+          return order[level] || 999;
+        };
+        return getLevelValue(a) - getLevelValue(b);
       });
 
       setPackages(sortedPackages);
     } catch (error) {
-      console.error('Load packages error:', error);
-      // Fallback: sử dụng mock data
+      console.error('Load data error:', error);
+      // Fallback: sử dụng mock data nếu lỗi
       setPackages([
         {
           id: 1,
@@ -75,12 +91,15 @@ const ProScreen = ({ navigation }) => {
     }
   };
 
-  const handleUpgrade = (packageItem) => {
-    // TODO: Navigate to payment screen
-    console.log('Upgrade to package:', packageItem);
-    // navigation.navigate('Payment', { packageId: packageItem.id });
-  };
-
+    const handleUpgrade = (packageItem) => {
+      const desc = `Tạo tối đa ${packageItem.maxCourses} khóa học, ${packageItem.maxLessons} bài học và hỗ trợ ${packageItem.maxStudents} học viên.`;
+      navigation.navigate('Payment', { 
+          packageId: packageItem.teacherPackageId || packageItem.id,
+          packageName: packageItem.packageName || packageItem.name || 'Gói Giáo Viên',
+          packageDescription: packageItem.description || desc,
+          price: packageItem.price 
+      });
+    };
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -91,7 +110,10 @@ const ProScreen = ({ navigation }) => {
   }
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+    <ScrollView 
+      style={[styles.container, { paddingTop: insets.top }]} 
+      showsVerticalScrollIndicator={false}
+    >
       {/* Description Section */}
       <View style={styles.headerSection}>
         <Text style={styles.headerSubtitle}>
@@ -102,6 +124,26 @@ const ProScreen = ({ navigation }) => {
       {/* Packages Grid */}
       <View style={styles.packagesContainer}>
         {packages.map((packageItem, index) => {
+          // Xử lý cả PascalCase và camelCase, enum Level (1,2,3,4) sang string
+          const getLevelString = (level) => {
+            if (typeof level === 'number') {
+              const map = { 1: 'Basic', 2: 'Standard', 3: 'Premium', 4: 'Professional' };
+              return map[level] || 'Basic';
+            }
+            return level || 'Basic';
+          };
+
+          const rawLevel = packageItem.Level || packageItem.level;
+          const packageLevel = getLevelString(rawLevel);
+          
+          // Lấy các field với cả PascalCase và camelCase
+          const packageName = packageItem.PackageName || packageItem.packageName || packageItem.name || 'Gói Giáo Viên';
+          const packageId = packageItem.TeacherPackageId || packageItem.teacherPackageId || packageItem.id;
+          const maxCourses = packageItem.MaxCourses || packageItem.maxCourses || 0;
+          const maxLessons = packageItem.MaxLessons || packageItem.maxLessons || 0;
+          const maxStudents = packageItem.MaxStudents || packageItem.maxStudents || 0;
+          const packagePrice = packageItem.Price || packageItem.price || 0;
+
           // Xác định theme cho từng package
           let packageTheme = {
             icon: '📚',
@@ -112,7 +154,7 @@ const ProScreen = ({ navigation }) => {
             badge: null,
           };
           
-          if (packageItem.packageLevel === 'Basic' || packageItem.name?.includes('Basic')) {
+          if (packageLevel === 'Basic') {
             packageTheme = {
               icon: '⭐',
               iconName: 'star',
@@ -121,7 +163,7 @@ const ProScreen = ({ navigation }) => {
               accentColor: '#8B5CF6',
               badge: null,
             };
-          } else if (packageItem.packageLevel === 'Standard' || packageItem.name?.includes('Tiêu Chuẩn')) {
+          } else if (packageLevel === 'Standard') {
             packageTheme = {
               icon: '🔥',
               iconName: 'flame',
@@ -130,7 +172,7 @@ const ProScreen = ({ navigation }) => {
               accentColor: '#F59E0B',
               badge: 'Phổ biến',
             };
-          } else if (packageItem.packageLevel === 'Premium' || packageItem.name?.includes('Cao Cấp')) {
+          } else if (packageLevel === 'Premium' || packageLevel === 'Professional') {
             packageTheme = {
               icon: '👑',
               iconName: 'diamond',
@@ -140,6 +182,15 @@ const ProScreen = ({ navigation }) => {
               badge: 'Cao cấp',
             };
           }
+
+          // Generate description from package details
+          const generatedDesc = `Tạo tối đa ${maxCourses} khóa học, ${maxLessons} bài học và hỗ trợ ${maxStudents} học viên.`;
+          const displayDesc = packageItem.Description || packageItem.description || generatedDesc;
+
+          // Check current package (xử lý cả PascalCase và camelCase)
+          const subscription = user?.TeacherSubscription || user?.teacherSubscription;
+          const currentPackageId = subscription?.TeacherPackageId || subscription?.teacherPackageId;
+          const isCurrentPackage = currentPackageId && parseInt(currentPackageId) === parseInt(packageId);
 
           return (
             <View key={packageItem.id || index} style={styles.packageCardWrapper}>
@@ -153,7 +204,10 @@ const ProScreen = ({ navigation }) => {
                 colors={packageTheme.cardGradient}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
-                style={styles.packageCard}
+                style={[
+                    styles.packageCard, 
+                    isCurrentPackage && { borderColor: colors.success, borderWidth: 2 }
+                ]}
               >
                 <View style={styles.cardHeader}>
                   <View style={styles.titleRow}>
@@ -162,9 +216,9 @@ const ProScreen = ({ navigation }) => {
                     </View>
                     <View style={styles.titleContainer}>
                       <Text style={styles.packageTitle}>
-                        {packageItem.name || packageItem.packageLevel || 'Gói Giáo Viên'}
+                        {packageName}
                       </Text>
-                      {packageItem.packageLevel === 'Premium' && (
+                      {(packageLevel === 'Premium' || packageLevel === 'Professional') && (
                         <View style={styles.crownContainer}>
                           <Ionicons name="diamond" size={scale(16)} color="#F59E0B" />
                         </View>
@@ -177,16 +231,20 @@ const ProScreen = ({ navigation }) => {
 
                 <View style={styles.cardBody}>
                   <Text style={styles.packageDescription}>
-                    {packageItem.description || `Gói ${packageItem.name || packageItem.packageLevel} Teacher Package`}
+                    {displayDesc}
                   </Text>
                   <View style={styles.featuresList}>
                     <View style={styles.featureItem}>
                       <Ionicons name="checkmark-circle" size={scale(18)} color={packageTheme.accentColor} />
-                      <Text style={styles.featureText}>Truy cập đầy đủ tính năng</Text>
+                      <Text style={styles.featureText}>Tối đa {maxCourses} khóa học</Text>
                     </View>
                     <View style={styles.featureItem}>
                       <Ionicons name="checkmark-circle" size={scale(18)} color={packageTheme.accentColor} />
-                      <Text style={styles.featureText}>Hỗ trợ 24/7</Text>
+                      <Text style={styles.featureText}>Tối đa {maxLessons} bài học</Text>
+                    </View>
+                    <View style={styles.featureItem}>
+                      <Ionicons name="checkmark-circle" size={scale(18)} color={packageTheme.accentColor} />
+                      <Text style={styles.featureText}>Tối đa {maxStudents} học viên</Text>
                     </View>
                     <View style={styles.featureItem}>
                       <Ionicons name="checkmark-circle" size={scale(18)} color={packageTheme.accentColor} />
@@ -200,25 +258,51 @@ const ProScreen = ({ navigation }) => {
                 <View style={styles.cardFooter}>
                   <View style={styles.priceContainer}>
                     <Text style={[styles.packagePrice, { color: packageTheme.accentColor }]}>
-                      {formatPrice(packageItem.price || 0)}đ
+                      {formatPrice(packagePrice)}
                     </Text>
                     <Text style={styles.priceUnit}>/tháng</Text>
                   </View>
-                  <TouchableOpacity
-                    style={styles.upgradeButton}
-                    onPress={() => handleUpgrade(packageItem)}
-                    activeOpacity={0.8}
-                  >
-                    <LinearGradient
-                      colors={packageTheme.gradientColors}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 0 }}
-                      style={styles.upgradeButtonGradient}
-                    >
-                      <Ionicons name="arrow-forward" size={scale(18)} color="#FFFFFF" style={styles.buttonIcon} />
-                      <Text style={styles.upgradeButtonText}>Nâng cấp</Text>
-                    </LinearGradient>
-                  </TouchableOpacity>
+                  
+                  {isCurrentPackage ? (
+                      <View style={[styles.upgradeButton, { backgroundColor: colors.success }]}>
+                        <View style={styles.upgradeButtonGradient}>
+                            <Ionicons name="checkmark-circle" size={scale(18)} color="#FFFFFF" style={styles.buttonIcon} />
+                            <Text style={styles.upgradeButtonText}>Đang sử dụng</Text>
+                        </View>
+                      </View>
+                  ) : (
+                      <TouchableOpacity
+                        style={styles.upgradeButton}
+                        onPress={() => {
+                          // Tạo object đã normalize đầy đủ để truyền vào handleUpgrade
+                          const normalizedPackage = {
+                            ...packageItem,
+                            teacherPackageId: packageId,
+                            TeacherPackageId: packageId,
+                            id: packageId,
+                            name: packageName,
+                            packageName: packageName,
+                            PackageName: packageName,
+                            description: displayDesc,
+                            Description: displayDesc,
+                            price: packagePrice,
+                            Price: packagePrice
+                          };
+                          handleUpgrade(normalizedPackage);
+                        }}
+                        activeOpacity={0.8}
+                      >
+                        <LinearGradient
+                          colors={packageTheme.gradientColors}
+                          start={{ x: 0, y: 0 }}
+                          end={{ x: 1, y: 0 }}
+                          style={styles.upgradeButtonGradient}
+                        >
+                          <Ionicons name="arrow-forward" size={scale(18)} color="#FFFFFF" style={styles.buttonIcon} />
+                          <Text style={styles.upgradeButtonText}>Nâng cấp</Text>
+                        </LinearGradient>
+                      </TouchableOpacity>
+                  )}
                 </View>
               </LinearGradient>
             </View>

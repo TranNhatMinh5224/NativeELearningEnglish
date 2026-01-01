@@ -9,13 +9,15 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { scale, verticalScale, SAFE_AREA_PADDING } from '../../Theme/responsive';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { scale, verticalScale } from '../../Theme/responsive';
 import colors from '../../Theme/colors';
 import lessonService from '../../Services/lessonService';
 import Toast from '../../Components/Common/Toast';
 import { ModuleCard } from '../../Components/Lesson';
 
 const LessonDetailScreen = ({ route, navigation }) => {
+  const insets = useSafeAreaInsets();
   const { lessonId, lessonTitle, courseId, courseTitle } = route.params || {};
   const [lesson, setLesson] = useState(null);
   const [modules, setModules] = useState([]);
@@ -164,7 +166,7 @@ const LessonDetailScreen = ({ route, navigation }) => {
         colors={['#6366F1', '#4F46E5']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
-        style={styles.header}
+        style={[styles.header, { paddingTop: insets.top + verticalScale(16) }]}
       >
         <View style={styles.headerTop}>
           <TouchableOpacity
@@ -290,7 +292,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   header: {
-    paddingTop: SAFE_AREA_PADDING.top + verticalScale(16),
     paddingBottom: verticalScale(20),
     paddingHorizontal: scale(20),
   },

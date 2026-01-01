@@ -50,34 +50,15 @@ const authService = {
     try {
       const response = await axiosClient.post('/auth/register', userData);
       
-      // Backend trả về ServiceResponse với Data = AuthResponseDto
-      let authData = null;
-      if (response && response.data) {
-        authData = response.data;
-      } else if (response && (response.AccessToken || response.accessToken)) {
-        authData = response;
-      }
-
-      // Auto login after register
-      if (authData) {
-        const accessToken = authData.AccessToken || authData.accessToken;
-        const refreshToken = authData.RefreshToken || authData.refreshToken;
-        const user = authData.User || authData.user;
-        
-        if (accessToken) {
-          await AsyncStorage.setItem('accessToken', accessToken);
-          if (refreshToken) {
-            await AsyncStorage.setItem('refreshToken', refreshToken);
-          }
-          if (user) {
-            await AsyncStorage.setItem('user', JSON.stringify(user));
-          }
-        }
-      }
-
+      // Backend trả về ServiceResponse<UserDto> (KHÔNG có token vì cần verify email trước)
+      // Response structure: { success, data: UserDto, message, statusCode }
+      // Không tự động login vì user chưa verify email
+      
       return response;
     } catch (error) {
-      throw error.response?.data || error;
+      // Backend trả về ServiceResponse với error message
+      const errorResponse = error.response?.data || error;
+      throw errorResponse;
     }
   },
 

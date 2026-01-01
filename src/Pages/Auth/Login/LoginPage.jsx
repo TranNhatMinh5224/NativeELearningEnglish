@@ -14,13 +14,15 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { scale, verticalScale, SAFE_AREA_PADDING } from '../../../Theme/responsive';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { scale, verticalScale } from '../../../Theme/responsive';
 import colors from '../../../Theme/colors';
 import authService from '../../../Services/authService';
 import Toast from '../../../Components/Common/Toast';
 import { mochiWelcome } from '../../../../assets/images';
 
 const LoginPage = ({ navigation }) => {
+  const insets = useSafeAreaInsets();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -115,7 +117,7 @@ const LoginPage = ({ navigation }) => {
             colors={[colors.primary, colors.secondary]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
-            style={styles.header}
+            style={[styles.header, { paddingTop: insets.top + verticalScale(20) }]}
           >
             {/* Back Button */}
             <TouchableOpacity
@@ -300,7 +302,6 @@ const styles = StyleSheet.create({
   },
   // Header Styles
   header: {
-    paddingTop: verticalScale(20) + SAFE_AREA_PADDING.top,
     paddingBottom: verticalScale(24),
     paddingHorizontal: 24,
     borderBottomLeftRadius: scale(28),

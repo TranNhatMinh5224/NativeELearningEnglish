@@ -34,6 +34,7 @@ export default {
       },
       package: 'com.elearning.english',
       permissions: ['INTERNET', 'READ_EXTERNAL_STORAGE', 'WRITE_EXTERNAL_STORAGE'],
+      usesCleartextTraffic: true, // Cho phép HTTP (cleartext) traffic cho development
     },
     web: {
       favicon: './assets/favicon.png',

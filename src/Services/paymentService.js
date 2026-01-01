@@ -7,7 +7,7 @@ const paymentService = {
     return axiosClient.post('/user/payments/process', {
       ProductId: productId,
       typeproduct: typeproduct,
-      IdempotencyKey: `${Date.now()}-${productId}` // Tránh gửi trùng
+      IdempotencyKey: `${Date.now()}-${Math.floor(Math.random() * 10000)}` // Random key để luôn tạo đơn mới
     });
   },
 

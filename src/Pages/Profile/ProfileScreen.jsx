@@ -2,6 +2,7 @@ import React, { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { scale } from '../../Theme/responsive';
 import colors from '../../Theme/colors';
 import authService from '../../Services/authService';
@@ -13,6 +14,7 @@ import PasswordModal from '../../Components/Profile/PasswordModal';
 import InfoModal from '../../Components/Profile/InfoModal';
 
 const ProfileScreen = ({ navigation }) => {
+  const insets = useSafeAreaInsets();
   const [user, setUser] = useState(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -178,7 +180,7 @@ const ProfileScreen = ({ navigation }) => {
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingTop: insets.top }]}>
       <Toast
         visible={toast.visible}
         message={toast.message}
@@ -224,6 +226,14 @@ const ProfileScreen = ({ navigation }) => {
               <Ionicons name="diamond-outline" size={scale(22)} color={colors.primary} />
             </View>
             <Text style={styles.actionText}>Nâng cấp tài khoản</Text>
+            <Ionicons name="chevron-forward" size={scale(20)} color={colors.textLight} />
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.action} onPress={() => navigation.navigate('PaymentHistory')}>
+            <View style={styles.actionIcon}>
+              <Ionicons name="receipt-outline" size={scale(22)} color={colors.primary} />
+            </View>
+            <Text style={styles.actionText}>Lịch sử thanh toán</Text>
             <Ionicons name="chevron-forward" size={scale(20)} color={colors.textLight} />
           </TouchableOpacity>
         </View>

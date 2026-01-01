@@ -12,7 +12,8 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { scale, verticalScale, SAFE_AREA_PADDING } from '../../Theme/responsive';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { scale, verticalScale } from '../../Theme/responsive';
 import colors from '../../Theme/colors';
 import courseService from '../../Services/courseService';
 import Toast from '../../Components/Common/Toast';
@@ -22,6 +23,7 @@ import { formatPrice } from '../../Utils/formatters';
 const { width } = Dimensions.get('window');
 
 const CourseDetailScreen = ({ route, navigation }) => {
+  const insets = useSafeAreaInsets();
   const { courseId } = route.params || {};
   const [course, setCourse] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -57,6 +59,13 @@ const CourseDetailScreen = ({ route, navigation }) => {
   }, [courseId]);
 
   const handleEnroll = useCallback(async () => {
+    if (!course) return;
+    
+    // Map dữ liệu từ backend (hỗ trợ cả PascalCase và camelCase)
+    const courseTitle = course.Title || course.title || course.courseName || 'Khóa học';
+    const courseImage = course.ImageUrl || course.imageUrl || course.thumbnail;
+    const coursePrice = course.Price || course.price || 0;
+    
     // Nếu khóa học có phí, chuyển sang màn hình thanh toán
     if (coursePrice > 0) {
       setShowConfirmModal(false);
@@ -96,7 +105,7 @@ const CourseDetailScreen = ({ route, navigation }) => {
     } finally {
       setEnrolling(false);
     }
-  }, [coursePrice, course, courseTitle, courseImage, courseId, navigation, loadCourseDetail]);
+  }, [course, courseId, navigation, loadCourseDetail]);
 
   if (loading) {
     return (
@@ -151,7 +160,7 @@ const CourseDetailScreen = ({ route, navigation }) => {
             colors={['#1a1a2e', '#16213e', '#0f3460']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
-            style={styles.bannerGradient}
+            style={[styles.bannerGradient, { paddingTop: insets.top + verticalScale(8) }]}
           >
             {/* Stars effect */}
             <View style={styles.starsContainer}>
@@ -393,7 +402,6 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingTop: SAFE_AREA_PADDING.top,
     paddingHorizontal: 24,
   },
   starsContainer: {

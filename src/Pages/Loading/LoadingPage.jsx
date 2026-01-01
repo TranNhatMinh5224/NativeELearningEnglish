@@ -22,11 +22,33 @@ const LoadingPage = ({ navigation }) => {
       // Kết nối thành công -> Vào App
       navigation.replace('MainApp');
     } catch (error) {
-      console.error('❌ Connection Failed:', error.message);
+      const errorMessage = error.response?.data?.message || error.message || 'Unknown error';
+      const statusCode = error.response?.status;
+      
+      console.error('❌ Connection Failed:', errorMessage);
+      console.error('Status Code:', statusCode);
+      console.error('Full Error:', error.response?.data || error);
+      
+      let alertMessage = `Không thể kết nối đến máy chủ.\n\nURL: ${apiUrl}\n\n`;
+      
+      if (statusCode === 500) {
+        alertMessage += `⚠️ Lỗi Server (500): Backend đang gặp lỗi.\n\n`;
+        alertMessage += `Hãy kiểm tra:\n`;
+        alertMessage += `1. Backend logs để xem lỗi chi tiết\n`;
+        alertMessage += `2. Database connection\n`;
+        alertMessage += `3. Các services đã được đăng ký trong DI container\n`;
+        alertMessage += `4. Build lại backend sau khi thêm DI registrations\n\n`;
+        alertMessage += `Lỗi: ${errorMessage}`;
+      } else if (statusCode) {
+        alertMessage += `Lỗi HTTP ${statusCode}: ${errorMessage}`;
+      } else {
+        alertMessage += `Lỗi: ${errorMessage}\n\n`;
+        alertMessage += `Hãy đảm bảo:\n1. Backend đã chạy.\n2. Điện thoại và PC cùng Wifi.\n3. Tắt Firewall trên PC.`;
+      }
       
       Alert.alert(
-        'Lỗi kết nối Server',
-        `Không thể kết nối đến máy chủ.\n\nURL: ${apiUrl}\n\nLỗi: ${error.message}\n\nHãy đảm bảo:\n1. Backend đã chạy.\n2. Điện thoại và PC cùng Wifi.\n3. Tắt Firewall trên PC.`,
+        statusCode === 500 ? 'Lỗi Server (500)' : 'Lỗi kết nối Server',
+        alertMessage,
         [
           { text: 'Thử lại', onPress: checkConnectionAndNavigate },
           { 

@@ -14,7 +14,8 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
-import { scale, verticalScale, SAFE_AREA_PADDING } from '../../Theme/responsive';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { scale, verticalScale } from '../../Theme/responsive';
 import colors from '../../Theme/colors';
 import courseService from '../../Services/courseService';
 import authService from '../../Services/authService';
@@ -23,6 +24,7 @@ import Toast from '../../Components/Common/Toast';
 import { mochiWelcome } from '../../../assets/images';
 
 const OnionScreen = ({ navigation }) => {
+  const insets = useSafeAreaInsets();
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -169,24 +171,12 @@ const OnionScreen = ({ navigation }) => {
     const courseId = course.courseId || course.id;
     
     return (
-      <View key={courseId || `${prefix}-${index}`} style={styles.expandableCourseCard}>
+      <View key={courseId || `${prefix}-${index}`} style={styles.courseCardWrapper}>
         <CourseCard
           course={course}
           showProgress={true}
           onPress={() => handleCoursePress(course)}
         />
-        
-        <TouchableOpacity
-          style={styles.expandButton}
-          onPress={() => handleCoursePress(course)}
-          activeOpacity={0.6}
-        >
-          <Ionicons 
-            name="chevron-forward" 
-            size={scale(20)} 
-            color={colors.primary}
-          />
-        </TouchableOpacity>
       </View>
     );
   }, [handleCoursePress]);
@@ -194,7 +184,7 @@ const OnionScreen = ({ navigation }) => {
   // Render UI khi chưa đăng nhập
   const renderGuestUI = () => (
     <View style={styles.guestContainer}>
-      <View style={styles.guestHeader}>
+      <View style={[styles.guestHeader, { paddingTop: insets.top + 32 }]}>
         <Text style={styles.guestHeaderTitle}>Khóa học của tôi</Text>
       </View>
       
@@ -269,7 +259,7 @@ const OnionScreen = ({ navigation }) => {
         }
       >
         {/* Header */}
-        <View style={styles.header}>
+        <View style={[styles.header, { paddingTop: insets.top + 32 }]}>
           <Text style={styles.headerTitle}>Khóa học của tôi</Text>
           <TouchableOpacity
             style={styles.joinButton}
@@ -427,7 +417,6 @@ const styles = StyleSheet.create({
   },
   guestHeader: {
     paddingHorizontal: 24,
-    paddingTop: 32 + SAFE_AREA_PADDING.top,
     paddingBottom: 16,
     backgroundColor: colors.surface,
   },
@@ -507,7 +496,6 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingHorizontal: 24,
-    paddingTop: 32 + SAFE_AREA_PADDING.top,
     paddingBottom: 16,
     backgroundColor: colors.surface,
   },
@@ -603,77 +591,9 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
   },
-  // Expandable Course Card Styles
-  expandableCourseCard: {
-    position: 'relative',
+  // Course Card Wrapper
+  courseCardWrapper: {
     marginBottom: 16,
-  },
-  courseCardMain: {
-    flex: 1,
-  },
-  expandButton: {
-    position: 'absolute',
-    top: 12,
-    right: 12,
-    backgroundColor: colors.surface,
-    borderRadius: scale(20),
-    width: scale(32),
-    height: scale(32),
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-    zIndex: 10,
-  },
-  lessonsContainer: {
-    backgroundColor: colors.background,
-    borderRadius: scale(12),
-    padding: 16,
-    marginTop: -8,
-    marginHorizontal: 4,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  loadingLessons: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 20,
-    gap: 12,
-  },
-  loadingText: {
-    fontSize: 14,
-    color: colors.textSecondary,
-  },
-  lessonItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 12,
-    backgroundColor: colors.surface,
-    borderRadius: scale(8),
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  lessonIconContainer: {
-    marginRight: 12,
-  },
-  lessonInfo: {
-    flex: 1,
-  },
-  lessonTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.text,
-    marginBottom: 4,
-  },
-  lessonDuration: {
-    fontSize: 12,
-    color: colors.textSecondary,
   },
   bottomSpacing: {
     height: verticalScale(80),

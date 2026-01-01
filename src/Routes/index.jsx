@@ -18,6 +18,7 @@ import CourseDetailScreen from '../Pages/Course/CourseDetailScreen';
 import SearchScreen from '../Pages/Search/SearchScreen';
 import { LessonListScreen, LessonDetailScreen, ModuleLearningScreen } from '../Pages/Lesson';
 import { PaymentScreen, PaymentSuccess, PaymentFailed } from '../Pages/Payment';
+import PaymentHistoryScreen from '../Pages/Payment/PaymentHistoryScreen';
 
 // Theme
 import colors from '../Theme/colors';
@@ -247,6 +248,14 @@ const AppNavigator = () => {
           options={{
             headerShown: false,
             presentation: 'modal',
+          }}
+        />
+        <Stack.Screen
+          name="PaymentHistory"
+          component={PaymentHistoryScreen}
+          options={{
+            headerShown: false,
+            presentation: 'card',
           }}
         />
         <Stack.Screen

@@ -10,13 +10,15 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { scale, verticalScale, SAFE_AREA_PADDING } from '../../Theme/responsive';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { scale, verticalScale } from '../../Theme/responsive';
 import colors from '../../Theme/colors';
 import lessonService from '../../Services/lessonService';
 import Toast from '../../Components/Common/Toast';
 import { mochiKhoaHoc } from '../../../assets/images';
 
 const LessonListScreen = ({ route, navigation }) => {
+  const insets = useSafeAreaInsets();
   const { courseId, courseTitle } = route.params || {};
   const [lessons, setLessons] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -132,7 +134,7 @@ const LessonListScreen = ({ route, navigation }) => {
         colors={['#6366F1', '#4F46E5']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
-        style={styles.header}
+        style={[styles.header, { paddingTop: insets.top + verticalScale(16) }]}
       >
         <TouchableOpacity
           style={styles.backButton}
@@ -196,7 +198,6 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
   header: {
-    paddingTop: SAFE_AREA_PADDING.top + verticalScale(16),
     paddingBottom: verticalScale(24),
     paddingHorizontal: scale(20),
     flexDirection: 'row',

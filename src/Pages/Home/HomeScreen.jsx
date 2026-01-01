@@ -12,7 +12,8 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
-import { scale, verticalScale, SAFE_AREA_PADDING } from '../../Theme/responsive';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { scale, verticalScale } from '../../Theme/responsive';
 import colors from '../../Theme/colors';
 import CourseCard from '../../Components/Courses/CourseCard';
 import EmptyState from '../../Components/Home/EmptyState';
@@ -26,6 +27,7 @@ import {
 } from '../../Components/Welcome';
 
 const HomeScreen = ({ navigation }) => {
+  const insets = useSafeAreaInsets();
   const [user, setUser] = useState(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [featuredCourses, setFeaturedCourses] = useState([]);
@@ -132,7 +134,7 @@ const HomeScreen = ({ navigation }) => {
       colors={[colors.primary, colors.secondary]}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
-      style={styles.header}
+      style={[styles.header, { paddingTop: insets.top + verticalScale(8) }]}
     >
       {/* Logo and User Info */}
       <View style={styles.headerTop}>
@@ -332,7 +334,6 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
   header: {
-    paddingTop: verticalScale(8) + SAFE_AREA_PADDING.top,
     paddingBottom: verticalScale(12),
     paddingHorizontal: 20,
   },

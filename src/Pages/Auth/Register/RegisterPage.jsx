@@ -13,13 +13,15 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { scale, verticalScale, SAFE_AREA_PADDING } from '../../../Theme/responsive';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { scale, verticalScale } from '../../../Theme/responsive';
 import colors from '../../../Theme/colors';
 import authService from '../../../Services/authService';
 import Toast from '../../../Components/Common/Toast';
 import { mochiWelcome } from '../../../../assets/images';
 
 const RegisterPage = ({ navigation }) => {
+  const insets = useSafeAreaInsets();
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -78,16 +80,23 @@ const RegisterPage = ({ navigation }) => {
 
     setLoading(true);
     try {
+      // Validate date if entered partially
+      let birthDate = null;
+      if (formData.birthYear && formData.birthMonth && formData.birthDay) {
+          birthDate = `${formData.birthYear}-${formData.birthMonth.padStart(2, '0')}-${formData.birthDay.padStart(2, '0')}`;
+      }
+
       const userData = {
         firstName: formData.firstName,
         lastName: formData.lastName,
         email: formData.email,
         password: formData.password,
-        phone: formData.phone,
-        birthDate: formData.birthYear && formData.birthMonth && formData.birthDay
-          ? `${formData.birthYear}-${formData.birthMonth.padStart(2, '0')}-${formData.birthDay.padStart(2, '0')}`
-          : null,
+        phoneNumber: formData.phone.trim() || "", // Gửi empty string nếu không nhập (database NOT NULL)
+        dateOfBirth: birthDate,
+        isMale: formData.gender === 'Nam'
       };
+      
+      console.log('Register payload:', userData);
 
       const response = await authService.register(userData);
       
@@ -104,23 +113,35 @@ const RegisterPage = ({ navigation }) => {
         });
       }, 1500);
     } catch (error) {
-      // Extract detailed error message from backend
-      let errorMessage = 'Đăng ký thất bại';
+      console.error('Register Error Detail:', error);
       
-      if (error?.response?.data?.message) {
-        errorMessage = error.response.data.message;
-      } else if (error?.message) {
-        errorMessage = error.message;
+      // Parse error message (Backend trả về ServiceResponse hoặc Validation errors)
+      let errorMessage = 'Đăng ký thất bại. Vui lòng thử lại.';
+      
+      if (error && typeof error === 'object') {
+          errorMessage = error.message || error.Message || error.detail || errorMessage;
+          
+          // Nếu là lỗi validation từ FluentValidation (trả về object errors)
+          if (error.errors && typeof error.errors === 'object') {
+              const firstErrorField = Object.keys(error.errors)[0];
+              const fieldErrors = error.errors[firstErrorField];
+              if (Array.isArray(fieldErrors) && fieldErrors.length > 0) {
+                  errorMessage = `${firstErrorField}: ${fieldErrors[0]}`;
+              }
+          }
       } else if (typeof error === 'string') {
-        errorMessage = error;
+          errorMessage = error;
       }
       
-      // Show detailed error in toast
       setToast({
         visible: true,
         message: errorMessage,
         type: 'error',
       });
+
+      // Thêm Alert để chắc chắn user thấy lỗi nếu Toast bị che
+      Alert.alert('Lỗi đăng ký', errorMessage);
+      
     } finally {
       setLoading(false);
     }
@@ -161,7 +182,7 @@ const RegisterPage = ({ navigation }) => {
             colors={[colors.primary, colors.secondary]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
-            style={styles.header}
+            style={[styles.header, { paddingTop: insets.top + verticalScale(8) }]}
           >
             {/* Back Button */}
             <TouchableOpacity
@@ -481,7 +502,6 @@ const styles = StyleSheet.create({
   },
   // Header Styles
   header: {
-    paddingTop: verticalScale(8) + SAFE_AREA_PADDING.top,
     paddingBottom: verticalScale(16),
     paddingHorizontal: 20,
     borderBottomLeftRadius: scale(24),

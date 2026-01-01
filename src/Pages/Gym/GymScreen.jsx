@@ -12,7 +12,8 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
-import { scale, verticalScale, SAFE_AREA_PADDING } from '../../Theme/responsive';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { scale, verticalScale } from '../../Theme/responsive';
 import colors from '../../Theme/colors';
 import flashcardReviewService from '../../Services/flashcardReviewService';
 import authService from '../../Services/authService';
@@ -20,6 +21,7 @@ import Toast from '../../Components/Common/Toast';
 import { mochiWelcome } from '../../../assets/images';
 
 const GymScreen = ({ navigation }) => {
+  const insets = useSafeAreaInsets();
   const [statistics, setStatistics] = useState(null);
   const [masteredWords, setMasteredWords] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -97,7 +99,7 @@ const GymScreen = ({ navigation }) => {
   // Render UI khi chưa đăng nhập
   const renderGuestUI = () => (
     <View style={styles.guestContainer}>
-      <View style={styles.guestHeader}>
+      <View style={[styles.guestHeader, { paddingTop: insets.top + 32 }]}>
         <Text style={styles.guestHeaderTitle}>Sổ tay từ vựng</Text>
       </View>
       
@@ -174,7 +176,7 @@ const GymScreen = ({ navigation }) => {
         }
       >
         {/* Header */}
-        <View style={styles.header}>
+        <View style={[styles.header, { paddingTop: insets.top + 32 }]}>
           <Text style={styles.headerTitle}>Sổ tay từ vựng</Text>
         </View>
 
@@ -247,7 +249,6 @@ const styles = StyleSheet.create({
   },
   guestHeader: {
     paddingHorizontal: 24,
-    paddingTop: 32 + SAFE_AREA_PADDING.top,
     paddingBottom: 16,
   },
   guestHeaderTitle: {
@@ -327,7 +328,6 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingHorizontal: 24,
-    paddingTop: 32 + SAFE_AREA_PADDING.top,
     paddingBottom: 16,
   },
   headerTitle: {

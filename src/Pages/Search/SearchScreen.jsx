@@ -10,13 +10,15 @@ import {
   Keyboard,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { scale, verticalScale, SAFE_AREA_PADDING } from '../../Theme/responsive';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { scale, verticalScale } from '../../Theme/responsive';
 import colors from '../../Theme/colors';
 import courseService from '../../Services/courseService';
 import CourseCard from '../../Components/Courses/CourseCard';
 import Toast from '../../Components/Common/Toast';
 
 const SearchScreen = ({ navigation, route }) => {
+  const insets = useSafeAreaInsets();
   const [searchQuery, setSearchQuery] = useState(route?.params?.initialQuery || '');
   const [searchResults, setSearchResults] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -92,7 +94,7 @@ const SearchScreen = ({ navigation, route }) => {
       />
 
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top }]}>
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}
@@ -181,7 +183,6 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingTop: SAFE_AREA_PADDING.top,
     paddingHorizontal: 16,
     paddingBottom: 12,
     backgroundColor: colors.surface,
