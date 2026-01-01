@@ -21,10 +21,30 @@ const lessonService = {
     }
   },
 
-  // Get modules of a lesson
+  // Get modules of a lesson with progress
   getModulesByLessonId: async (lessonId) => {
     try {
       const response = await axiosClient.get(`/user/modules/lesson/${lessonId}`);
+      return response;
+    } catch (error) {
+      throw error.response?.data || error;
+    }
+  },
+
+  // Get module detail with progress
+  getModuleById: async (moduleId) => {
+    try {
+      const response = await axiosClient.get(`/user/modules/${moduleId}`);
+      return response;
+    } catch (error) {
+      throw error.response?.data || error;
+    }
+  },
+
+  // Start and complete module (auto-complete for content modules)
+  startModule: async (moduleId) => {
+    try {
+      const response = await axiosClient.post(`/user/modules/${moduleId}/start`);
       return response;
     } catch (error) {
       throw error.response?.data || error;

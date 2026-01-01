@@ -55,16 +55,6 @@ const courseService = {
     }
   },
 
-  // Get course progress
-  getCourseProgress: async (courseId) => {
-    try {
-      const response = await axiosClient.get(`/courses/${courseId}/progress`);
-      return response;
-    } catch (error) {
-      throw error.response?.data || error;
-    }
-  },
-
   // Enroll in course
   enrollCourse: async (courseId) => {
     try {

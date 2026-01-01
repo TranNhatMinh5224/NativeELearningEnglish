@@ -145,18 +145,6 @@ const authService = {
     }
   },
 
-  // Resend OTP
-  resendOtp: async (email) => {
-    try {
-      const response = await axiosClient.post('/auth/resend-otp', {
-        email,
-      });
-      return response;
-    } catch (error) {
-      throw error.response?.data || error;
-    }
-  },
-
   // Get current user
   getCurrentUser: async () => {
     try {
@@ -189,8 +177,8 @@ const authService = {
   // Login with Google
   loginWithGoogle: async (googleToken) => {
     try {
-      const response = await axiosClient.post('/auth/google', {
-        token: googleToken,
+      const response = await axiosClient.post('/auth/google-login', {
+        idToken: googleToken,
       });
 
       if (response.accessToken) {
@@ -208,8 +196,8 @@ const authService = {
   // Login with Facebook
   loginWithFacebook: async (facebookToken) => {
     try {
-      const response = await axiosClient.post('/auth/facebook', {
-        token: facebookToken,
+      const response = await axiosClient.post('/auth/facebook-login', {
+        accessToken: facebookToken,
       });
 
       if (response.accessToken) {

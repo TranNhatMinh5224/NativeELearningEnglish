@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -17,6 +17,7 @@ import colors from '../../Theme/colors';
 import courseService from '../../Services/courseService';
 import Toast from '../../Components/Common/Toast';
 import { mochiKhoaHoc } from '../../../assets/images';
+import { formatPrice } from '../../Utils/formatters';
 
 const { width } = Dimensions.get('window');
 
@@ -32,9 +33,10 @@ const CourseDetailScreen = ({ route, navigation }) => {
     if (courseId) {
       loadCourseDetail();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [courseId]);
 
-  const loadCourseDetail = async () => {
+  const loadCourseDetail = useCallback(async () => {
     try {
       setLoading(true);
       const response = await courseService.getCourseById(courseId);
@@ -52,9 +54,9 @@ const CourseDetailScreen = ({ route, navigation }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [courseId]);
 
-  const handleEnroll = async () => {
+  const handleEnroll = useCallback(async () => {
     // Nếu khóa học có phí, chuyển sang màn hình thanh toán
     if (coursePrice > 0) {
       setShowConfirmModal(false);
@@ -94,13 +96,7 @@ const CourseDetailScreen = ({ route, navigation }) => {
     } finally {
       setEnrolling(false);
     }
-  };
-
-  // Format price
-  const formatPrice = (price) => {
-    if (!price || price === 0) return 'Free';
-    return `${price.toLocaleString('vi-VN')}₫`;
-  };
+  }, [coursePrice, course, courseTitle, courseImage, courseId, navigation, loadCourseDetail]);
 
   if (loading) {
     return (
@@ -237,9 +233,46 @@ const CourseDetailScreen = ({ route, navigation }) => {
                 </LinearGradient>
               </TouchableOpacity>
             ) : (
-              <View style={styles.enrolledBadge}>
-                <Ionicons name="checkmark-circle" size={scale(20)} color={colors.success} />
-                <Text style={styles.enrolledText}>Đã đăng ký</Text>
+              <View>
+                <View style={styles.enrolledBadge}>
+                  <Ionicons name="checkmark-circle" size={scale(20)} color={colors.success} />
+                  <Text style={styles.enrolledText}>Đã đăng ký</Text>
+                </View>
+                
+                <TouchableOpacity
+                  style={styles.startLearningButton}
+                  onPress={() => {
+                    if (lessonCount > 0) {
+                      navigation.navigate('LessonList', { 
+                        courseId, 
+                        courseTitle 
+                      });
+                    } else {
+                      setToast({
+                        visible: true,
+                        message: 'Khóa học chưa có bài giảng',
+                        type: 'info',
+                      });
+                    }
+                  }}
+                  activeOpacity={0.8}
+                >
+                  <LinearGradient
+                    colors={lessonCount > 0 ? ['#3B82F6', '#60A5FA'] : ['#9CA3AF', '#6B7280']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={styles.startLearningGradient}
+                  >
+                    <Ionicons 
+                      name={lessonCount > 0 ? "play-circle" : "alert-circle-outline"} 
+                      size={scale(20)} 
+                      color="#FFFFFF" 
+                    />
+                    <Text style={styles.startLearningText}>
+                      {lessonCount > 0 ? 'Vào học luôn' : 'Chưa có bài học'}
+                    </Text>
+                  </LinearGradient>
+                </TouchableOpacity>
               </View>
             )}
           </View>
@@ -271,8 +304,12 @@ const CourseDetailScreen = ({ route, navigation }) => {
             </Text>
             <Text style={styles.modalMessage}>
               Bạn có muốn {coursePrice > 0 ? 'mua' : 'đăng ký'} khóa học{' '}
-              <Text style={styles.modalCourseName}>"{courseTitle}"</Text> với giá{' '}
-              <Text style={{ fontWeight: '700', color: colors.primary }}>{formatPrice(coursePrice)}</Text> không?
+              <Text style={styles.modalCourseName}>"{courseTitle}"</Text>
+              {coursePrice > 0 && (
+                <> với giá{' '}
+                  <Text style={{ fontWeight: '700', color: colors.primary }}>{formatPrice(coursePrice)}</Text>
+                </>
+              )} không?
             </Text>
 
             <View style={styles.modalButtons}>
@@ -480,6 +517,23 @@ const styles = StyleSheet.create({
     color: colors.success,
     marginLeft: 8,
   },
+  startLearningButton: {
+    marginTop: 12,
+    borderRadius: scale(12),
+    overflow: 'hidden',
+  },
+  startLearningGradient: {
+    flexDirection: 'row',
+    paddingVertical: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  startLearningText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '700',
+  },
   bottomSpacing: {
     height: verticalScale(20),
   },
@@ -551,4 +605,3 @@ const styles = StyleSheet.create({
 });
 
 export default CourseDetailScreen;
-

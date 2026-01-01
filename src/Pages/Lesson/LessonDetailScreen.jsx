@@ -13,6 +13,7 @@ import { scale, verticalScale, SAFE_AREA_PADDING } from '../../Theme/responsive'
 import colors from '../../Theme/colors';
 import lessonService from '../../Services/lessonService';
 import Toast from '../../Components/Common/Toast';
+import { ModuleCard } from '../../Components/Lesson';
 
 const LessonDetailScreen = ({ route, navigation }) => {
   const { lessonId, lessonTitle, courseId, courseTitle } = route.params || {};
@@ -81,44 +82,44 @@ const LessonDetailScreen = ({ route, navigation }) => {
     }
   };
 
-  const renderModule = (module, index) => {
-    const moduleName = module.Name || module.name || `Module ${index + 1}`;
-    const moduleDescription = module.Description || module.description || '';
-    const lectures = module.Lectures || module.lectures || [];
+  const handleModulePress = (module) => {
+    const moduleId = module.ModuleId || module.moduleId;
+    const moduleName = module.Name || module.name;
+    const contentType = module.ContentType || module.contentType || 1;
     
+    // Navigate to appropriate screen based on module type
+    if (contentType === 1) { // Lecture
+      navigation.navigate('ModuleLearning', {
+        moduleId,
+        moduleName,
+        lessonId,
+        lessonTitle,
+      });
+    } else if (contentType === 2) { // FlashCard
+      // Navigate to FlashCard screen (if available)
+      console.log('FlashCard module:', moduleId);
+    } else if (contentType === 3) { // Quiz
+      // Navigate to Quiz screen (if available)
+      console.log('Quiz module:', moduleId);
+    } else {
+      // Default to module learning
+      navigation.navigate('ModuleLearning', {
+        moduleId,
+        moduleName,
+        lessonId,
+        lessonTitle,
+      });
+    }
+  };
+
+  const renderModule = (module, index) => {
     return (
-      <View key={module.ModuleId || module.moduleId || index} style={styles.moduleCard}>
-        <View style={styles.moduleHeader}>
-          <View style={styles.moduleIconContainer}>
-            <Ionicons 
-              name="document-text" 
-              size={scale(20)} 
-              color={colors.primary} 
-            />
-          </View>
-          <Text style={styles.moduleType}>{moduleName}</Text>
-        </View>
-        
-        {moduleDescription && (
-          <Text style={styles.moduleDescription}>{moduleDescription}</Text>
-        )}
-        
-        {/* Render lectures */}
-        {lectures.length > 0 && (
-          <View style={styles.lecturesContainer}>
-            {lectures.map((lecture, lectureIndex) => (
-              <View key={lecture.LectureId || lecture.lectureId || lectureIndex} style={styles.lectureItem}>
-                <Text style={styles.lectureTitle}>
-                  {lecture.Title || lecture.title || `Bài giảng ${lectureIndex + 1}`}
-                </Text>
-                <Text style={styles.lectureContent}>
-                  {lecture.Content || lecture.content || ''}
-                </Text>
-              </View>
-            ))}
-          </View>
-        )}
-      </View>
+      <ModuleCard
+        key={module.ModuleId || module.moduleId || index}
+        module={module}
+        index={index}
+        onPress={() => handleModulePress(module)}
+      />
     );
   };
 
@@ -363,60 +364,53 @@ const styles = StyleSheet.create({
   },
   moduleCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: scale(12),
-    padding: scale(16),
+    borderRadius: scale(16),
+    padding: scale(18),
     marginBottom: 12,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06,
-    shadowRadius: 4,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
   },
   moduleHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
   },
   moduleIconContainer: {
-    width: scale(32),
-    height: scale(32),
-    borderRadius: scale(8),
-    backgroundColor: colors.primaryLight,
+    width: scale(48),
+    height: scale(48),
+    borderRadius: scale(12),
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
   },
-  moduleType: {
-    fontSize: 14,
+  moduleInfo: {
+    flex: 1,
+  },
+  moduleName: {
+    fontSize: 16,
     fontWeight: '600',
-    color: colors.primary,
-    textTransform: 'capitalize',
+    color: colors.text,
+    marginBottom: 4,
+  },
+  moduleMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  moduleMetaText: {
+    fontSize: 12,
+    color: colors.textLight,
+  },
+  completedBadge: {
+    marginLeft: 8,
   },
   moduleDescription: {
     fontSize: 13,
     color: colors.textSecondary,
-    marginTop: 8,
-    marginBottom: 12,
-  },
-  lecturesContainer: {
     marginTop: 12,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-  },
-  lectureItem: {
-    marginBottom: 16,
-  },
-  lectureTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.text,
-    marginBottom: 8,
-  },
-  lectureContent: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    lineHeight: 22,
+    lineHeight: 20,
   },
   emptyModules: {
     alignItems: 'center',

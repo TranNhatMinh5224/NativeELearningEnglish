@@ -16,8 +16,7 @@ import ProfileScreen from '../Pages/Profile/ProfileScreen';
 import VocabularyScreen from '../Pages/Vocabulary/VocabularyScreen';
 import CourseDetailScreen from '../Pages/Course/CourseDetailScreen';
 import SearchScreen from '../Pages/Search/SearchScreen';
-import LessonListScreen from '../Pages/Lesson/LessonListScreen';
-import LessonDetailScreen from '../Pages/Lesson/LessonDetailScreen';
+import { LessonListScreen, LessonDetailScreen, ModuleLearningScreen } from '../Pages/Lesson';
 import { PaymentScreen, PaymentSuccess, PaymentFailed } from '../Pages/Payment';
 
 // Theme
@@ -248,6 +247,15 @@ const AppNavigator = () => {
           options={{
             headerShown: false,
             presentation: 'modal',
+          }}
+        />
+        <Stack.Screen
+          name="ModuleLearning"
+          component={ModuleLearningScreen}
+          options={{
+            headerShown: false,
+            presentation: 'fullScreenModal',
+            animation: 'slide_from_bottom',
           }}
         />
       </Stack.Navigator>

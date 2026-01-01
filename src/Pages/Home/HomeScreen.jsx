@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -32,11 +32,27 @@ const HomeScreen = ({ navigation }) => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  // Load data khi màn hình được focus (để reload sau khi đăng nhập)
+  // Load data lần đầu khi component mount
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  // Chỉ reload login status khi focus, không reload courses
   useFocusEffect(
     useCallback(() => {
-      loadData();
-    }, [])
+      const checkLogin = async () => {
+        const loggedIn = await authService.isLoggedIn();
+        if (loggedIn !== isLoggedIn) {
+          // Chỉ reload nếu trạng thái login thay đổi
+          setIsLoggedIn(loggedIn);
+          if (loggedIn) {
+            const currentUser = await authService.getCurrentUser();
+            setUser(currentUser);
+          }
+        }
+      };
+      checkLogin();
+    }, [isLoggedIn])
   );
 
   // Load user and courses data
@@ -94,6 +110,19 @@ const HomeScreen = ({ navigation }) => {
   const handleRegister = () => {
     navigation.navigate('Register');
   };
+
+  // Memoize filtered courses để tránh re-calculate mỗi lần render
+  const { freeCourses, paidCourses } = useMemo(() => {
+    const free = featuredCourses.filter(course => {
+      const price = course.Price || course.price || 0;
+      return !price || price === 0;
+    });
+    const paid = featuredCourses.filter(course => {
+      const price = course.Price || course.price || 0;
+      return price && price > 0;
+    });
+    return { freeCourses: free, paidCourses: paid };
+  }, [featuredCourses]);
 
 
 
@@ -218,14 +247,51 @@ const HomeScreen = ({ navigation }) => {
                 />
               ) : (
                 <View style={styles.coursesList}>
-                  {featuredCourses.map((course) => (
-                    <CourseCard
-                      key={course.CourseId || course.courseId || course.id}
-                      course={course}
-                      showProgress={false}
-                      onPress={() => handleCoursePress(course)}
-                    />
-                  ))}
+                  {/* Free Courses Section */}
+                  {freeCourses.length > 0 && (
+                    <View style={styles.courseSection}>
+                      <View style={styles.courseSectionHeader}>
+                        <View style={styles.sectionTitleContainer}>
+                          <Ionicons name="gift-outline" size={scale(20)} color={colors.success} />
+                          <Text style={styles.courseSectionTitle}>Khóa học miễn phí</Text>
+                        </View>
+                        <View style={styles.sectionBadge}>
+                          <Text style={styles.sectionBadgeText}>{freeCourses.length}</Text>
+                        </View>
+                      </View>
+                      {freeCourses.map((course) => (
+                        <CourseCard
+                          key={course.CourseId || course.courseId || course.id}
+                          course={course}
+                          showProgress={false}
+                          onPress={() => handleCoursePress(course)}
+                        />
+                      ))}
+                    </View>
+                  )}
+
+                  {/* Paid Courses Section */}
+                  {paidCourses.length > 0 && (
+                    <View style={styles.courseSection}>
+                      <View style={styles.courseSectionHeader}>
+                        <View style={styles.sectionTitleContainer}>
+                          <Ionicons name="diamond-outline" size={scale(20)} color={colors.primary} />
+                          <Text style={styles.courseSectionTitle}>Khóa học premium</Text>
+                        </View>
+                        <View style={styles.sectionBadge}>
+                          <Text style={styles.sectionBadgeText}>{paidCourses.length}</Text>
+                        </View>
+                      </View>
+                      {paidCourses.map((course) => (
+                        <CourseCard
+                          key={course.CourseId || course.courseId || course.id}
+                          course={course}
+                          showProgress={false}
+                          onPress={() => handleCoursePress(course)}
+                        />
+                      ))}
+                    </View>
+                  )}
                 </View>
               )}
             </View>
@@ -432,6 +498,37 @@ const styles = StyleSheet.create({
   },
   coursesList: {
     gap: 16,
+  },
+  courseSection: {
+    marginBottom: 24,
+  },
+  courseSectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+    paddingHorizontal: 4,
+  },
+  sectionTitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  courseSectionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.text,
+  },
+  sectionBadge: {
+    backgroundColor: colors.primary,
+    borderRadius: scale(12),
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+  },
+  sectionBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '700',
   },
   horizontalScroll: {
     marginHorizontal: -24,

@@ -8,13 +8,15 @@ import Constants from 'expo-constants';
 // URL được lấy từ file .env thông qua app.json
 // Nếu không có .env, sử dụng fallback mặc định
 // ==========================================
-const BASE_URL = Constants.expoConfig?.extra?.apiBaseUrl;
+const BASE_URL = Constants.expoConfig?.extra?.apiBaseUrl || 'http://172.20.10.4:5030/api';
 
-if (!BASE_URL) {
-  console.error(
-    '⚠️ API URL chưa được cấu hình!\n' +
-    '📝 Vui lòng tạo file .env từ .env.example\n' +
-    '🔧 Xem SETUP.md để biết thêm chi tiết'
+console.log('🔧 API Base URL:', BASE_URL);
+
+if (!Constants.expoConfig?.extra?.apiBaseUrl) {
+  console.warn(
+    '⚠️ Using fallback API URL!\n' +
+    '📝 Please check .env file\n' +
+    '🔧 Current URL: ' + BASE_URL
   );
 }
 

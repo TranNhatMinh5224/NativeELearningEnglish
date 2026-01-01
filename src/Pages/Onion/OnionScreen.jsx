@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -32,10 +32,16 @@ const OnionScreen = ({ navigation }) => {
   const [joining, setJoining] = useState(false);
   const [toast, setToast] = useState({ visible: false, message: '', type: 'success' });
 
-  // Reload khi màn hình được focus
+  // Chỉ load lần đầu khi mount component, không reload mỗi lần focus
+  useEffect(() => {
+    checkLoginAndLoadCourses();
+  }, []);
+
+  // Reload chỉ khi có tham số refresh từ navigation
   useFocusEffect(
     useCallback(() => {
-      checkLoginAndLoadCourses();
+      // Không làm gì ở đây - chỉ giữ để tương thích
+      // Reload sẽ được trigger bởi CourseDetailScreen khi đăng ký thành công
     }, [])
   );
 
@@ -61,7 +67,14 @@ const OnionScreen = ({ navigation }) => {
       
       let coursesData = [];
       if (response && response.data) {
-        coursesData = Array.isArray(response.data) ? response.data : [response.data];
+        // API trả về PagedResult với structure: { items: [...], totalCount, pageSize, currentPage }
+        if (response.data.items && Array.isArray(response.data.items)) {
+          coursesData = response.data.items;
+        } else if (Array.isArray(response.data)) {
+          coursesData = response.data;
+        } else {
+          coursesData = [response.data];
+        }
       } else if (Array.isArray(response)) {
         coursesData = response;
       }
@@ -129,7 +142,7 @@ const OnionScreen = ({ navigation }) => {
     }
   };
 
-  const handleCoursePress = (course) => {
+  const handleCoursePress = useCallback((course) => {
     const courseId = course.courseId || course.id;
     const courseTitle = course.title || course.Title || course.courseName || 'Khóa học';
     
@@ -138,11 +151,45 @@ const OnionScreen = ({ navigation }) => {
       courseId, 
       courseTitle 
     });
-  };
+  }, [navigation]);
 
-  const handleLogin = () => {
+  const handleLogin = useCallback(() => {
     navigation.navigate('Login');
-  };
+  }, [navigation]);
+
+  // Memoize filtered courses để tránh re-calculate mỗi lần render
+  const { freeCourses, paidCourses } = useMemo(() => {
+    const free = courses.filter(course => !course.price || course.price === 0);
+    const paid = courses.filter(course => course.price && course.price > 0);
+    return { freeCourses: free, paidCourses: paid };
+  }, [courses]);
+
+  // Render single course card với navigation đến LessonList
+  const renderCourseCard = useCallback((course, index, prefix = 'course') => {
+    const courseId = course.courseId || course.id;
+    
+    return (
+      <View key={courseId || `${prefix}-${index}`} style={styles.expandableCourseCard}>
+        <CourseCard
+          course={course}
+          showProgress={true}
+          onPress={() => handleCoursePress(course)}
+        />
+        
+        <TouchableOpacity
+          style={styles.expandButton}
+          onPress={() => handleCoursePress(course)}
+          activeOpacity={0.6}
+        >
+          <Ionicons 
+            name="chevron-forward" 
+            size={scale(20)} 
+            color={colors.primary}
+          />
+        </TouchableOpacity>
+      </View>
+    );
+  }, [handleCoursePress]);
 
   // Render UI khi chưa đăng nhập
   const renderGuestUI = () => (
@@ -262,9 +309,9 @@ const OnionScreen = ({ navigation }) => {
             </View>
           ) : (
             <View style={styles.coursesList}>
-              {courses.map((course, index) => (
+              {courses.map((course) => (
                 <CourseCard
-                  key={`${course.courseId || course.id}-${index}`}
+                  key={course.courseId || course.id}
                   course={course}
                   showProgress={true}
                   onPress={() => handleCoursePress(course)}
@@ -522,6 +569,111 @@ const styles = StyleSheet.create({
   },
   coursesList: {
     gap: 16,
+  },
+  courseSection: {
+    marginBottom: 24,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  sectionTitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.text,
+  },
+  sectionBadge: {
+    backgroundColor: colors.primary,
+    borderRadius: scale(12),
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+  },
+  sectionBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  // Expandable Course Card Styles
+  expandableCourseCard: {
+    position: 'relative',
+    marginBottom: 16,
+  },
+  courseCardMain: {
+    flex: 1,
+  },
+  expandButton: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    backgroundColor: colors.surface,
+    borderRadius: scale(20),
+    width: scale(32),
+    height: scale(32),
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+    zIndex: 10,
+  },
+  lessonsContainer: {
+    backgroundColor: colors.background,
+    borderRadius: scale(12),
+    padding: 16,
+    marginTop: -8,
+    marginHorizontal: 4,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  loadingLessons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 20,
+    gap: 12,
+  },
+  loadingText: {
+    fontSize: 14,
+    color: colors.textSecondary,
+  },
+  lessonItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    backgroundColor: colors.surface,
+    borderRadius: scale(8),
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  lessonIconContainer: {
+    marginRight: 12,
+  },
+  lessonInfo: {
+    flex: 1,
+  },
+  lessonTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 4,
+  },
+  lessonDuration: {
+    fontSize: 12,
+    color: colors.textSecondary,
   },
   bottomSpacing: {
     height: verticalScale(80),
