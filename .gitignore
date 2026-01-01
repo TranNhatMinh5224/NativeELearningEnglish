@@ -1,23 +1,124 @@
+# Dependencies
 node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+# package-lock.json và yarn.lock nên được commit để đảm bảo version consistency
+
+# Expo
 .expo/
 .expo-shared/
+.expo/
 dist/
-npm-debug.*
+web-build/
+
+# Native
+*.orig.*
 *.jks
 *.p8
 *.p12
 *.key
 *.mobileprovision
-*.orig.*
-web-build/
+*.pbxuser
+*.mode1v3
+*.mode2v3
+*.perspectivev3
+*.xcuserstate
+*.xcworkspace
+!default.xcworkspace
+xcuserdata/
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.mdf
+*.ldf
+*.log
+*.tmp
+*.temp
 
-# macOS
-.DS_Store
+# Android
+android/app/build/
+android/app/release/
+android/.gradle/
+android/local.properties
+android/.idea/
+android/*.iml
+android/.cxx/
+android/app/debug/
+android/app/release/
+android/keystore.properties
+*.apk
+*.aab
+*.ap_
+*.dex
+*.class
+bin/
+gen/
+out/
+release/
 
-# Environment
+# iOS
+ios/Pods/
+ios/build/
+ios/*.xcworkspace
+ios/*.xcuserdata
+ios/.xcode.env.local
+ios/DerivedData/
+*.pbxuser
+!default.pbxuser
+*.mode1v3
+!default.mode1v3
+*.mode2v3
+!default.mode2v3
+*.perspectivev3
+!default.perspectivev3
+xcuserdata/
+*.xccheckout
+*.moved-aside
+DerivedData
+*.hmap
+*.ipa
+*.xcuserstate
+project.xcworkspace/
+
+# Metro bundler
+.metro-health-check*
+
+# Watchman
+.watchmanconfig
+
+# Environment variables
 .env
 .env.local
+.env.development.local
+.env.test.local
+.env.production.local
 .env.*.local
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
 
 # IDE
 .vscode/
@@ -25,10 +126,43 @@ web-build/
 *.swp
 *.swo
 *~
+.project
+.classpath
+.settings/
+*.sublime-project
+*.sublime-workspace
 
-# Logs
-logs
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
+# Testing
+coverage/
+.nyc_output/
+*.lcov
+.jest/
+
+# Temporary files
+*.tmp
+*.temp
+*.cache
+.cache/
+.temp/
+tmp/
+temp/
+
+# Build artifacts
+build/
+dist/
+out/
+*.tgz
+*.tar.gz
+
+# Misc
+*.pem
+*.p12
+*.key
+*.cert
+*.crt
+*.cer
+*.der
+*.pfx
+*.mobileprovision
+*.provisionprofile
+*.entitlements
