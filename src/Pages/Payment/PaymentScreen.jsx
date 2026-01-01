@@ -1,232 +1,356 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
   ActivityIndicator,
+  ScrollView,
+  Image,
   Alert,
-  Dimensions
 } from 'react-native';
-import { WebView } from 'react-native-webview';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import * as Linking from 'expo-linking';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import colors from '../../Theme/colors';
-import paymentService from '../../Services/paymentService';
 
-const { width } = Dimensions.get('window');
+import colors from '../../Theme/colors';
+import { scale, verticalScale } from '../../Theme/responsive';
+import paymentService from '../../Services/paymentService';
+import courseService from '../../Services/courseService';
 
 const PaymentScreen = ({ navigation, route }) => {
-  const { courseId, price } = route.params;
+  const { courseId, courseTitle, price, thumbnail } = route.params;
   const insets = useSafeAreaInsets();
   
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [paymentUrl, setPaymentUrl] = useState(null);
-  const [paymentId, setPaymentId] = useState(null);
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [orderCode, setOrderCode] = useState(null);
+
+  // Xử lý quay lại từ trình duyệt (Deep Linking)
+  // Trong môi trường Expo Go, việc test Deep Link hơi phức tạp
+  // Nên ta sẽ dùng cơ chế "Tôi đã thanh toán xong" thủ công để check lại status
   
-  const pollingInterval = useRef(null);
-
-  useEffect(() => {
-    initializePaymentFlow();
-    return () => stopPolling();
-  }, []);
-
-  const initializePaymentFlow = async () => {
+  const handleCreatePayment = async () => {
     try {
       setLoading(true);
-      
-      // Bước 1: Gọi API process để lấy paymentId
-      const processRes = await paymentService.processPayment(courseId, 1); // 1 = Course
-      
-      if (processRes && processRes.success && processRes.data) {
-        const id = processRes.data.paymentId;
-        setPaymentId(id);
+      // Tạo URL quay về App (Deep Link) - Cần cấu hình Scheme trong app.json
+      // Ví dụ: native-elearning://payment-result
+      const returnUrl = Linking.createURL('payment-result'); 
+      const cancelUrl = Linking.createURL('payment-cancel');
 
-        // Trường hợp khóa học miễn phí, Backend có thể tự động confirm ngay
-        if (processRes.data.amount === 0) {
-            handlePaymentSuccess();
-            return;
-        }
-
-        // Bước 2: Gọi API lấy link PayOS
-        const linkRes = await paymentService.createPayOSLink(id);
+      const response = await paymentService.createPaymentLink(courseId, returnUrl, cancelUrl);
+      
+      if (response && response.data && response.data.checkoutUrl) {
+        const { checkoutUrl, orderCode: code } = response.data;
+        setPaymentUrl(checkoutUrl);
+        setOrderCode(code);
         
-        if (linkRes && linkRes.success && linkRes.data?.checkoutUrl) {
-          setPaymentUrl(linkRes.data.checkoutUrl);
-          startPolling(id);
+        // Mở trình duyệt
+        const supported = await Linking.canOpenURL(checkoutUrl);
+        if (supported) {
+          await Linking.openURL(checkoutUrl);
         } else {
-          throw new Error(linkRes.message || 'Không thể lấy link thanh toán');
+          Alert.alert('Lỗi', 'Không thể mở trình duyệt thanh toán');
         }
       } else {
-        throw new Error(processRes.message || 'Lỗi khởi tạo đơn hàng');
+        Alert.alert('Lỗi', 'Không thể tạo link thanh toán. Vui lòng thử lại.');
       }
     } catch (error) {
-      console.error('Payment Flow Error:', error);
-      Alert.alert('Lỗi', error.message || 'Đã xảy ra lỗi kết nối.');
-      navigation.goBack();
+      console.error('Payment Error:', error);
+      Alert.alert('Lỗi', 'Đã xảy ra lỗi khi khởi tạo thanh toán.');
     } finally {
       setLoading(false);
     }
   };
 
-  const startPolling = (id) => {
-    stopPolling();
-    pollingInterval.current = setInterval(() => {
-      checkStatus(id);
-    }, 3000);
-  };
-
-  const stopPolling = () => {
-    if (pollingInterval.current) {
-      clearInterval(pollingInterval.current);
-      pollingInterval.current = null;
-    }
-  };
-
-  const checkStatus = async (id) => {
+  const handleCheckPaymentStatus = async () => {
+    if (!orderCode) return;
+    
     try {
-      // Dùng endpoint chuẩn của Backend: POST payos/confirm/{id}
-      const response = await paymentService.confirmPayOSPayment(id);
+      setLoading(true);
+      // Gọi API confirm/check status
+      // Lưu ý: API confirm bên Backend có thể cần chỉnh sửa để trả về status thay vì redirect
+      // Ở đây giả định ta gọi confirm để trigger check
+      const response = await paymentService.confirmPayment(orderCode);
+      
       if (response && response.success) {
-        stopPolling();
-        handlePaymentSuccess();
+        Alert.alert(
+          'Thanh toán thành công! 🎉',
+          'Bạn đã đăng ký khóa học thành công.',
+          [
+            { 
+              text: 'Vào học ngay', 
+              onPress: () => {
+                // Navigate về OnionScreen hoặc LessonList
+                navigation.reset({
+                  index: 0,
+                  routes: [{ name: 'MainApp', params: { screen: 'MyCourses' } }],
+                });
+              } 
+            }
+          ]
+        );
+      } else {
+        Alert.alert('Chưa hoàn tất', 'Giao dịch chưa được xác nhận hoặc đang xử lý. Vui lòng kiểm tra lại sau giây lát.');
       }
     } catch (error) {
-      // Ignore error during polling
+      console.error('Check Status Error:', error);
+      Alert.alert('Thông báo', 'Giao dịch đang được xử lý hoặc chưa hoàn tất.');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handlePaymentSuccess = () => {
-    setIsProcessing(true);
-    setTimeout(() => {
-      Alert.alert(
-        'Thành công! 🎉',
-        'Khóa học đã được kích hoạt.',
-        [{ 
-          text: 'Vào học ngay', 
-          onPress: () => {
-            navigation.reset({
-              index: 0,
-              routes: [{ name: 'MainApp', params: { screen: 'MyCourses' } }],
-            });
-          } 
-        }]
-      );
-    }, 500);
+  const formatPrice = (value) => {
+    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value);
   };
-
-  const handleCancel = () => {
-    stopPolling();
-    Alert.alert('Đã hủy', 'Bạn đã hủy giao dịch thanh toán.');
-    navigation.goBack();
-  };
-
-  const onNavigationStateChange = (navState) => {
-    const { url } = navState;
-    console.log('WebView Nav:', url);
-
-    // Chuẩn hóa URL để check dễ hơn
-    const lowerUrl = url.toLowerCase();
-
-    // 1. Check Cancel (Ưu tiên cao nhất)
-    // PayOS thường redirect về endpoint /cancel hoặc có param cancel=true
-    if (lowerUrl.includes('payos/cancel') || lowerUrl.includes('cancel=true') || lowerUrl.includes('status=cancelled') || lowerUrl.includes('payment/cancel')) {
-        handleCancel();
-        return false;
-    }
-
-    // 2. Check Redirect từ Backend về App (Deep Link Success)
-    if (url.includes('payment-success') || url.includes('payment/success')) {
-        stopPolling();
-        handlePaymentSuccess();
-        return false;
-    }
-
-    // 3. Check Return URL từ PayOS (Localhost/IP)
-    if (url.includes('payos/return') || url.includes('localhost') || url.includes('192.168')) {
-        // Chỉ coi là thành công nếu có code=00 hoặc status=PAID rõ ràng
-        if (url.includes('code=00') || url.includes('status=PAID')) {
-            stopPolling();
-            handlePaymentSuccess();
-            return false;
-        } else {
-            // Trường hợp về return nhưng không phải code 00 -> Có thể lỗi
-            // Nhưng không tự động cancel, để user xem lỗi trên webview hoặc back
-            return true; 
-        }
-    }
-  };
-
-  if (loading) {
-    return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={styles.loadingText}>Đang tạo link thanh toán...</Text>
-      </View>
-    );
-  }
 
   return (
-    <View style={styles.container}>
-      <View style={[styles.header, { paddingTop: insets.top }]}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.closeButton}>
-          <Ionicons name="close" size={28} color={colors.text} />
+    <View style={[styles.container, { paddingTop: insets.top }]}>
+      <View style={styles.header}>
+        <TouchableOpacity 
+          onPress={() => navigation.goBack()} 
+          style={styles.backButton}
+        >
+          <Ionicons name="arrow-back" size={24} color={colors.text} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Thanh toán an toàn</Text>
-        <View style={{ width: 28 }} />
+        <Text style={styles.headerTitle}>Xác nhận thanh toán</Text>
       </View>
 
-      <WebView
-        source={{ uri: paymentUrl }}
-        onNavigationStateChange={onNavigationStateChange}
-        onShouldStartLoadWithRequest={(request) => {
-            // Chặn load localhost trên iOS để tránh lỗi connection refused
-            if (request.url.includes('localhost') || request.url.includes('payos/return')) {
-                onNavigationStateChange(request); // Tái sử dụng logic check success
-                return false; // Chặn load
-            }
-            return true;
-        }}
-        startInLoadingState={true}
-        renderLoading={() => (
-          <View style={styles.webViewLoading}>
-            <ActivityIndicator size="large" color={colors.primary} />
-          </View>
-        )}
-      />
-
-      {isProcessing && (
-        <View style={styles.overlay}>
-          <View style={styles.successCard}>
-            <Ionicons name="checkmark-circle" size={64} color={colors.success} />
-            <Text style={styles.successText}>Đã hoàn tất thanh toán!</Text>
+      <ScrollView contentContainerStyle={styles.content}>
+        <View style={styles.card}>
+          <Image 
+            source={{ uri: thumbnail || 'https://via.placeholder.com/150' }} 
+            style={styles.courseImage}
+            resizeMode="cover"
+          />
+          <View style={styles.courseInfo}>
+            <Text style={styles.courseTitle}>{courseTitle}</Text>
+            <Text style={styles.coursePrice}>{formatPrice(price)}</Text>
           </View>
         </View>
-      )}
+
+        <View style={styles.summaryCard}>
+          <Text style={styles.summaryTitle}>Chi tiết đơn hàng</Text>
+          <View style={styles.row}>
+            <Text style={styles.label}>Tạm tính</Text>
+            <Text style={styles.value}>{formatPrice(price)}</Text>
+          </View>
+          <View style={styles.divider} />
+          <View style={styles.row}>
+            <Text style={styles.totalLabel}>Tổng cộng</Text>
+            <Text style={styles.totalValue}>{formatPrice(price)}</Text>
+          </View>
+        </View>
+
+        {paymentUrl ? (
+          <View style={styles.statusContainer}>
+            <Text style={styles.statusText}>
+              Đang chờ thanh toán...
+            </Text>
+            <Text style={styles.statusSubtext}>
+              Vui lòng hoàn tất thanh toán trên trình duyệt PayOS, sau đó quay lại đây và bấm nút bên dưới.
+            </Text>
+            
+            <TouchableOpacity
+              style={styles.checkButton}
+              onPress={handleCheckPaymentStatus}
+              disabled={loading}
+            >
+              <LinearGradient
+                colors={[colors.success, '#10B981']}
+                style={styles.gradientButton}
+              >
+                {loading ? (
+                  <ActivityIndicator color="#FFF" />
+                ) : (
+                  <Text style={styles.buttonText}>Tôi đã thanh toán xong</Text>
+                )}
+              </LinearGradient>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.reopenButton}
+              onPress={() => Linking.openURL(paymentUrl)}
+            >
+              <Text style={styles.reopenButtonText}>Mở lại trang thanh toán</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <View style={styles.footer}>
+            <TouchableOpacity
+              style={styles.payButton}
+              onPress={handleCreatePayment}
+              disabled={loading}
+            >
+              <LinearGradient
+                colors={[colors.primary, colors.secondary]}
+                style={styles.gradientButton}
+              >
+                {loading ? (
+                  <ActivityIndicator color="#FFF" />
+                ) : (
+                  <Text style={styles.buttonText}>Tiến hành thanh toán</Text>
+                )}
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
+        )}
+      </ScrollView>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingBottom: 12,
+    paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: colors.border,
+    backgroundColor: colors.surface,
   },
-  headerTitle: { fontSize: 16, fontWeight: '700', color: colors.text },
-  closeButton: { padding: 4 },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' },
-  loadingText: { marginTop: 12, color: colors.textSecondary },
-  webViewLoading: { ...StyleSheet.absoluteFillObject, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' },
-  overlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center', zIndex: 99 },
-  successCard: { backgroundColor: '#fff', padding: 32, borderRadius: 20, alignItems: 'center', width: width * 0.8 },
-  successText: { fontSize: 18, fontWeight: 'bold', color: colors.text, marginTop: 16 },
+  backButton: {
+    padding: 8,
+    marginRight: 8,
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.text,
+  },
+  content: {
+    padding: 20,
+  },
+  card: {
+    backgroundColor: colors.surface,
+    borderRadius: 12,
+    marginBottom: 20,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  courseImage: {
+    width: '100%',
+    height: verticalScale(150),
+  },
+  courseInfo: {
+    padding: 16,
+  },
+  courseTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.text,
+    marginBottom: 8,
+  },
+  coursePrice: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.primary,
+  },
+  summaryCard: {
+    backgroundColor: colors.surface,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  summaryTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.text,
+    marginBottom: 16,
+  },
+  row: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  label: {
+    fontSize: 14,
+    color: colors.textSecondary,
+  },
+  value: {
+    fontSize: 14,
+    color: colors.text,
+    fontWeight: '500',
+  },
+  divider: {
+    height: 1,
+    backgroundColor: colors.border,
+    marginVertical: 12,
+  },
+  totalLabel: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.text,
+  },
+  totalValue: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.primary,
+  },
+  footer: {
+    marginTop: 20,
+  },
+  payButton: {
+    borderRadius: 12,
+    overflow: 'hidden',
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  gradientButton: {
+    paddingVertical: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  buttonText: {
+    color: '#FFF',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  statusContainer: {
+    alignItems: 'center',
+    marginTop: 20,
+    padding: 20,
+    backgroundColor: colors.surface,
+    borderRadius: 12,
+  },
+  statusText: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.warning,
+    marginBottom: 8,
+  },
+  statusSubtext: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  checkButton: {
+    width: '100%',
+    borderRadius: 12,
+    overflow: 'hidden',
+    marginBottom: 16,
+  },
+  reopenButton: {
+    padding: 12,
+  },
+  reopenButtonText: {
+    color: colors.primary,
+    fontWeight: '600',
+  },
 });
 
 export default PaymentScreen;

@@ -6,7 +6,6 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
-    "scheme": "elearningenglish",
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "contain",

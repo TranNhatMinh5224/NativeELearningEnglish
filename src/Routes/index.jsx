@@ -18,8 +18,7 @@ import CourseDetailScreen from '../Pages/Course/CourseDetailScreen';
 import SearchScreen from '../Pages/Search/SearchScreen';
 import LessonListScreen from '../Pages/Lesson/LessonListScreen';
 import LessonDetailScreen from '../Pages/Lesson/LessonDetailScreen';
-import { PaymentScreen, PaymentSuccess, PaymentFailed } from '../Pages/Payment';
-import PaymentHistoryScreen from '../Pages/Payment/PaymentHistoryScreen';
+import PaymentScreen from '../Pages/Payment/PaymentScreen';
 
 // Theme
 import colors from '../Theme/colors';
@@ -137,37 +136,10 @@ const MainTabs = () => {
   );
 };
 
-// Deep Linking Configuration
-const linking = {
-  prefixes: ['elearningenglish://', 'https://elearningenglish.com'], // Scheme và universal links
-  config: {
-    screens: {
-      PaymentSuccess: {
-        path: 'payment-success',
-        parse: {
-          paymentId: (paymentId: string) => paymentId,
-          orderCode: (orderCode: string) => orderCode,
-          courseId: (courseId: string) => courseId,
-        },
-      },
-      PaymentFailed: {
-        path: 'payment-failed',
-        parse: {
-          reason: (reason: string) => reason || 'Canceled',
-          orderCode: (orderCode: string) => orderCode,
-        },
-      },
-      // Các screens khác
-      MainApp: '',
-      Loading: '',
-    },
-  },
-};
-
 // App Navigator
 const AppNavigator = () => {
   return (
-    <NavigationContainer linking={linking}>
+    <NavigationContainer>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {/* Loading Screen - Màn đầu tiên */}
         <Stack.Screen name="Loading" component={LoadingPage} />
@@ -233,14 +205,6 @@ const AppNavigator = () => {
           options={{
             headerShown: false,
             presentation: 'modal', // Hiện dạng modal trượt từ dưới lên cho đẹp
-          }}
-        />
-        <Stack.Screen
-          name="PaymentHistory"
-          component={PaymentHistoryScreen}
-          options={{
-            headerShown: false,
-            presentation: 'card',
           }}
         />
       </Stack.Navigator>
