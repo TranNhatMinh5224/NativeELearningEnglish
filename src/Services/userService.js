@@ -35,10 +35,10 @@ const userService = {
   },
 
   // Update avatar
-  updateAvatar: async (avatarUrl) => {
+  updateAvatar: async (avatarTempKey) => {
     try {
       const response = await axiosClient.put('/auth/profile/avatar', {
-        avatarUrl,
+        avatarTempKey: avatarTempKey,
       });
       return response;
     } catch (error) {

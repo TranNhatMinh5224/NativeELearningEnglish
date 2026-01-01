@@ -17,9 +17,11 @@ import { scale, verticalScale } from '../../Theme/responsive';
 import colors from '../../Theme/colors';
 import CourseCard from '../../Components/Courses/CourseCard';
 import EmptyState from '../../Components/Home/EmptyState';
+import StreakModal from '../../Components/Home/StreakModal';
 import courseService from '../../Services/courseService';
 import authService from '../../Services/authService';
 import notificationService from '../../Services/notificationService';
+import streakService from '../../Services/streakService';
 import { useNotifications } from '../../Context/NotificationContext';
 import { mochiWelcome } from '../../../assets/images';
 import {
@@ -34,6 +36,10 @@ const HomeScreen = ({ navigation }) => {
   const [user, setUser] = useState(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [featuredCourses, setFeaturedCourses] = useState([]);
+  const [unreadCountLocal, setUnreadCountLocal] = useState(0); // Backup
+  const [streakCount, setStreakCount] = useState(0);
+  const [isActiveToday, setIsActiveToday] = useState(false);
+  const [showStreakModal, setShowStreakModal] = useState(false);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -65,6 +71,13 @@ const HomeScreen = ({ navigation }) => {
         
         // Load unread notification count via Context (Same as Web logic)
         await fetchUnreadCount();
+
+        // Load streak info
+        const streakRes = await streakService.getMyStreak().catch(() => null);
+        if (streakRes && streakRes.success) {
+            setStreakCount(streakRes.data?.currentStreak || 0);
+            setIsActiveToday(streakRes.data?.isActiveToday || false);
+        }
       }
 
       // Load featured courses (public - không cần đăng nhập)
@@ -147,9 +160,12 @@ const HomeScreen = ({ navigation }) => {
         <View style={styles.headerRight}>
           {isLoggedIn ? (
             <>
-              <TouchableOpacity style={styles.coinBadge}>
-                <Text style={styles.coinIcon}>💰</Text>
-                <Text style={styles.coinText}>0 ngày</Text>
+              <TouchableOpacity 
+                style={styles.streakBadge}
+                onPress={() => setShowStreakModal(true)}
+              >
+                <Ionicons name="flame" size={scale(16)} color={isActiveToday ? "#FF9F0A" : "#94A3B8"} />
+                <Text style={[styles.streakText, !isActiveToday && { color: "#94A3B8" }]}>{streakCount} ngày</Text>
               </TouchableOpacity>
               <TouchableOpacity 
                 style={styles.notificationButton}
@@ -316,6 +332,14 @@ const HomeScreen = ({ navigation }) => {
         {/* Bottom Spacing for tab bar */}
         <View style={styles.bottomSpacing} />
       </ScrollView>
+
+      {/* Streak Details Modal */}
+      <StreakModal 
+        visible={showStreakModal}
+        onClose={() => setShowStreakModal(false)}
+        streakCount={streakCount}
+        isActiveToday={isActiveToday}
+      />
     </View>
   );
 };
@@ -410,23 +434,22 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
   },
-  coinBadge: {
+  streakBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: 'rgba(255, 159, 10, 0.15)',
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: scale(14),
     marginRight: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 159, 10, 0.3)',
   },
-  coinIcon: {
+  streakText: {
+    color: '#FF9F0A',
     fontSize: 12,
-    marginRight: 4,
-  },
-  coinText: {
-    color: '#FFFFFF',
-    fontSize: 11,
-    fontWeight: '600',
+    fontWeight: '700',
+    marginLeft: 4,
   },
   notificationButton: {
     width: scale(34),
