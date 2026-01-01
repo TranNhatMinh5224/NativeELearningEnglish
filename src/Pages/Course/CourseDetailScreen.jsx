@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -17,6 +17,7 @@ import colors from '../../Theme/colors';
 import courseService from '../../Services/courseService';
 import Toast from '../../Components/Common/Toast';
 import { mochiKhoaHoc } from '../../../assets/images';
+import { formatPrice } from '../../Utils/formatters';
 
 const { width } = Dimensions.get('window');
 
@@ -32,9 +33,10 @@ const CourseDetailScreen = ({ route, navigation }) => {
     if (courseId) {
       loadCourseDetail();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [courseId]);
 
-  const loadCourseDetail = async () => {
+  const loadCourseDetail = useCallback(async () => {
     try {
       setLoading(true);
       const response = await courseService.getCourseById(courseId);
@@ -52,9 +54,9 @@ const CourseDetailScreen = ({ route, navigation }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [courseId]);
 
-  const handleEnroll = async () => {
+  const handleEnroll = useCallback(async () => {
     try {
       setEnrolling(true);
       await courseService.enrollCourse(courseId);
@@ -82,13 +84,7 @@ const CourseDetailScreen = ({ route, navigation }) => {
     } finally {
       setEnrolling(false);
     }
-  };
-
-  // Format price
-  const formatPrice = (price) => {
-    if (!price || price === 0) return 'Free';
-    return `${price.toLocaleString('vi-VN')}₫`;
-  };
+  }, [courseId, loadCourseDetail, navigation]);
 
   if (loading) {
     return (

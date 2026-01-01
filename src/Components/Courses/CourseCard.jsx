@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { scale, verticalScale } from '../../Theme/responsive';
 import colors from '../../Theme/colors';
 import { mochiKhoaHoc } from '../../../assets/images';
+import { formatPrice, getDifficultyBadge, calculateProgress } from '../../Utils/formatters';
 
 const CourseCard = ({ course, onPress, showProgress = false }) => {
   // Defensive check
@@ -20,39 +21,11 @@ const CourseCard = ({ course, onPress, showProgress = false }) => {
   const price = course.Price || course.price || 0;
   const progressPercentage = course.ProgressPercentage || course.progressPercentage || 0;
 
-  // Calculate progress percentage
-  const progress = progressPercentage > 0 
-    ? progressPercentage 
-    : (totalLessons > 0 ? (completedLessons / totalLessons) * 100 : 0);
+  // Calculate progress percentage using utility function
+  const progress = calculateProgress(completedLessons, totalLessons, progressPercentage);
 
-  // Get difficulty badge
-  const getDifficultyBadge = () => {
-    if (isNew) return { label: 'MỚI', color: '#3B82F6' };
-    
-    const diff = difficulty ? String(difficulty).toLowerCase() : '';
-    switch (diff) {
-      case 'easy':
-        return { label: 'DỄ', color: '#10B981' };
-      case 'medium':
-        return { label: 'VỪA', color: '#F59E0B' };
-      case 'hard':
-        return { label: 'KHÓ', color: '#EF4444' };
-      default:
-        return { label: 'DỄ', color: '#10B981' };
-    }
-  };
-
-  const badge = getDifficultyBadge();
-
-  // Format price
-  const formatPrice = (p) => {
-    if (!p || p === 0) return 'Miễn phí';
-    try {
-      return String(p).replace(/\B(?=(\d{3})+(?!\d))/g, '.') + 'đ';
-    } catch {
-      return 'Miễn phí';
-    }
-  };
+  // Get difficulty badge using utility function
+  const badge = getDifficultyBadge(difficulty, isNew);
 
   return (
     <TouchableOpacity

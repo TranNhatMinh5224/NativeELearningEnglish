@@ -12,6 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { scale, verticalScale } from '../../Theme/responsive';
 import colors from '../../Theme/colors';
 import teacherPackageService from '../../Services/teacherPackageService';
+import { formatPrice } from '../../Utils/formatters';
 
 const ProScreen = ({ navigation }) => {
   const [packages, setPackages] = useState([]);
@@ -78,10 +79,6 @@ const ProScreen = ({ navigation }) => {
     // TODO: Navigate to payment screen
     console.log('Upgrade to package:', packageItem);
     // navigation.navigate('Payment', { packageId: packageItem.id });
-  };
-
-  const formatPrice = (price) => {
-    return new Intl.NumberFormat('vi-VN').format(price);
   };
 
   if (loading) {
