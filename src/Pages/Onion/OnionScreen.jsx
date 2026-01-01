@@ -17,6 +17,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { scale, verticalScale, SAFE_AREA_PADDING } from '../../Theme/responsive';
 import colors from '../../Theme/colors';
 import courseService from '../../Services/courseService';
+import lessonService from '../../Services/lessonService';
 import authService from '../../Services/authService';
 import CourseCard from '../../Components/Courses/CourseCard';
 import Toast from '../../Components/Common/Toast';
@@ -31,6 +32,8 @@ const OnionScreen = ({ navigation }) => {
   const [classCode, setClassCode] = useState('');
   const [joining, setJoining] = useState(false);
   const [toast, setToast] = useState({ visible: false, message: '', type: 'success' });
+  const [expandedCourses, setExpandedCourses] = useState({});
+  const [courseLessons, setCourseLessons] = useState({});
 
   // Reload khi màn hình được focus
   useFocusEffect(
@@ -61,7 +64,14 @@ const OnionScreen = ({ navigation }) => {
       
       let coursesData = [];
       if (response && response.data) {
-        coursesData = Array.isArray(response.data) ? response.data : [response.data];
+        // API trả về PagedResult với structure: { items: [...], totalCount, pageSize, currentPage }
+        if (response.data.items && Array.isArray(response.data.items)) {
+          coursesData = response.data.items;
+        } else if (Array.isArray(response.data)) {
+          coursesData = response.data;
+        } else {
+          coursesData = [response.data];
+        }
       } else if (Array.isArray(response)) {
         coursesData = response;
       }
@@ -137,6 +147,41 @@ const OnionScreen = ({ navigation }) => {
     navigation.navigate('LessonList', { 
       courseId, 
       courseTitle 
+    });
+  };
+
+  const toggleCourseExpand = async (courseId) => {
+    const isExpanded = expandedCourses[courseId];
+    
+    setExpandedCourses(prev => ({
+      ...prev,
+      [courseId]: !isExpanded
+    }));
+
+    // Load lessons if not already loaded
+    if (!isExpanded && !courseLessons[courseId]) {
+      try {
+        const response = await lessonService.getLessonsByCourse(courseId);
+        const lessonsData = response?.data || response || [];
+        const sortedLessons = Array.isArray(lessonsData) 
+          ? lessonsData.sort((a, b) => (a.OrderIndex || a.orderIndex || 0) - (b.OrderIndex || b.orderIndex || 0))
+          : [];
+        
+        setCourseLessons(prev => ({
+          ...prev,
+          [courseId]: sortedLessons
+        }));
+      } catch (error) {
+        console.error('Error loading lessons:', error);
+      }
+    }
+  };
+
+  const handleLessonPress = (lesson, courseTitle) => {
+    navigation.navigate('LessonDetail', {
+      lessonId: lesson.lessonId || lesson.LessonId,
+      lessonTitle: lesson.title || lesson.Title,
+      courseTitle: courseTitle,
     });
   };
 
@@ -262,14 +307,197 @@ const OnionScreen = ({ navigation }) => {
             </View>
           ) : (
             <View style={styles.coursesList}>
-              {courses.map((course) => (
-                <CourseCard
-                  key={course.courseId || course.id}
-                  course={course}
-                  showProgress={true}
-                  onPress={() => handleCoursePress(course)}
-                />
-              ))}
+              {/* Free Courses Section */}
+              {(() => {
+                const freeCourses = courses.filter(course => !course.price || course.price === 0);
+                return freeCourses.length > 0 ? (
+                  <View style={styles.courseSection}>
+                    <View style={styles.sectionHeader}>
+                      <View style={styles.sectionTitleContainer}>
+                        <Ionicons name="gift-outline" size={scale(20)} color={colors.success} />
+                        <Text style={styles.sectionTitle}>Khóa học miễn phí</Text>
+                      </View>
+                      <View style={styles.sectionBadge}>
+                        <Text style={styles.sectionBadgeText}>{freeCourses.length}</Text>
+                      </View>
+                    </View>
+                    {freeCourses.map((course, index) => {
+                      const courseId = course.courseId || course.id;
+                      const isExpanded = expandedCourses[courseId];
+                      const lessons = courseLessons[courseId] || [];
+                      
+                      return (
+                        <View key={courseId || `free-course-${index}`}>
+                          <View style={styles.expandableCourseCard}>
+                            <TouchableOpacity 
+                              style={styles.courseCardMain}
+                              onPress={() => handleCoursePress(course)}
+                              activeOpacity={0.7}
+                            >
+                              <CourseCard
+                                course={course}
+                                showProgress={true}
+                                onPress={() => {}}
+                              />
+                            </TouchableOpacity>
+                            
+                            <TouchableOpacity
+                              style={styles.expandButton}
+                              onPress={() => toggleCourseExpand(courseId)}
+                              activeOpacity={0.6}
+                            >
+                              <Ionicons 
+                                name={isExpanded ? "chevron-up" : "chevron-down"} 
+                                size={scale(20)} 
+                                color={colors.primary}
+                              />
+                            </TouchableOpacity>
+                          </View>
+                          
+                          {isExpanded && (
+                            <View style={styles.lessonsContainer}>
+                              {lessons.length === 0 ? (
+                                <View style={styles.loadingLessons}>
+                                  <ActivityIndicator size="small" color={colors.primary} />
+                                  <Text style={styles.loadingText}>Đang tải bài giảng...</Text>
+                                </View>
+                              ) : (
+                                lessons.map((lesson, lessonIndex) => (
+                                  <TouchableOpacity
+                                    key={lesson.lessonId || lesson.LessonId || `lesson-${lessonIndex}`}
+                                    style={styles.lessonItem}
+                                    onPress={() => handleLessonPress(lesson, course.title || course.Title)}
+                                    activeOpacity={0.7}
+                                  >
+                                    <View style={styles.lessonIconContainer}>
+                                      <Ionicons 
+                                        name={lesson.isLocked ? "lock-closed" : "book-outline"} 
+                                        size={scale(16)} 
+                                        color={lesson.isLocked ? colors.textSecondary : colors.primary}
+                                      />
+                                    </View>
+                                    <View style={styles.lessonInfo}>
+                                      <Text style={styles.lessonTitle} numberOfLines={2}>
+                                        {lesson.title || lesson.Title || 'Bài học'}
+                                      </Text>
+                                      {lesson.duration && (
+                                        <Text style={styles.lessonDuration}>
+                                          {lesson.duration} phút
+                                        </Text>
+                                      )}
+                                    </View>
+                                    <Ionicons 
+                                      name="chevron-forward" 
+                                      size={scale(16)} 
+                                      color={colors.textSecondary}
+                                    />
+                                  </TouchableOpacity>
+                                ))
+                              )}
+                            </View>
+                          )}
+                        </View>
+                      );
+                    })}
+                  </View>
+                ) : null;
+              })()}
+
+              {/* Paid Courses Section */}
+              {(() => {
+                const paidCourses = courses.filter(course => course.price && course.price > 0);
+                return paidCourses.length > 0 ? (
+                  <View style={styles.courseSection}>
+                    <View style={styles.sectionHeader}>
+                      <View style={styles.sectionTitleContainer}>
+                        <Ionicons name="diamond-outline" size={scale(20)} color={colors.primary} />
+                        <Text style={styles.sectionTitle}>Khóa học premium</Text>
+                      </View>
+                      <View style={styles.sectionBadge}>
+                        <Text style={styles.sectionBadgeText}>{paidCourses.length}</Text>
+                      </View>
+                    </View>
+                    {paidCourses.map((course, index) => {
+                      const courseId = course.courseId || course.id;
+                      const isExpanded = expandedCourses[courseId];
+                      const lessons = courseLessons[courseId] || [];
+                      
+                      return (
+                        <View key={courseId || `paid-course-${index}`}>
+                          <View style={styles.expandableCourseCard}>
+                            <TouchableOpacity 
+                              style={styles.courseCardMain}
+                              onPress={() => handleCoursePress(course)}
+                              activeOpacity={0.7}
+                            >
+                              <CourseCard
+                                course={course}
+                                showProgress={true}
+                                onPress={() => {}}
+                              />
+                            </TouchableOpacity>
+                            
+                            <TouchableOpacity
+                              style={styles.expandButton}
+                              onPress={() => toggleCourseExpand(courseId)}
+                              activeOpacity={0.6}
+                            >
+                              <Ionicons 
+                                name={isExpanded ? "chevron-up" : "chevron-down"} 
+                                size={scale(20)} 
+                                color={colors.primary}
+                              />
+                            </TouchableOpacity>
+                          </View>
+                          
+                          {isExpanded && (
+                            <View style={styles.lessonsContainer}>
+                              {lessons.length === 0 ? (
+                                <View style={styles.loadingLessons}>
+                                  <ActivityIndicator size="small" color={colors.primary} />
+                                  <Text style={styles.loadingText}>Đang tải bài giảng...</Text>
+                                </View>
+                              ) : (
+                                lessons.map((lesson, lessonIndex) => (
+                                  <TouchableOpacity
+                                    key={lesson.lessonId || lesson.LessonId || `lesson-${lessonIndex}`}
+                                    style={styles.lessonItem}
+                                    onPress={() => handleLessonPress(lesson, course.title || course.Title)}
+                                    activeOpacity={0.7}
+                                  >
+                                    <View style={styles.lessonIconContainer}>
+                                      <Ionicons 
+                                        name={lesson.isLocked ? "lock-closed" : "book-outline"} 
+                                        size={scale(16)} 
+                                        color={lesson.isLocked ? colors.textSecondary : colors.primary}
+                                      />
+                                    </View>
+                                    <View style={styles.lessonInfo}>
+                                      <Text style={styles.lessonTitle} numberOfLines={2}>
+                                        {lesson.title || lesson.Title || 'Bài học'}
+                                      </Text>
+                                      {lesson.duration && (
+                                        <Text style={styles.lessonDuration}>
+                                          {lesson.duration} phút
+                                        </Text>
+                                      )}
+                                    </View>
+                                    <Ionicons 
+                                      name="chevron-forward" 
+                                      size={scale(16)} 
+                                      color={colors.textSecondary}
+                                    />
+                                  </TouchableOpacity>
+                                ))
+                              )}
+                            </View>
+                          )}
+                        </View>
+                      );
+                    })}
+                  </View>
+                ) : null;
+              })()}
             </View>
           )}
         </View>
@@ -522,6 +750,111 @@ const styles = StyleSheet.create({
   },
   coursesList: {
     gap: 16,
+  },
+  courseSection: {
+    marginBottom: 24,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  sectionTitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.text,
+  },
+  sectionBadge: {
+    backgroundColor: colors.primary,
+    borderRadius: scale(12),
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+  },
+  sectionBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  // Expandable Course Card Styles
+  expandableCourseCard: {
+    position: 'relative',
+    marginBottom: 16,
+  },
+  courseCardMain: {
+    flex: 1,
+  },
+  expandButton: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    backgroundColor: colors.surface,
+    borderRadius: scale(20),
+    width: scale(32),
+    height: scale(32),
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+    zIndex: 10,
+  },
+  lessonsContainer: {
+    backgroundColor: colors.background,
+    borderRadius: scale(12),
+    padding: 16,
+    marginTop: -8,
+    marginHorizontal: 4,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  loadingLessons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 20,
+    gap: 12,
+  },
+  loadingText: {
+    fontSize: 14,
+    color: colors.textSecondary,
+  },
+  lessonItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    backgroundColor: colors.surface,
+    borderRadius: scale(8),
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  lessonIconContainer: {
+    marginRight: 12,
+  },
+  lessonInfo: {
+    flex: 1,
+  },
+  lessonTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 4,
+  },
+  lessonDuration: {
+    fontSize: 12,
+    color: colors.textSecondary,
   },
   bottomSpacing: {
     height: verticalScale(80),

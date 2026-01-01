@@ -14,7 +14,7 @@ export default {
       backgroundColor: '#6366F1',
     },
     extra: {
-      apiBaseUrl: process.env.REACT_APP_API_BASE_URL || 'http://192.168.1.178:5029/api',
+      apiBaseUrl: process.env.REACT_APP_API_BASE_URL || 'http://172.20.10.4:5030/api',
     },
     assetBundlePatterns: ['**/*'],
     ios: {

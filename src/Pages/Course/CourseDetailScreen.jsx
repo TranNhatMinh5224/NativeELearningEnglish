@@ -223,9 +223,46 @@ const CourseDetailScreen = ({ route, navigation }) => {
                 </LinearGradient>
               </TouchableOpacity>
             ) : (
-              <View style={styles.enrolledBadge}>
-                <Ionicons name="checkmark-circle" size={scale(20)} color={colors.success} />
-                <Text style={styles.enrolledText}>Đã đăng ký</Text>
+              <View>
+                <View style={styles.enrolledBadge}>
+                  <Ionicons name="checkmark-circle" size={scale(20)} color={colors.success} />
+                  <Text style={styles.enrolledText}>Đã đăng ký</Text>
+                </View>
+                
+                <TouchableOpacity
+                  style={styles.startLearningButton}
+                  onPress={() => {
+                    if (lessonCount > 0) {
+                      navigation.navigate('LessonList', { 
+                        courseId, 
+                        courseTitle 
+                      });
+                    } else {
+                      setToast({
+                        visible: true,
+                        message: 'Khóa học chưa có bài giảng',
+                        type: 'info',
+                      });
+                    }
+                  }}
+                  activeOpacity={0.8}
+                >
+                  <LinearGradient
+                    colors={lessonCount > 0 ? ['#3B82F6', '#60A5FA'] : ['#9CA3AF', '#6B7280']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={styles.startLearningGradient}
+                  >
+                    <Ionicons 
+                      name={lessonCount > 0 ? "play-circle" : "alert-circle-outline"} 
+                      size={scale(20)} 
+                      color="#FFFFFF" 
+                    />
+                    <Text style={styles.startLearningText}>
+                      {lessonCount > 0 ? 'Vào học luôn' : 'Chưa có bài học'}
+                    </Text>
+                  </LinearGradient>
+                </TouchableOpacity>
               </View>
             )}
           </View>
@@ -460,6 +497,23 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.success,
     marginLeft: 8,
+  },
+  startLearningButton: {
+    marginTop: 12,
+    borderRadius: scale(12),
+    overflow: 'hidden',
+  },
+  startLearningGradient: {
+    flexDirection: 'row',
+    paddingVertical: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  startLearningText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '700',
   },
   bottomSpacing: {
     height: verticalScale(20),
