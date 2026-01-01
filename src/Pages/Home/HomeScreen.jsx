@@ -19,6 +19,8 @@ import CourseCard from '../../Components/Courses/CourseCard';
 import EmptyState from '../../Components/Home/EmptyState';
 import courseService from '../../Services/courseService';
 import authService from '../../Services/authService';
+import notificationService from '../../Services/notificationService';
+import { useNotifications } from '../../Context/NotificationContext';
 import { mochiWelcome } from '../../../assets/images';
 import {
   FeatureSectionOne,
@@ -28,6 +30,7 @@ import {
 
 const HomeScreen = ({ navigation }) => {
   const insets = useSafeAreaInsets();
+  const { unreadCount, fetchUnreadCount } = useNotifications();
   const [user, setUser] = useState(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [featuredCourses, setFeaturedCourses] = useState([]);
@@ -39,22 +42,11 @@ const HomeScreen = ({ navigation }) => {
     loadData();
   }, []);
 
-  // Chỉ reload login status khi focus, không reload courses
+  // Load data khi màn hình được focus (để reload sau khi đăng nhập hoặc thanh toán)
   useFocusEffect(
     useCallback(() => {
-      const checkLogin = async () => {
-        const loggedIn = await authService.isLoggedIn();
-        if (loggedIn !== isLoggedIn) {
-          // Chỉ reload nếu trạng thái login thay đổi
-          setIsLoggedIn(loggedIn);
-          if (loggedIn) {
-            const currentUser = await authService.getCurrentUser();
-            setUser(currentUser);
-          }
-        }
-      };
-      checkLogin();
-    }, [isLoggedIn])
+      loadData();
+    }, [])
   );
 
   // Load user and courses data
@@ -70,6 +62,9 @@ const HomeScreen = ({ navigation }) => {
       if (loggedIn) {
         const currentUser = await authService.getCurrentUser();
         setUser(currentUser);
+        
+        // Load unread notification count via Context (Same as Web logic)
+        await fetchUnreadCount();
       }
 
       // Load featured courses (public - không cần đăng nhập)
@@ -156,8 +151,16 @@ const HomeScreen = ({ navigation }) => {
                 <Text style={styles.coinIcon}>💰</Text>
                 <Text style={styles.coinText}>0 ngày</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.notificationButton}>
+              <TouchableOpacity 
+                style={styles.notificationButton}
+                onPress={() => navigation.navigate('Notifications')}
+              >
                 <Ionicons name="notifications" size={scale(20)} color="#FFFFFF" />
+                {unreadCount > 0 && (
+                  <View style={styles.notificationBadge}>
+                    <Text style={styles.badgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
+                  </View>
+                )}
               </TouchableOpacity>
             </>
           ) : (
@@ -432,6 +435,26 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
     justifyContent: 'center',
     alignItems: 'center',
+    position: 'relative', // Quan trọng để badge absolute
+  },
+  notificationBadge: {
+    position: 'absolute',
+    top: -2,
+    right: -2,
+    backgroundColor: '#EF4444',
+    minWidth: scale(16),
+    height: scale(16),
+    borderRadius: scale(8),
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 2,
+    borderWidth: 1.5,
+    borderColor: colors.primary, // Viền cùng màu header cho đẹp
+  },
+  badgeText: {
+    color: '#FFFFFF',
+    fontSize: 9,
+    fontWeight: '700',
   },
   searchContainer: {
     flexDirection: 'row',

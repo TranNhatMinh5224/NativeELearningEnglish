@@ -17,8 +17,8 @@ import VocabularyScreen from '../Pages/Vocabulary/VocabularyScreen';
 import CourseDetailScreen from '../Pages/Course/CourseDetailScreen';
 import SearchScreen from '../Pages/Search/SearchScreen';
 import { LessonListScreen, LessonDetailScreen, ModuleLearningScreen } from '../Pages/Lesson';
-import { PaymentScreen, PaymentSuccess, PaymentFailed } from '../Pages/Payment';
-import PaymentHistoryScreen from '../Pages/Payment/PaymentHistoryScreen';
+import { PaymentScreen, PaymentSuccess, PaymentFailed, PaymentHistoryScreen } from '../Pages/Payment';
+import NotificationScreen from '../Pages/Notification/NotificationScreen';
 
 // Theme
 import colors from '../Theme/colors';
@@ -253,6 +253,14 @@ const AppNavigator = () => {
         <Stack.Screen
           name="PaymentHistory"
           component={PaymentHistoryScreen}
+          options={{
+            headerShown: false,
+            presentation: 'card',
+          }}
+        />
+        <Stack.Screen
+          name="Notifications"
+          component={NotificationScreen}
           options={{
             headerShown: false,
             presentation: 'card',

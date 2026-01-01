@@ -13,7 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import colors from '../../Theme/colors';
 import paymentService from '../../Services/paymentService';
-import userService from '../../Services/userService';
+import { useNotifications } from '../../Context/NotificationContext';
 
 const { width } = Dimensions.get('window');
 
@@ -24,6 +24,7 @@ const PaymentScreen = ({ navigation, route }) => {
     price, thumbnail 
   } = route.params;
   const insets = useSafeAreaInsets();
+  const { refresh } = useNotifications();
   
   const [loading, setLoading] = useState(true);
   const [paymentUrl, setPaymentUrl] = useState(null);
@@ -212,13 +213,16 @@ const PaymentScreen = ({ navigation, route }) => {
     }
   };
 
-  const handlePaymentSuccess = () => {
-      setPaymentSuccess(true); // Đánh dấu đã thanh toán thành công
-      setIsProcessing(true);
-      setTimeout(() => {
-        const successMessage = packageId 
-          ? 'Bạn đã nâng cấp tài khoản giáo viên thành công.' 
-          : 'Khóa học đã được kích hoạt. Chúc bạn học tốt!';
+  const handlePaymentSuccess = async () => {
+    setIsProcessing(true);
+    
+    // Cập nhật lại số lượng thông báo (Web-style logic)
+    await refresh();
+
+    setTimeout(() => {
+      const successMessage = packageId 
+        ? 'Bạn đã nâng cấp tài khoản giáo viên thành công.' 
+        : 'Khóa học đã được kích hoạt. Chúc bạn học tốt!';
           
         Alert.alert(
           'Thành công! 🎉',
