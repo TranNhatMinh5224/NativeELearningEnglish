@@ -20,6 +20,7 @@ import { LessonListScreen, LessonDetailScreen, ModuleLearningScreen, Pronunciati
 import { PaymentScreen, PaymentSuccess, PaymentFailed, PaymentHistoryScreen } from '../Pages/Payment';
 import NotificationScreen from '../Pages/Notification/NotificationScreen';
 import FlashCardLearningScreen from '../Pages/FlashCard/FlashCardLearningScreen';
+import FlashCardReviewSession from '../Pages/FlashCard/FlashCardReviewSession';
 
 // Theme
 import colors from '../Theme/colors';
@@ -286,11 +287,12 @@ const AppNavigator = () => {
           }}
         />
         <Stack.Screen
-          name="PronunciationDetail"
-          component={PronunciationDetailScreen}
+          name="FlashCardReviewSession"
+          component={FlashCardReviewSession}
           options={{
             headerShown: false,
-            presentation: 'card',
+            presentation: 'fullScreenModal',
+            animation: 'slide_from_bottom',
           }}
         />
       </Stack.Navigator>
