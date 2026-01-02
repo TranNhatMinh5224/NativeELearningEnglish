@@ -7,6 +7,8 @@ import { scale } from '../../Theme/responsive';
 import colors from '../../Theme/colors';
 import authService from '../../Services/authService';
 import userService from '../../Services/userService';
+import fileService from '../../Services/fileService';
+import * as ImagePicker from 'expo-image-picker';
 import Toast from '../../Components/Common/Toast';
 import GuestView from '../../Components/Profile/GuestView';
 import UserInfo from '../../Components/Profile/UserInfo';
@@ -29,8 +31,55 @@ const ProfileScreen = ({ navigation }) => {
 
   const [infoData, setInfoData] = useState({ firstName: '', lastName: '', email: '', phone: '' });
   const [infoErrors, setInfoErrors] = useState({});
+  const [updatingAvatar, setUpdatingAvatar] = useState(false);
 
   useFocusEffect(useCallback(() => { checkLoginStatus(); }, []));
+
+  const handleUpdateAvatar = async () => {
+    try {
+      // 1. Xin quyền truy cập thư viện ảnh
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Quyền truy cập', 'Chúng tôi cần quyền truy cập thư viện ảnh của bạn để đổi ảnh đại diện.');
+        return;
+      }
+
+      // 2. Chọn ảnh
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.7,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        setUpdatingAvatar(true);
+        const selectedImage = result.assets[0];
+
+        // 3. Upload file tạm lên server
+        const uploadRes = await fileService.uploadFile(selectedImage.uri, selectedImage.fileName || 'avatar.jpg');
+        console.log('Upload Result:', uploadRes);
+        
+       
+        const tempKey = uploadRes?.data?.tempKey || uploadRes?.tempKey;
+
+        if (!tempKey) {
+          throw new Error('Không nhận được mã file từ server');
+        }
+
+        // 4. Gọi API cập nhật Avatar thật
+        await userService.updateAvatar(tempKey);
+        
+        setToast({ visible: true, message: 'Cập nhật ảnh đại diện thành công!', type: 'success' });
+        await loadProfile(); // Reload lại dữ liệu user
+      }
+    } catch (error) {
+      console.error('Update avatar error:', error);
+      setToast({ visible: true, message: 'Không thể cập nhật ảnh đại diện', type: 'error' });
+    } finally {
+      setUpdatingAvatar(false);
+    }
+  };
 
   const checkLoginStatus = async () => {
     try {
@@ -189,7 +238,12 @@ const ProfileScreen = ({ navigation }) => {
         duration={3000}
       />
       <ScrollView showsVerticalScrollIndicator={false}>
-        <UserInfo user={user} onUpgradePro={() => navigation.navigate('Pro')} />
+        <UserInfo 
+            user={user} 
+            onUpgradePro={() => navigation.navigate('Pro')} 
+            onUpdateAvatar={handleUpdateAvatar}
+            updatingAvatar={updatingAvatar}
+        />
 
         <View style={styles.actions}>
           <TouchableOpacity style={styles.action} onPress={() => setShowChangePassword(true)}>

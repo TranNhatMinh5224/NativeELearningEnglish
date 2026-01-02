@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { scale } from '../../Theme/responsive';
@@ -18,7 +18,7 @@ const InfoRow = ({ icon, label, value }) => (
   </>
 );
 
-const UserInfo = ({ user, onUpgradePro }) => (
+const UserInfo = ({ user, onUpgradePro, onUpdateAvatar, updatingAvatar }) => (
   <View>
     <LinearGradient
       colors={[colors.primary, colors.secondary]}
@@ -46,9 +46,19 @@ const UserInfo = ({ user, onUpgradePro }) => (
                user?.lastName?.charAt(0)?.toUpperCase() || 'U'}
             </Text>
           )}
+          
+          {updatingAvatar && (
+            <View style={styles.avatarLoading}>
+              <ActivityIndicator color="#FFF" />
+            </View>
+          )}
         </View>
-        <TouchableOpacity style={styles.editButton}>
-          <Ionicons name="pencil" size={scale(16)} color={colors.primary} />
+        <TouchableOpacity 
+            style={styles.editButton} 
+            onPress={onUpdateAvatar}
+            disabled={updatingAvatar}
+        >
+          <Ionicons name="camera" size={scale(16)} color={colors.primary} />
         </TouchableOpacity>
       </View>
       
@@ -117,6 +127,15 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
     borderRadius: scale(50),
+  },
+  avatarLoading: {
+    position: 'absolute',
+    width: '100%',
+    height: '100%',
+    borderRadius: scale(50),
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   avatarText: {
     fontSize: scale(36),

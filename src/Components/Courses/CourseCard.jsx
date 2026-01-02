@@ -18,6 +18,7 @@ const CourseCard = ({ course, onPress, showProgress = false }) => {
   const difficulty = course.Difficulty || course.difficulty || null;
   const isNew = course.IsNew || course.isNew || false;
   const isPro = course.IsPro || course.isPro || false;
+  const isEnrolled = course.IsEnrolled || course.isEnrolled || false;
   const price = course.Price || course.price || 0;
   const progressPercentage = course.ProgressPercentage || course.progressPercentage || 0;
 
@@ -74,6 +75,13 @@ const CourseCard = ({ course, onPress, showProgress = false }) => {
           resizeMode="cover"
           defaultSource={mochiKhoaHoc}
         />
+        
+        {/* Enrolled Badge */}
+        {isEnrolled && (
+          <View style={styles.enrolledBadge}>
+            <Text style={styles.enrolledText}>Đã tham gia</Text>
+          </View>
+        )}
         
         {/* Pro Badge */}
         {isPro && (
@@ -175,6 +183,21 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  enrolledBadge: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(16, 185, 129, 0.9)', // Emerald Green
+    paddingVertical: 4,
+    alignItems: 'center',
+  },
+  enrolledText: {
+    color: '#FFFFFF',
+    fontSize: 9,
+    fontWeight: '800',
+    textTransform: 'uppercase',
   },
 });
 
