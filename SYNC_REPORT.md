@@ -193,3 +193,4 @@ Báo cáo này kiểm tra việc đồng bộ giữa React Native app (`NativeEL
 **Phiên bản Backend**: Latest
 **Phiên bản React Native App**: Latest
 
+
