@@ -210,17 +210,6 @@ const VocabularyScreen = ({ navigation }) => {
               </TouchableOpacity>
             </LinearGradient>
           </View>
-
-          <View style={styles.statsGrid}>
-            <View style={styles.statBox}>
-              <Text style={styles.statValue}>{statistics?.totalCards || 0}</Text>
-              <Text style={styles.statLabel}>Tổng số từ</Text>
-            </View>
-            <View style={styles.statBox}>
-              <Text style={styles.statValue}>{statistics?.masteredCards || 0}</Text>
-              <Text style={styles.statLabel}>Đã thuộc</Text>
-            </View>
-          </View>
         </View>
         <View style={styles.bottomSpacing} />
       </ScrollView>
