@@ -90,27 +90,70 @@ const LessonDetailScreen = ({ route, navigation }) => {
     const contentType = module.ContentType || module.contentType || 1;
     
     // Navigate to appropriate screen based on module type
-    if (contentType === 1) { // Lecture
-      navigation.navigate('ModuleLearning', {
-        moduleId,
-        moduleName,
-        lessonId,
-        lessonTitle,
-      });
-    } else if (contentType === 2) { // FlashCard
-      // Navigate to FlashCard screen (if available)
-      console.log('FlashCard module:', moduleId);
-    } else if (contentType === 3) { // Quiz
-      // Navigate to Quiz screen (if available)
-      console.log('Quiz module:', moduleId);
-    } else {
-      // Default to module learning
-      navigation.navigate('ModuleLearning', {
-        moduleId,
-        moduleName,
-        lessonId,
-        lessonTitle,
-      });
+    // Backend enum: 1=Lecture, 2=Quiz, 3=Assignment, 4=FlashCard, 5=Video, 6=Reading
+    switch (contentType) {
+      case 1: // Lecture
+        navigation.navigate('ModuleLearning', {
+          moduleId,
+          moduleName,
+          lessonId,
+          lessonTitle,
+        });
+        break;
+        
+      case 2: // Quiz
+        navigation.navigate('QuizScreen', {
+          moduleId,
+          moduleName,
+          lessonId,
+          lessonTitle,
+        });
+        break;
+        
+      case 3: // Assignment
+        navigation.navigate('AssignmentScreen', {
+          moduleId,
+          moduleName,
+          lessonId,
+          lessonTitle,
+        });
+        break;
+        
+      case 4: // FlashCard
+        navigation.navigate('FlashcardLearning', {
+          moduleId,
+          moduleName,
+          lessonId,
+          lessonTitle,
+        });
+        break;
+        
+      case 5: // Video
+        navigation.navigate('ModuleLearning', {
+          moduleId,
+          moduleName,
+          lessonId,
+          lessonTitle,
+        });
+        break;
+        
+      case 6: // Reading
+        navigation.navigate('ModuleLearning', {
+          moduleId,
+          moduleName,
+          lessonId,
+          lessonTitle,
+        });
+        break;
+        
+      default: // Default to module learning
+        navigation.navigate('ModuleLearning', {
+          moduleId,
+          moduleName,
+          lessonId,
+          lessonTitle,
+        });
+        break;
     }
   };
 

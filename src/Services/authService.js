@@ -155,17 +155,74 @@ const authService = {
     }
   },
 
-  // Login with Google
-  loginWithGoogle: async (googleToken) => {
+  // Login with Google (using idToken from expo-auth-session)
+  loginWithGoogle: async (idToken) => {
     try {
-      const response = await axiosClient.post('/auth/google-login', {
-        idToken: googleToken,
+      // Try new OAuth2 flow first (if backend supports Code + State)
+      // For now, use idToken endpoint
+      const response = await axiosClient.post('/auth/google-login-token', {
+        idToken: idToken,
       });
 
-      if (response.accessToken) {
-        await AsyncStorage.setItem('accessToken', response.accessToken);
-        await AsyncStorage.setItem('refreshToken', response.refreshToken);
-        await AsyncStorage.setItem('user', JSON.stringify(response.user));
+      // Handle both ServiceResponse and direct AuthResponseDto
+      let authData = null;
+      if (response && response.data) {
+        authData = response.data;
+      } else if (response && (response.AccessToken || response.accessToken)) {
+        authData = response;
+      }
+
+      if (authData) {
+        const accessToken = authData.AccessToken || authData.accessToken;
+        const refreshToken = authData.RefreshToken || authData.refreshToken;
+        const user = authData.User || authData.user;
+        
+        if (accessToken) {
+          await AsyncStorage.setItem('accessToken', accessToken);
+          if (refreshToken) {
+            await AsyncStorage.setItem('refreshToken', refreshToken);
+          }
+          if (user) {
+            await AsyncStorage.setItem('user', JSON.stringify(user));
+          }
+        }
+      }
+
+      return response;
+    } catch (error) {
+      throw error.response?.data || error;
+    }
+  },
+
+  // Login with Google OAuth2 Code Flow (for web/backend OAuth)
+  loginWithGoogleCode: async (code, state) => {
+    try {
+      const response = await axiosClient.post('/auth/google-login', {
+        code: code,
+        state: state,
+      });
+
+      let authData = null;
+      if (response && response.data) {
+        authData = response.data;
+      } else if (response && (response.AccessToken || response.accessToken)) {
+        authData = response;
+      }
+
+      if (authData) {
+        const accessToken = authData.AccessToken || authData.accessToken;
+        const refreshToken = authData.RefreshToken || authData.refreshToken;
+        const user = authData.User || authData.user;
+        
+        if (accessToken) {
+          await AsyncStorage.setItem('accessToken', accessToken);
+          if (refreshToken) {
+            await AsyncStorage.setItem('refreshToken', refreshToken);
+          }
+          if (user) {
+            await AsyncStorage.setItem('user', JSON.stringify(user));
+          }
+        }
       }
 
       return response;

@@ -14,6 +14,7 @@ const ModuleCard = ({ module, onPress, index }) => {
   const isCompleted = module?.IsCompleted || module?.isCompleted || false;
 
   const getModuleConfig = (type) => {
+    // Backend enum: 1=Lecture, 2=Quiz, 3=Assignment, 4=FlashCard, 5=Video, 6=Reading
     switch (type) {
       case 1: // Lecture
         return {
@@ -22,28 +23,35 @@ const ModuleCard = ({ module, onPress, index }) => {
           gradient: ['#6366F1', '#4F46E5'],
           label: 'Bài giảng',
         };
-      case 2: // FlashCard
-        return {
-          icon: 'albums',
-          color: '#F59E0B',
-          gradient: ['#F59E0B', '#D97706'],
-          label: 'Flashcard',
-        };
-      case 3: // Quiz
+      case 2: // Quiz
         return {
           icon: 'help-circle',
           color: '#EF4444',
           gradient: ['#EF4444', '#DC2626'],
           label: 'Quiz',
         };
-      case 4: // Video
+      case 3: // Assignment
         return {
-          icon: 'play-circle',
+          icon: 'document-text',
           color: '#8B5CF6',
           gradient: ['#8B5CF6', '#7C3AED'],
+          label: 'Bài tập',
+        };
+      case 4: // FlashCard
+        return {
+          icon: 'albums',
+          color: '#F59E0B',
+          gradient: ['#F59E0B', '#D97706'],
+          label: 'Flashcard',
+        };
+      case 5: // Video
+        return {
+          icon: 'play-circle',
+          color: '#EC4899',
+          gradient: ['#EC4899', '#DB2777'],
           label: 'Video',
         };
-      case 5: // Reading
+      case 6: // Reading
         return {
           icon: 'newspaper',
           color: '#10B981',
