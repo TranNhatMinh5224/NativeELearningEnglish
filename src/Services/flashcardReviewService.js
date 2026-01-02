@@ -44,6 +44,16 @@ const flashcardReviewService = {
     }
   },
 
+  // Get flashcards by module ID
+  getFlashcardsByModule: async (moduleId) => {
+    try {
+      const response = await axiosClient.get(`/user/flashcards/module/${moduleId}`);
+      return response;
+    } catch (error) {
+      throw error.response?.data || error;
+    }
+  },
+
   // Start learning a module
   startLearningModule: async (moduleId) => {
     try {

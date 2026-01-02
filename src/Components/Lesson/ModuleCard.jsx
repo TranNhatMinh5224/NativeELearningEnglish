@@ -5,15 +5,17 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { scale, verticalScale } from '../../Theme/responsive';
 import colors from '../../Theme/colors';
 
-const ModuleCard = ({ module, onPress, index }) => {
+const ModuleCard = ({ module, onPress, index, onPronunciationClick }) => {
   const moduleId = module?.ModuleId || module?.moduleId;
   const moduleName = module?.Name || module?.name || `Module ${index + 1}`;
   const moduleDescription = module?.Description || module?.description || '';
   const lectures = module?.Lectures || module?.lectures || [];
   const contentType = module?.ContentType || module?.contentType || 1;
   const isCompleted = module?.IsCompleted || module?.isCompleted || false;
+  const isFlashCard = contentType === 4 || contentType === 2; // 2 hoặc 4 là FlashCard
 
   const getModuleConfig = (type) => {
+    // Backend enum: 1=Lecture, 2=Quiz, 3=Assignment, 4=FlashCard, 5=Video, 6=Reading
     switch (type) {
       case 1: // Lecture
         return {
@@ -22,28 +24,35 @@ const ModuleCard = ({ module, onPress, index }) => {
           gradient: ['#6366F1', '#4F46E5'],
           label: 'Bài giảng',
         };
-      case 2: // FlashCard
-        return {
-          icon: 'albums',
-          color: '#F59E0B',
-          gradient: ['#F59E0B', '#D97706'],
-          label: 'Flashcard',
-        };
-      case 3: // Quiz
+      case 2: // Quiz
         return {
           icon: 'help-circle',
           color: '#EF4444',
           gradient: ['#EF4444', '#DC2626'],
           label: 'Quiz',
         };
-      case 4: // Video
+      case 3: // Assignment
         return {
-          icon: 'play-circle',
+          icon: 'document-text',
           color: '#8B5CF6',
           gradient: ['#8B5CF6', '#7C3AED'],
+          label: 'Bài tập',
+        };
+      case 4: // FlashCard
+        return {
+          icon: 'albums',
+          color: '#F59E0B',
+          gradient: ['#F59E0B', '#D97706'],
+          label: 'Flashcard',
+        };
+      case 5: // Video
+        return {
+          icon: 'play-circle',
+          color: '#EC4899',
+          gradient: ['#EC4899', '#DB2777'],
           label: 'Video',
         };
-      case 5: // Reading
+      case 6: // Reading
         return {
           icon: 'newspaper',
           color: '#10B981',
@@ -122,19 +131,34 @@ const ModuleCard = ({ module, onPress, index }) => {
               </Text>
             </View>
           )}
-          {!isCompleted && (
-            <View style={[styles.startButton, { backgroundColor: `${config.color}15` }]}>
-              <Text style={[styles.startButtonText, { color: config.color }]}>
-                Bắt đầu học
-              </Text>
-            </View>
-          )}
-          {isCompleted && (
-            <View style={styles.completedLabel}>
-              <Ionicons name="checkmark" size={scale(14)} color="#10B981" />
-              <Text style={styles.completedText}>Đã hoàn thành</Text>
-            </View>
-          )}
+          <View style={styles.footerRight}>
+            {isFlashCard && isCompleted && onPronunciationClick && (
+              <TouchableOpacity
+                style={styles.pronunciationButton}
+                onPress={(e) => {
+                  e.stopPropagation();
+                  onPronunciationClick();
+                }}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="mic" size={scale(14)} color="#41D6E3" />
+                <Text style={styles.pronunciationButtonText}>pronunciation</Text>
+              </TouchableOpacity>
+            )}
+            {!isCompleted && (
+              <View style={[styles.startButton, { backgroundColor: `${config.color}15` }]}>
+                <Text style={[styles.startButtonText, { color: config.color }]}>
+                  Bắt đầu học
+                </Text>
+              </View>
+            )}
+            {isCompleted && !isFlashCard && (
+              <View style={styles.completedLabel}>
+                <Ionicons name="checkmark" size={scale(14)} color="#10B981" />
+                <Text style={styles.completedText}>Đã hoàn thành</Text>
+              </View>
+            )}
+          </View>
         </View>
       </LinearGradient>
     </TouchableOpacity>
@@ -217,6 +241,27 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     borderTopWidth: 1,
     borderTopColor: 'rgba(0, 0, 0, 0.06)',
+  },
+  footerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: scale(8),
+  },
+  pronunciationButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: scale(6),
+    paddingHorizontal: scale(12),
+    paddingVertical: scale(6),
+    borderRadius: scale(8),
+    backgroundColor: '#41D6E315', // Light cyan background
+    borderWidth: 1,
+    borderColor: '#41D6E3',
+  },
+  pronunciationButtonText: {
+    fontSize: scale(12),
+    fontWeight: '600',
+    color: '#41D6E3',
   },
   metaItem: {
     flexDirection: 'row',

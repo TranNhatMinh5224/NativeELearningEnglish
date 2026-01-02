@@ -16,9 +16,10 @@ import ProfileScreen from '../Pages/Profile/ProfileScreen';
 import VocabularyScreen from '../Pages/Vocabulary/VocabularyScreen';
 import CourseDetailScreen from '../Pages/Course/CourseDetailScreen';
 import SearchScreen from '../Pages/Search/SearchScreen';
-import { LessonListScreen, LessonDetailScreen, ModuleLearningScreen } from '../Pages/Lesson';
+import { LessonListScreen, LessonDetailScreen, ModuleLearningScreen, PronunciationDetailScreen } from '../Pages/Lesson';
 import { PaymentScreen, PaymentSuccess, PaymentFailed, PaymentHistoryScreen } from '../Pages/Payment';
 import NotificationScreen from '../Pages/Notification/NotificationScreen';
+import FlashCardLearningScreen from '../Pages/FlashCard/FlashCardLearningScreen';
 
 // Theme
 import colors from '../Theme/colors';
@@ -273,6 +274,23 @@ const AppNavigator = () => {
             headerShown: false,
             presentation: 'fullScreenModal',
             animation: 'slide_from_bottom',
+          }}
+        />
+        <Stack.Screen
+          name="FlashCardLearning"
+          component={FlashCardLearningScreen}
+          options={{
+            headerShown: false,
+            presentation: 'fullScreenModal',
+            animation: 'fade',
+          }}
+        />
+        <Stack.Screen
+          name="PronunciationDetail"
+          component={PronunciationDetailScreen}
+          options={{
+            headerShown: false,
+            presentation: 'card',
           }}
         />
       </Stack.Navigator>
