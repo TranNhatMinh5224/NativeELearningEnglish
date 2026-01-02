@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -7,10 +7,11 @@ import {
   TouchableOpacity,
   ActivityIndicator,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { scale, verticalScale } from '../../Theme/responsive';
+import { scale, verticalScale, SAFE_AREA_PADDING } from '../../Theme/responsive';
 import colors from '../../Theme/colors';
 import lessonService from '../../Services/lessonService';
 import Toast from '../../Components/Common/Toast';
@@ -22,148 +23,209 @@ const LessonDetailScreen = ({ route, navigation }) => {
   const [lesson, setLesson] = useState(null);
   const [modules, setModules] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [completing, setCompleting] = useState(false);
   const [toast, setToast] = useState({ visible: false, message: '', type: 'success' });
 
-  useEffect(() => {
-    if (lessonId) {
-      loadLessonDetail();
-    }
-  }, [lessonId]);
+  useFocusEffect(
+    useCallback(() => {
+      if (lessonId) {
+        loadLessonDetail();
+      }
+    }, [lessonId])
+  );
 
   const loadLessonDetail = async () => {
     try {
       setLoading(true);
       
-      // Load lesson info and modules in parallel
       const [lessonResponse, modulesResponse] = await Promise.all([
         lessonService.getLessonById(lessonId),
         lessonService.getModulesByLessonId(lessonId)
       ]);
       
-      const lessonData = lessonResponse?.data || lessonResponse;
-      setLesson(lessonData);
+      // Handle lesson response - backend returns ServiceResponse format
+      if (lessonResponse?.data?.success && lessonResponse?.data?.data) {
+        setLesson(lessonResponse.data.data);
+      } else if (lessonResponse?.data) {
+        // Fallback for direct data
+        setLesson(lessonResponse.data);
+      }
       
-      // Get modules from response
-      const modulesData = modulesResponse?.data || modulesResponse || [];
-      setModules(Array.isArray(modulesData) ? modulesData : []);
+      // Handle modules response - backend returns ServiceResponse format
+      let modulesData = [];
+      if (modulesResponse?.data?.success && modulesResponse?.data?.data) {
+        modulesData = modulesResponse.data.data;
+      } else if (modulesResponse?.data) {
+        modulesData = Array.isArray(modulesResponse.data) ? modulesResponse.data : [];
+      }
+      
+      // Sort modules by orderIndex (like Web app)
+      const sortedModules = modulesData.sort((a, b) => {
+        const orderA = a.orderIndex || a.OrderIndex || 0;
+        const orderB = b.orderIndex || b.OrderIndex || 0;
+        return orderA - orderB;
+      });
+      
+      setModules(sortedModules);
     } catch (error) {
       console.error('Error loading lesson detail:', error);
       setToast({
         visible: true,
-        message: error?.message || 'Không thể tải nội dung bài giảng',
-        type: 'error',
+        message: error?.response?.data?.message || 'Không thể tải dữ liệu bài học',
+        type: 'error'
       });
     } finally {
       setLoading(false);
     }
   };
 
-  const handleCompleteLesson = async () => {
+  const handleModulePress = async (module) => {
+    const rawModuleId = module.ModuleId || module.moduleId;
+    if (!rawModuleId) {
+      console.error('Module ID is missing');
+      return;
+    }
+
+    // Parse moduleId to number
+    const moduleId = typeof rawModuleId === 'string' ? parseInt(rawModuleId) : rawModuleId;
+    if (!moduleId || isNaN(moduleId)) {
+      console.error('Invalid module ID:', rawModuleId);
+      return;
+    }
+
+    const moduleName = module.Name || module.name;
+    
+    // Handle both camelCase and PascalCase for contentType
+    let contentType = module.ContentType || module.contentType;
+    const contentTypeName = (module.ContentTypeName || module.contentTypeName || module.name || module.Name || '').toLowerCase();
+
+    // Convert contentType to number if it's a string or enum (like Web app)
+    if (typeof contentType === 'string') {
+      const parsed = parseInt(contentType);
+      if (!isNaN(parsed)) {
+        contentType = parsed;
+      } else {
+        // If it's an enum string like "Assessment", "FlashCard", etc.
+        const typeLower = contentType.toLowerCase();
+        if (typeLower.includes('assessment') || typeLower.includes('assignment')) {
+          contentType = 3; // Assessment
+        } else if (typeLower.includes('flashcard') || typeLower.includes('flash')) {
+          contentType = 2; // FlashCard
+        } else {
+          contentType = 1; // Default to Lecture
+        }
+      }
+    }
+
+    // If contentType is still undefined or null, check contentTypeName or module name
+    if (contentType === undefined || contentType === null) {
+      if (contentTypeName.includes('assessment') || contentTypeName.includes('assignment')) {
+        contentType = 3; // Assessment
+      } else if (contentTypeName.includes('flashcard') || contentTypeName.includes('flash')) {
+        contentType = 2; // FlashCard
+      } else {
+        contentType = 1; // Default to Lecture
+      }
+    }
+
+    // Call startModule API before navigation (like Web app)
     try {
-      setCompleting(true);
-      await lessonService.markLessonCompleted(lessonId);
-      
-      setToast({
-        visible: true,
-        message: 'Đã hoàn thành bài học!',
-        type: 'success',
+      console.log(`Starting module ${moduleId}...`);
+      await lessonService.startModule(moduleId);
+      console.log(`Module ${moduleId} started successfully`);
+
+      // Refresh modules list to update completion status
+      try {
+        const modulesResponse = await lessonService.getModulesByLessonId(lessonId);
+        let modulesData = [];
+        if (modulesResponse?.data?.success && modulesResponse?.data?.data) {
+          modulesData = modulesResponse.data.data;
+        } else if (modulesResponse?.data) {
+          modulesData = Array.isArray(modulesResponse.data) ? modulesResponse.data : [];
+        }
+        
+        // Sort by orderIndex
+        const sortedModules = modulesData.sort((a, b) => {
+          const orderA = a.orderIndex || a.OrderIndex || 0;
+          const orderB = b.orderIndex || b.OrderIndex || 0;
+          return orderA - orderB;
+        });
+        
+        setModules(sortedModules);
+      } catch (refreshErr) {
+        console.error('Error refreshing modules list:', refreshErr);
+        // Continue navigation even if refresh fails
+      }
+    } catch (err) {
+      console.error(`Error starting module ${moduleId}:`, err);
+      // Still continue navigation even if API fails
+    }
+
+    // Navigate based on ContentType: 1=Lecture, 2=FlashCard, 3=Assessment
+    if (contentType === 2 || contentTypeName.includes('flashcard') || contentTypeName.includes('flash')) {
+      // Navigate to FlashCard screen
+      navigation.navigate('FlashCardLearning', {
+        moduleId,
+        moduleName,
       });
-      
-      // Reload lesson to update completion status
-      await loadLessonDetail();
-    } catch (error) {
-      console.error('Error completing lesson:', error);
-      setToast({
-        visible: true,
-        message: error?.message || 'Không thể đánh dấu hoàn thành',
-        type: 'error',
+    } else if (contentType === 3 || 
+               contentTypeName.includes('assessment') || 
+               contentTypeName.includes('assignment') ||
+               contentTypeName.includes('essay') ||
+               contentTypeName.includes('quiz') ||
+               contentTypeName.includes('test')) {
+      // Navigate to Assignment screen (if available)
+      console.log('Assignment module:', moduleId);
+      // TODO: Add Assignment screen navigation when available
+    } else if (contentType === 1 || contentTypeName.includes('lecture')) {
+      // Navigate to Lecture screen
+      navigation.navigate('ModuleLearning', {
+        moduleId,
+        moduleName,
+        lessonId,
+        lessonTitle,
       });
-    } finally {
-      setCompleting(false);
+    } else {
+      // Default: navigate to Lecture screen
+      navigation.navigate('ModuleLearning', {
+        moduleId,
+        moduleName,
+        lessonId,
+        lessonTitle,
+      });
     }
   };
 
-  const handleModulePress = (module) => {
-    const moduleId = module.ModuleId || module.moduleId;
-    const moduleName = module.Name || module.name;
-    const contentType = module.ContentType || module.contentType || 1;
+  const handlePronunciationPress = (module) => {
+    const moduleId = module?.ModuleId || module?.moduleId;
+    const moduleName = module?.Name || module?.name || 'Module';
     
-    // Navigate to appropriate screen based on module type
-    // Backend enum: 1=Lecture, 2=Quiz, 3=Assignment, 4=FlashCard, 5=Video, 6=Reading
-    switch (contentType) {
-      case 1: // Lecture
-        navigation.navigate('ModuleLearning', {
-          moduleId,
-          moduleName,
-          lessonId,
-          lessonTitle,
-        });
-        break;
-        
-      case 2: // Quiz
-        navigation.navigate('QuizScreen', {
-          moduleId,
-          moduleName,
-          lessonId,
-          lessonTitle,
-        });
-        break;
-        
-      case 3: // Assignment
-        navigation.navigate('AssignmentScreen', {
-          moduleId,
-          moduleName,
-          lessonId,
-          lessonTitle,
-        });
-        break;
-        
-      case 4: // FlashCard
-        navigation.navigate('FlashcardLearning', {
-          moduleId,
-          moduleName,
-          lessonId,
-          lessonTitle,
-        });
-        break;
-        
-      case 5: // Video
-        navigation.navigate('ModuleLearning', {
-          moduleId,
-          moduleName,
-          lessonId,
-          lessonTitle,
-        });
-        break;
-        
-      case 6: // Reading
-        navigation.navigate('ModuleLearning', {
-          moduleId,
-          moduleName,
-          lessonId,
-          lessonTitle,
-        });
-        break;
-        
-      default: // Default to module learning
-        navigation.navigate('ModuleLearning', {
-          moduleId,
-          moduleName,
-          lessonId,
-          lessonTitle,
-        });
-        break;
+    if (!moduleId) {
+      console.error('Module ID is missing');
+      return;
     }
+
+    // Navigate to PronunciationDetail screen
+    navigation.navigate('PronunciationDetail', {
+      moduleId,
+      moduleName,
+      lessonId,
+      lessonTitle,
+      courseId,
+      courseTitle,
+    });
   };
 
   const renderModule = (module, index) => {
+    const contentType = module?.ContentType || module?.contentType || 1;
+    const isFlashCard = contentType === 4 || contentType === 2; // 2 hoặc 4 là FlashCard
+    
     return (
       <ModuleCard
         key={module.ModuleId || module.moduleId || index}
         module={module}
         index={index}
         onPress={() => handleModulePress(module)}
+        onPronunciationClick={isFlashCard ? () => handlePronunciationPress(module) : undefined}
       />
     );
   };
@@ -192,7 +254,7 @@ const LessonDetailScreen = ({ route, navigation }) => {
     );
   }
 
-  const isCompleted = lesson.IsCompleted || lesson.isCompleted || false;
+  const isCompleted = lesson?.IsCompleted || lesson?.isCompleted || false;
 
   return (
     <View style={styles.container}>
@@ -262,30 +324,19 @@ const LessonDetailScreen = ({ route, navigation }) => {
           </View>
         )}
 
-        {/* Complete Button */}
-        {!isCompleted && (
-          <TouchableOpacity
-            style={styles.completeButton}
-            onPress={handleCompleteLesson}
-            disabled={completing}
-            activeOpacity={0.8}
-          >
+        {/* Completion Status */}
+        {isCompleted && (
+          <View style={styles.completedContainer}>
             <LinearGradient
               colors={['#10B981', '#059669']}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
-              style={styles.completeGradient}
+              style={styles.completedGradient}
             >
-              {completing ? (
-                <ActivityIndicator color="#FFFFFF" />
-              ) : (
-                <>
-                  <Ionicons name="checkmark-circle" size={scale(20)} color="#FFFFFF" />
-                  <Text style={styles.completeButtonText}>Hoàn thành bài học</Text>
-                </>
-              )}
+              <Ionicons name="checkmark-circle" size={scale(24)} color="#FFFFFF" />
+              <Text style={styles.completedText}>Bạn đã hoàn thành bài học này</Text>
             </LinearGradient>
-          </TouchableOpacity>
+          </View>
         )}
 
         <View style={styles.bottomSpacing} />
@@ -466,19 +517,19 @@ const styles = StyleSheet.create({
     marginTop: 16,
     textAlign: 'center',
   },
-  completeButton: {
+  completedContainer: {
+    marginTop: 16,
     borderRadius: scale(12),
     overflow: 'hidden',
-    marginTop: 8,
   },
-  completeGradient: {
+  completedGradient: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 16,
     gap: 8,
   },
-  completeButtonText: {
+  completedText: {
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '700',

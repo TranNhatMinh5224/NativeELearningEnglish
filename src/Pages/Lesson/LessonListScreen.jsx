@@ -35,17 +35,33 @@ const LessonListScreen = ({ route, navigation }) => {
       setLoading(true);
       const response = await lessonService.getLessonsByCourse(courseId);
       
-      const lessonsData = response?.data || response || [];
-      const sortedLessons = Array.isArray(lessonsData) 
-        ? lessonsData.sort((a, b) => (a.OrderIndex || a.orderIndex || 0) - (b.OrderIndex || b.orderIndex || 0))
-        : [];
+      // Handle response flexible structure
+      let lessonsData = [];
+      const resData = response?.data || response;
+
+      if (Array.isArray(resData)) {
+          lessonsData = resData;
+      } else if (resData?.data && Array.isArray(resData.data)) {
+          lessonsData = resData.data;
+      } else if (resData?.items && Array.isArray(resData.items)) {
+          lessonsData = resData.items; // PagedResult structure
+      } else if (resData?.lessons && Array.isArray(resData.lessons)) {
+          lessonsData = resData.lessons; // Custom object structure
+      }
+      
+      // Sort by orderIndex
+      const sortedLessons = lessonsData.sort((a, b) => {
+        const orderA = a.OrderIndex || a.orderIndex || 0;
+        const orderB = b.OrderIndex || b.orderIndex || 0;
+        return orderA - orderB;
+      });
       
       setLessons(sortedLessons);
     } catch (error) {
       console.error('Error loading lessons:', error);
       setToast({
         visible: true,
-        message: error?.message || 'Không thể tải danh sách bài giảng',
+        message: error?.response?.data?.message || error?.message || 'Không thể tải danh sách bài giảng',
         type: 'error',
       });
     } finally {

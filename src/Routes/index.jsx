@@ -16,9 +16,10 @@ import ProfileScreen from '../Pages/Profile/ProfileScreen';
 import VocabularyScreen from '../Pages/Vocabulary/VocabularyScreen';
 import CourseDetailScreen from '../Pages/Course/CourseDetailScreen';
 import SearchScreen from '../Pages/Search/SearchScreen';
-import { LessonListScreen, LessonDetailScreen, ModuleLearningScreen, FlashcardLearningScreen, QuizScreen, AssignmentScreen, PronunciationScreen } from '../Pages/Lesson';
+import { LessonListScreen, LessonDetailScreen, ModuleLearningScreen, PronunciationDetailScreen } from '../Pages/Lesson';
 import { PaymentScreen, PaymentSuccess, PaymentFailed, PaymentHistoryScreen } from '../Pages/Payment';
 import NotificationScreen from '../Pages/Notification/NotificationScreen';
+import FlashCardLearningScreen from '../Pages/FlashCard/FlashCardLearningScreen';
 
 // Theme
 import colors from '../Theme/colors';
@@ -144,16 +145,16 @@ const linking = {
       PaymentSuccess: {
         path: 'payment-success',
         parse: {
-          paymentId: (paymentId) => paymentId,
-          orderCode: (orderCode) => orderCode,
-          courseId: (courseId) => courseId,
+          paymentId: (paymentId: string) => paymentId,
+          orderCode: (orderCode: string) => orderCode,
+          courseId: (courseId: string) => courseId,
         },
       },
       PaymentFailed: {
         path: 'payment-failed',
         parse: {
-          reason: (reason) => reason || 'Canceled',
-          orderCode: (orderCode) => orderCode,
+          reason: (reason: string) => reason || 'Canceled',
+          orderCode: (orderCode: string) => orderCode,
         },
       },
       // Các screens khác
@@ -227,46 +228,6 @@ const AppNavigator = () => {
           }}
         />
         <Stack.Screen
-          name="ModuleLearning"
-          component={ModuleLearningScreen}
-          options={{
-            headerShown: false,
-            presentation: 'card',
-          }}
-        />
-        <Stack.Screen
-          name="FlashcardLearning"
-          component={FlashcardLearningScreen}
-          options={{
-            headerShown: false,
-            presentation: 'card',
-          }}
-        />
-        <Stack.Screen
-          name="QuizScreen"
-          component={QuizScreen}
-          options={{
-            headerShown: false,
-            presentation: 'card',
-          }}
-        />
-        <Stack.Screen
-          name="AssignmentScreen"
-          component={AssignmentScreen}
-          options={{
-            headerShown: false,
-            presentation: 'card',
-          }}
-        />
-        <Stack.Screen
-          name="PronunciationScreen"
-          component={PronunciationScreen}
-          options={{
-            headerShown: false,
-            presentation: 'card',
-          }}
-        />
-        <Stack.Screen
           name="Payment"
           component={PaymentScreen}
           options={{
@@ -301,6 +262,32 @@ const AppNavigator = () => {
         <Stack.Screen
           name="Notifications"
           component={NotificationScreen}
+          options={{
+            headerShown: false,
+            presentation: 'card',
+          }}
+        />
+        <Stack.Screen
+          name="ModuleLearning"
+          component={ModuleLearningScreen}
+          options={{
+            headerShown: false,
+            presentation: 'fullScreenModal',
+            animation: 'slide_from_bottom',
+          }}
+        />
+        <Stack.Screen
+          name="FlashCardLearning"
+          component={FlashCardLearningScreen}
+          options={{
+            headerShown: false,
+            presentation: 'fullScreenModal',
+            animation: 'fade',
+          }}
+        />
+        <Stack.Screen
+          name="PronunciationDetail"
+          component={PronunciationDetailScreen}
           options={{
             headerShown: false,
             presentation: 'card',
