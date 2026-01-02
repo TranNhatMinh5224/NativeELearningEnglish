@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -10,11 +10,11 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
 import colors from '../../Theme/colors';
 import { scale, verticalScale } from '../../Theme/responsive';
 import flashcardReviewService from '../../Services/flashcardReviewService';
 import FlashCardItem from '../../Components/FlashCard/FlashCardItem';
+import { getResponseData } from '../../Utils/apiHelper';
 
 const { width } = Dimensions.get('window');
 
@@ -26,21 +26,16 @@ const FlashCardReviewSession = ({ navigation }) => {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [isFinished, setIsFinished] = useState(false);
+  const [loadingStats, setLoadingStats] = useState(false);
+  const [sessionStats, setSessionStats] = useState({
+    mastered: 0,
+    reviewing: 0,
+    total: 0
+  });
 
   useEffect(() => {
     loadDueCards();
   }, []);
-
-  const getResponseData = (res) => {
-      if (!res) return null;
-      // Unwrap axios response
-      let data = res.data || res;
-      // Unwrap ServiceResponse
-      if (data.data) {
-          data = data.data;
-      }
-      return data;
-  };
 
   const loadDueCards = async () => {
     try {
@@ -57,6 +52,8 @@ const FlashCardReviewSession = ({ navigation }) => {
               list = payload.flashCards;
           } else if (payload.cards) {
               list = payload.cards;
+          } else if (payload.data && Array.isArray(payload.data)) {
+              list = payload.data;
           }
       }
       
@@ -70,17 +67,6 @@ const FlashCardReviewSession = ({ navigation }) => {
     }
   };
 
-  const [sessionStats, setSessionStats] = useState({
-    mastered: 0,
-    reviewing: 0,
-    total: 0
-  });
-  const [loadingStats, setLoadingStats] = useState(false);
-
-  useEffect(() => {
-    loadDueCards();
-  }, []);
-
   const fetchCompletionStats = async () => {
       try {
           setLoadingStats(true);
@@ -89,22 +75,17 @@ const FlashCardReviewSession = ({ navigation }) => {
               flashcardReviewService.getMasteredFlashCards()
           ]);
 
-          const stats = statsResponse.data?.data || statsResponse.data || {};
-          const mastered = masteredResponse.data?.data || masteredResponse.data || {};
+          const stats = getResponseData(statsResponse) || {};
+          const mastered = getResponseData(masteredResponse) || {};
           
-          // Logic giống Web:
-          // totalCards: Tổng số thẻ trong kho
-          // masteredCards: Số thẻ đã thuộc (reviewCards trong mastered response)
-          // notMasteredCards: Tổng - Thuộc
-          
-          const total = stats.totalCards || 0;
-          const masteredCount = mastered.reviewCards || mastered.totalCount || 0;
-          const reviewingCount = total - masteredCount;
+          const total = stats.totalCards || stats.TotalCards || 0;
+          const masteredCount = mastered.reviewCards || mastered.ReviewCards || mastered.totalCount || 0;
+          const reviewingCount = (total - masteredCount) > 0 ? (total - masteredCount) : 0;
 
           setSessionStats({
               total: total,
               mastered: masteredCount,
-              reviewing: reviewingCount > 0 ? reviewingCount : 0
+              reviewing: reviewingCount
           });
       } catch (error) {
           console.error('Error fetching completion stats:', error);
@@ -127,7 +108,6 @@ const FlashCardReviewSession = ({ navigation }) => {
       if (currentIndex < cards.length - 1) {
         setCurrentIndex(currentIndex + 1);
       } else {
-        // Hết thẻ -> Fetch stats rồi mới hiện finish screen
         await fetchCompletionStats();
       }
     } catch (error) {
@@ -153,7 +133,18 @@ const FlashCardReviewSession = ({ navigation }) => {
     );
   }
 
-  // ... (Empty check giữ nguyên)
+  if (cards.length === 0) {
+    return (
+      <View style={styles.center}>
+        <Ionicons name="checkmark-circle-outline" size={80} color={colors.success} />
+        <Text style={styles.emptyTitle}>Tuyệt vời!</Text>
+        <Text style={styles.emptyText}>Bạn đã hoàn thành bài ôn tập hôm nay.</Text>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Text style={styles.backButtonText}>Quay lại</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   if (isFinished) {
     return (
@@ -191,18 +182,6 @@ const FlashCardReviewSession = ({ navigation }) => {
 
   const currentCard = cards[currentIndex];
 
-  // Safety check: if no card or cards array is empty
-  if (!currentCard || cards.length === 0) {
-    return (
-      <View style={[styles.container, { paddingTop: insets.top, justifyContent: 'center', alignItems: 'center' }]}>
-        <Text style={styles.errorText}>Không có thẻ để ôn tập</Text>
-        <TouchableOpacity style={styles.closeButton} onPress={() => navigation.goBack()}>
-          <Text style={styles.errorButtonText}>Quay lại</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
-
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       {/* Header */}
@@ -228,7 +207,7 @@ const FlashCardReviewSession = ({ navigation }) => {
       {/* Card Display */}
       <View style={styles.cardWrapper}>
         <FlashCardItem 
-            key={currentCard.flashCardId || currentCard.id || currentCard.FlashCardId || currentCard.Id || currentIndex} 
+            key={currentCard.flashCardId || currentIndex} 
             card={currentCard} 
             active={true} 
         />
@@ -454,15 +433,6 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     fontWeight: '600',
   },
-  homeButton: {
-    marginTop: 16,
-    paddingVertical: 12,
-  },
-  homeButtonText: {
-    color: colors.textSecondary,
-    fontSize: 14,
-    fontWeight: '600',
-  },
   finishButton: {
       backgroundColor: colors.primary,
       width: '100%',
@@ -474,7 +444,16 @@ const styles = StyleSheet.create({
       color: '#FFF',
       fontSize: 16,
       fontWeight: 'bold',
-  }
+  },
+  homeButton: {
+    marginTop: 16,
+    paddingVertical: 12,
+  },
+  homeButtonText: {
+    color: colors.textSecondary,
+    fontSize: 14,
+    fontWeight: '600',
+  },
 });
 
 export default FlashCardReviewSession;

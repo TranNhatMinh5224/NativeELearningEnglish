@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -19,25 +19,22 @@ import flashcardReviewService from '../../Services/flashcardReviewService';
 import authService from '../../Services/authService';
 import Toast from '../../Components/Common/Toast';
 import { mochiWelcome } from '../../../assets/images';
+import { getResponseData } from '../../Utils/apiHelper';
 
 const VocabularyScreen = ({ navigation }) => {
   const insets = useSafeAreaInsets();
   const [statistics, setStatistics] = useState(null);
+  const [dueCards, setDueCards] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [toast, setToast] = useState({ visible: false, message: '', type: 'success' });
 
-  // Reload khi màn hình được focus
   useFocusEffect(
     useCallback(() => {
       checkLoginAndLoadData();
     }, [])
   );
-
-  const [dueCards, setDueCards] = useState([]);
-
-  // ...
 
   const checkLoginAndLoadData = async () => {
     try {
@@ -46,7 +43,6 @@ const VocabularyScreen = ({ navigation }) => {
       setIsLoggedIn(loggedIn);
       
       if (loggedIn) {
-        // Load cả stats và danh sách thực tế
         await Promise.all([
             loadStatistics(),
             loadDueCardsList()
@@ -62,20 +58,19 @@ const VocabularyScreen = ({ navigation }) => {
   const loadDueCardsList = async () => {
       try {
           const response = await flashcardReviewService.getDueFlashCards();
-          console.log('Due Cards Response:', JSON.stringify(response, null, 2));
+          const res = getResponseData(response);
+          const payload = res?.data || res;
           
           let cards = [];
-          const data = response?.data || response;
-          
-          if (Array.isArray(data)) {
-              cards = data;
-          } else if (data?.cards) {
-              cards = data.cards;
-          } else if (data?.data && Array.isArray(data.data)) {
-              // ServiceResponse<List<T>>
-              cards = data.data;
+          if (payload) {
+              if (Array.isArray(payload)) {
+                  cards = payload;
+              } else if (payload.flashCards) {
+                  cards = payload.flashCards;
+              } else if (payload.cards) {
+                  cards = payload.cards;
+              }
           }
-          
           setDueCards(cards);
       } catch (error) {
           console.error('Error loading due cards:', error);
@@ -86,20 +81,12 @@ const VocabularyScreen = ({ navigation }) => {
   const loadStatistics = async () => {
     try {
       const response = await flashcardReviewService.getStatistics();
-      console.log('Stats Response:', JSON.stringify(response, null, 2)); // Debug log
-      
-      let statsData = null;
-      // Handle ServiceResponse structure
-      if (response && response.data) {
-        statsData = response.data;
-      } else {
-        statsData = response;
-      }
-
+      const res = getResponseData(response);
+      const statsData = res?.data || res;
       setStatistics(statsData);
     } catch (error) {
       console.error('Load statistics error:', error);
-      setStatistics({ dueFlashCardsCount: 0 });
+      setStatistics({ dueToday: 0 });
     }
   };
 
@@ -111,16 +98,17 @@ const VocabularyScreen = ({ navigation }) => {
 
   const handleStartReview = async () => {
     try {
+      setLoading(true);
       const response = await flashcardReviewService.getDueFlashCards();
+      const res = getResponseData(response);
+      const payload = res?.data || res;
       
-      let dueCards = [];
-      if (response && response.data) {
-        dueCards = response.data.cards || response.data || [];
-      } else if (Array.isArray(response)) {
-        dueCards = response;
+      let cardsList = [];
+      if (payload) {
+          cardsList = payload.flashCards || payload.cards || (Array.isArray(payload) ? payload : []);
       }
 
-      if (dueCards.length === 0) {
+      if (cardsList.length === 0) {
         setToast({
           visible: true,
           message: 'Không có từ nào cần ôn tập hôm nay!',
@@ -129,54 +117,35 @@ const VocabularyScreen = ({ navigation }) => {
         return;
       }
 
-      // Navigate to review session
       navigation.navigate('FlashCardReviewSession');
-      
     } catch (error) {
-      const errorMessage = error?.response?.data?.message || error?.message || 'Lỗi khi tải từ cần ôn';
+      console.error('Start review error:', error);
       setToast({
         visible: true,
-        message: errorMessage,
+        message: 'Có lỗi xảy ra khi bắt đầu ôn tập',
         type: 'error',
       });
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleLogin = () => {
-    navigation.navigate('Login');
-  };
-
-  // Render UI khi chưa đăng nhập
   const renderGuestUI = () => (
     <View style={styles.guestContainer}>
       <View style={[styles.guestHeader, { paddingTop: insets.top + 32 }]}>
-        <Text style={styles.guestHeaderTitle}>Ôn tập từ vựng hôm nay</Text>
+        <Text style={styles.guestHeaderTitle}>Ôn tập từ vựng</Text>
       </View>
-      
       <View style={styles.guestContent}>
         <View style={styles.guestCard}>
-          <View style={styles.guestIconContainer}>
-            <Image
-              source={mochiWelcome}
-              style={styles.guestImage}
-              resizeMode="contain"
-            />
-          </View>
-          
+          <Image source={mochiWelcome} style={styles.guestImage} resizeMode="contain" />
           <Text style={styles.guestTitle}>Đăng nhập để ôn tập</Text>
           <Text style={styles.guestMessage}>
-            Bạn cần đăng nhập để sử dụng tính năng ôn tập từ vựng thông minh.
+            Bạn cần đăng nhập để sử dụng tính năng ôn tập từ vựng theo phương pháp Spaced Repetition.
           </Text>
-
-          <TouchableOpacity
-            style={styles.loginButton}
-            onPress={handleLogin}
-            activeOpacity={0.8}
-          >
+          <TouchableOpacity style={styles.loginButton} onPress={() => navigation.navigate('Login')}>
             <LinearGradient
               colors={[colors.primary, colors.secondary]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
+              start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
               style={styles.loginButtonGradient}
             >
               <Ionicons name="log-in-outline" size={scale(20)} color="#FFFFFF" />
@@ -192,85 +161,67 @@ const VocabularyScreen = ({ navigation }) => {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={styles.loadingText}>Đang tải...</Text>
+        <Text style={styles.loadingText}>Đang tải dữ liệu...</Text>
       </View>
     );
   }
 
-  // Nếu chưa đăng nhập
-  if (!isLoggedIn) {
-    return renderGuestUI();
-  }
+  if (!isLoggedIn) return renderGuestUI();
 
-  // Ưu tiên đếm số thẻ thực tế, sau đó đến các trường thống kê (bao gồm dueToday từ log thực tế)
   const dueCount = dueCards.length > 0 ? dueCards.length : (
-      statistics?.dueToday || 
-      statistics?.DueToday ||
-      statistics?.DueFlashCardsCount || 
-      statistics?.dueFlashCardsCount || 
-      statistics?.dueCount || 
-      0
+      statistics?.dueToday || statistics?.DueToday ||
+      statistics?.dueFlashCardsCount || statistics?.DueFlashCardsCount ||
+      statistics?.dueCount || 0
   );
 
   return (
     <View style={styles.container}>
       <Toast
-        visible={toast.visible}
-        message={toast.message}
-        type={toast.type}
+        visible={toast.visible} message={toast.message} type={toast.type}
         onHide={() => setToast({ ...toast, visible: false })}
-        duration={3000}
       />
       <ScrollView
-        style={styles.scrollView}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor={colors.primary}
-            colors={[colors.primary]}
-          />
-        }
+        style={styles.scrollView} showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
       >
-        {/* Header */}
         <View style={[styles.header, { paddingTop: insets.top + 32 }]}>
-          <Text style={styles.headerTitle}>Ôn tập từ vựng hôm nay</Text>
+          <Text style={styles.headerTitle}>Ôn tập từ vựng</Text>
         </View>
 
-        {/* Main Card */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Số từ cần ôn:</Text>
-          <View style={styles.countContainer}>
-            <Text style={styles.countNumber}>{dueCount}</Text>
-            <Text style={styles.countLabel}>từ</Text>
+        <View style={styles.content}>
+          <View style={styles.mainCard}>
+            <LinearGradient
+              colors={[colors.primary, colors.secondary]}
+              start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+              style={styles.cardGradient}
+            >
+              <Text style={styles.cardTitle}>Số từ cần ôn hôm nay</Text>
+              <Text style={styles.wordCount}>{dueCount}</Text>
+              <Text style={styles.cardSubtitle}>từ vựng</Text>
+              
+              <TouchableOpacity
+                style={[styles.startButton, dueCount === 0 && styles.startButtonDisabled]}
+                onPress={handleStartReview}
+                disabled={dueCount === 0}
+              >
+                <Text style={[styles.startButtonText, dueCount === 0 && styles.startButtonTextDisabled]}>
+                  Ôn tập ngay
+                </Text>
+              </TouchableOpacity>
+            </LinearGradient>
           </View>
 
-          <TouchableOpacity
-            style={styles.reviewButton}
-            onPress={handleStartReview}
-            disabled={dueCount === 0}
-          >
-            <LinearGradient
-              colors={['#3B82F6', '#60A5FA']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={[
-                styles.reviewButtonGradient,
-                dueCount === 0 && styles.reviewButtonDisabled,
-              ]}
-            >
-              <Ionicons name="book" size={scale(20)} color="#FFFFFF" />
-              <Text style={styles.reviewButtonText}>Ôn tập ngay</Text>
-            </LinearGradient>
-          </TouchableOpacity>
-
-          <Text style={styles.cardHint}>
-            Hãy dành vài phút để củng cố lại kiến thức nhé!
-          </Text>
+          <View style={styles.statsGrid}>
+            <View style={styles.statBox}>
+              <Text style={styles.statValue}>{statistics?.totalCards || 0}</Text>
+              <Text style={styles.statLabel}>Tổng số từ</Text>
+            </View>
+            <View style={styles.statBox}>
+              <Text style={styles.statValue}>{statistics?.masteredCards || 0}</Text>
+              <Text style={styles.statLabel}>Đã thuộc</Text>
+            </View>
+          </View>
         </View>
-
-        {/* Bottom Spacing */}
         <View style={styles.bottomSpacing} />
       </ScrollView>
     </View>
@@ -278,181 +229,38 @@ const VocabularyScreen = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: colors.background,
-  },
-  loadingText: {
-    marginTop: 16,
-    fontSize: 14,
-    color: colors.textSecondary,
-  },
-  // Guest UI Styles
-  guestContainer: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  guestHeader: {
-    paddingHorizontal: 24,
-    paddingBottom: 16,
-  },
-  guestHeaderTitle: {
-    fontSize: 32,
-    fontWeight: '700',
-    color: colors.text,
-  },
-  guestContent: {
-    flex: 1,
-    paddingHorizontal: 24,
-    paddingTop: 32,
-    justifyContent: 'center',
-  },
-  guestCard: {
-    backgroundColor: colors.surface,
-    borderRadius: scale(20),
-    padding: 32,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  guestIconContainer: {
-    width: scale(100),
-    height: scale(100),
-    borderRadius: scale(50),
-    backgroundColor: colors.primary + '15',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 24,
-    overflow: 'hidden',
-  },
-  guestImage: {
-    width: scale(80),
-    height: scale(80),
-  },
-  guestTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: colors.text,
-    marginBottom: 12,
-    textAlign: 'center',
-  },
-  guestMessage: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    lineHeight: 22,
-    marginBottom: 24,
-  },
-  loginButton: {
-    borderRadius: scale(12),
-    overflow: 'hidden',
-    width: '100%',
-  },
-  loginButtonGradient: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 16,
-    gap: 8,
-  },
-  loginButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  // Logged in UI Styles
-  scrollView: {
-    flex: 1,
-  },
-  header: {
-    paddingHorizontal: 24,
-    paddingBottom: 16,
-  },
-  headerTitle: {
-    fontSize: 32,
-    fontWeight: '700',
-    color: colors.text,
-  },
-  card: {
-    backgroundColor: colors.surface,
-    borderRadius: scale(20),
-    padding: 32,
-    marginHorizontal: 24,
-    marginTop: 24,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  cardTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: colors.text,
-    marginBottom: 32,
-  },
-  countContainer: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    marginBottom: 32,
-  },
-  countNumber: {
-    fontSize: 32 * 1.5,
-    fontWeight: '700',
-    color: '#3B82F6',
-    marginRight: 8,
-  },
-  countLabel: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: colors.textSecondary,
-  },
-  reviewButton: {
-    borderRadius: scale(16),
-    overflow: 'hidden',
-    width: '100%',
-    marginBottom: 24,
-  },
-  reviewButtonGradient: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 24,
-    gap: 8,
-  },
-  reviewButtonDisabled: {
-    opacity: 0.5,
-  },
-  reviewButtonText: {
-    color: '#FFFFFF',
-    fontSize: 18,
-    fontWeight: '700',
-  },
-  cardHint: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    lineHeight: 12 * 1.5,
-  },
-  bottomSpacing: {
-    height: verticalScale(80),
-  },
+  container: { flex: 1, backgroundColor: colors.background },
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  loadingText: { marginTop: 16, fontSize: 14, color: colors.textSecondary },
+  guestContainer: { flex: 1, backgroundColor: colors.background },
+  guestHeader: { paddingHorizontal: 24, paddingBottom: 16 },
+  guestHeaderTitle: { fontSize: 32, fontWeight: '700', color: colors.text, textAlign: 'center' },
+  guestContent: { flex: 1, paddingHorizontal: 24, justifyContent: 'center' },
+  guestCard: { backgroundColor: colors.surface, borderRadius: scale(20), padding: 32, alignItems: 'center', elevation: 4 },
+  guestImage: { width: scale(120), height: scale(120), marginBottom: 24 },
+  guestTitle: { fontSize: 20, fontWeight: '700', color: colors.text, marginBottom: 12 },
+  guestMessage: { fontSize: 14, color: colors.textSecondary, textAlign: 'center', lineHeight: 22, marginBottom: 24 },
+  loginButton: { borderRadius: scale(12), overflow: 'hidden', width: '100%' },
+  loginButtonGradient: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 16, gap: 8 },
+  loginButtonText: { color: '#FFFFFF', fontSize: 16, fontWeight: '700' },
+  scrollView: { flex: 1 },
+  header: { paddingHorizontal: 24, paddingBottom: 16 },
+  headerTitle: { fontSize: 32, fontWeight: '700', color: colors.text, textAlign: 'center' },
+  content: { paddingHorizontal: 24, paddingTop: 16 },
+  mainCard: { borderRadius: scale(24), overflow: 'hidden', elevation: 8, shadowColor: colors.primary, shadowOpacity: 0.3, shadowRadius: 12 },
+  cardGradient: { padding: 32, alignItems: 'center' },
+  cardTitle: { color: 'rgba(255,255,255,0.8)', fontSize: 16, fontWeight: '600', marginBottom: 8 },
+  wordCount: { color: '#FFFFFF', fontSize: 64, fontWeight: '800' },
+  cardSubtitle: { color: '#FFFFFF', fontSize: 18, fontWeight: '600', marginBottom: 24 },
+  startButton: { backgroundColor: '#FFFFFF', paddingHorizontal: 48, paddingVertical: 16, borderRadius: 32 },
+  startButtonDisabled: { backgroundColor: 'rgba(255,255,255,0.5)' },
+  startButtonText: { color: colors.primary, fontSize: 18, fontWeight: '700' },
+  startButtonTextDisabled: { color: 'rgba(0,0,0,0.3)' },
+  statsGrid: { flexDirection: 'row', gap: 16, marginTop: 24 },
+  statBox: { flex: 1, backgroundColor: colors.surface, padding: 20, borderRadius: 20, alignItems: 'center', elevation: 2 },
+  statValue: { fontSize: 24, fontWeight: '700', color: colors.text, marginBottom: 4 },
+  statLabel: { fontSize: 12, color: colors.textSecondary, fontWeight: '600' },
+  bottomSpacing: { height: verticalScale(100) },
 });
 
 export default VocabularyScreen;
