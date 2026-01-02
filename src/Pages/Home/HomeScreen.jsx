@@ -20,7 +20,6 @@ import EmptyState from '../../Components/Home/EmptyState';
 import StreakModal from '../../Components/Home/StreakModal';
 import courseService from '../../Services/courseService';
 import authService from '../../Services/authService';
-import notificationService from '../../Services/notificationService';
 import streakService from '../../Services/streakService';
 import { useNotifications } from '../../Context/NotificationContext';
 import { mochiWelcome } from '../../../assets/images';
@@ -36,7 +35,7 @@ const HomeScreen = ({ navigation }) => {
   const [user, setUser] = useState(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [featuredCourses, setFeaturedCourses] = useState([]);
-  const [unreadCountLocal, setUnreadCountLocal] = useState(0); // Backup
+  const [unreadCountLocal, setUnreadCountLocal] = useState(0); 
   const [streakCount, setStreakCount] = useState(0);
   const [isActiveToday, setIsActiveToday] = useState(false);
   const [showStreakModal, setShowStreakModal] = useState(false);
@@ -69,10 +68,13 @@ const HomeScreen = ({ navigation }) => {
         const currentUser = await authService.getCurrentUser();
         setUser(currentUser);
         
-        // Load unread notification count via Context (Same as Web logic)
+      
+        await streakService.checkIn().catch(err => console.log('Auto check-in failed:', err));
+
+       
         await fetchUnreadCount();
 
-        // Load streak info
+        // Load streak info (Lấy lại thông tin sau khi đã check-in)
         const streakRes = await streakService.getMyStreak().catch(() => null);
         if (streakRes && streakRes.success) {
             setStreakCount(streakRes.data?.currentStreak || 0);
