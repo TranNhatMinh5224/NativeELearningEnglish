@@ -13,6 +13,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Audio } from 'expo-av';
 import { scale, verticalScale } from '../../Theme/responsive';
 import colors from '../../Theme/colors';
 import flashcardReviewService from '../../Services/flashcardReviewService';
@@ -28,11 +29,14 @@ const GymScreen = ({ navigation }) => {
   const [refreshing, setRefreshing] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [toast, setToast] = useState({ visible: false, message: '', type: 'success' });
+  const [sound, setSound] = useState();
 
-  // Reload khi màn hình được focus
   useFocusEffect(
     useCallback(() => {
       checkLoginAndLoadData();
+      return () => {
+        if (sound) sound.unloadAsync();
+      };
     }, [])
   );
 
@@ -52,37 +56,56 @@ const GymScreen = ({ navigation }) => {
     }
   };
 
+  const getResponseData = (res) => {
+      if (!res) return null;
+      let data = res.data || res;
+      if (data.data) {
+          data = data.data;
+      }
+      return data;
+  };
+
   const loadData = async () => {
     try {
       const [statsRes, masteredRes] = await Promise.all([
-        flashcardReviewService.getStatistics().catch(() => ({ data: null })),
-        flashcardReviewService.getMasteredFlashCards().catch(() => ({ data: null })),
+        flashcardReviewService.getStatistics().catch(() => null),
+        flashcardReviewService.getMasteredFlashCards().catch(() => null),
       ]);
 
-      let statsData = null;
-      if (statsRes && statsRes.data) {
-        statsData = statsRes.data;
-      } else if (statsRes && (statsRes.masteredCount !== undefined)) {
-        statsData = statsRes;
-      }
+      const statsData = getResponseData(statsRes);
+      const masteredPayload = getResponseData(masteredRes);
 
       let masteredData = [];
-      if (masteredRes && masteredRes.data) {
-        const data = masteredRes.data;
-        masteredData = data.cards || data.flashCards || (Array.isArray(data) ? data : []);
-      } else if (Array.isArray(masteredRes)) {
-        masteredData = masteredRes;
+      if (masteredPayload) {
+        if (Array.isArray(masteredPayload)) {
+            masteredData = masteredPayload;
+        } else if (masteredPayload.cards) {
+            masteredData = masteredPayload.cards;
+        } else if (masteredPayload.flashCards) {
+            masteredData = masteredPayload.flashCards;
+        }
       }
 
       setStatistics(statsData);
       setMasteredWords(masteredData);
     } catch (error) {
       console.error('Load data error:', error);
-      setStatistics({
-        masteredCount: 0,
-        totalCount: 0,
-      });
+      setStatistics({ masteredCount: 0 });
       setMasteredWords([]);
+    }
+  };
+
+  const playAudio = async (audioUrl) => {
+    if (!audioUrl) return;
+    try {
+        if (sound) await sound.unloadAsync();
+        const { sound: newSound } = await Audio.Sound.createAsync(
+            { uri: audioUrl },
+            { shouldPlay: true }
+        );
+        setSound(newSound);
+    } catch (error) {
+        console.log('Error playing audio', error);
     }
   };
 
@@ -147,12 +170,12 @@ const GymScreen = ({ navigation }) => {
     );
   }
 
-  // Nếu chưa đăng nhập
   if (!isLoggedIn) {
     return renderGuestUI();
   }
 
-  const masteredCount = statistics?.masteredCount || masteredWords.length || 0;
+  // Fallback count
+  const masteredCount = masteredWords.length || statistics?.masteredCount || 0;
 
   return (
     <View style={styles.container}>
@@ -196,21 +219,45 @@ const GymScreen = ({ navigation }) => {
           ) : (
             <View style={styles.wordsList}>
               {masteredWords.map((item, index) => {
-                const flashcard = item.flashCard || item;
+                const flashcard = item.flashCard || item; // Support different DTO structures
+                const word = flashcard.word || flashcard.Word || '';
+                const meaning = flashcard.meaning || flashcard.Meaning || flashcard.definition || '';
+                const pronunciation = flashcard.pronunciation || flashcard.Pronunciation || '';
+                const partOfSpeech = flashcard.partOfSpeech || flashcard.PartOfSpeech || 'word';
+                const audioUrl = flashcard.audioUrl || flashcard.AudioUrl;
+
                 return (
                   <View key={item.id || item.flashCardId || index} style={styles.wordCard}>
                     <View style={styles.wordContent}>
-                      <Text style={styles.wordText}>
-                        {flashcard.word || flashcard.term || 'N/A'}
-                      </Text>
-                      {flashcard.definition && (
-                        <Text style={styles.wordDefinition} numberOfLines={2}>
-                          {flashcard.definition}
-                        </Text>
-                      )}
-                    </View>
-                    <View style={styles.masteredBadge}>
-                      <Text style={styles.masteredBadgeText}>✓</Text>
+                        {/* Row 1: Word + Audio + POS */}
+                        <View style={styles.wordHeader}>
+                            <Text style={styles.wordText}>{word}</Text>
+                            {audioUrl && (
+                                <TouchableOpacity 
+                                    style={styles.audioIcon}
+                                    onPress={() => playAudio(audioUrl)}
+                                >
+                                    <Ionicons name="volume-high" size={20} color={colors.primary} />
+                                </TouchableOpacity>
+                            )}
+                            <View style={styles.posBadge}>
+                                <Text style={styles.posText}>{partOfSpeech}</Text>
+                            </View>
+                        </View>
+
+                        {/* Row 2: Pronunciation */}
+                        {pronunciation ? (
+                            <Text style={styles.pronunciation}>{pronunciation}</Text>
+                        ) : null}
+
+                        {/* Row 3: Meaning */}
+                        <Text style={styles.meaning}>{meaning}</Text>
+                        
+                        {/* Status Label */}
+                        <View style={styles.statusContainer}>
+                            <Ionicons name="checkmark-circle" size={14} color="#10B981" />
+                            <Text style={styles.statusText}>Đã thuộc</Text>
+                        </View>
                     </View>
                   </View>
                 );
@@ -269,10 +316,7 @@ const styles = StyleSheet.create({
     padding: 32,
     alignItems: 'center',
     shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 4,
@@ -337,14 +381,14 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   content: {
-    paddingHorizontal: 24,
+    paddingHorizontal: 20,
     paddingTop: 16,
   },
   subtitle: {
     fontSize: 14,
     color: colors.textSecondary,
     textAlign: 'center',
-    marginBottom: 32,
+    marginBottom: 24,
   },
   emptyCard: {
     backgroundColor: colors.surface,
@@ -353,10 +397,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 24,
     shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 4,
@@ -375,51 +416,76 @@ const styles = StyleSheet.create({
     lineHeight: 14 * 1.5,
   },
   wordsList: {
-    gap: 16,
+    gap: 12,
   },
   wordCard: {
     backgroundColor: colors.surface,
-    borderRadius: scale(12),
-    padding: 24,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    borderRadius: scale(16),
+    padding: 20,
     shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
-    shadowRadius: 4,
+    shadowRadius: 6,
     elevation: 2,
+    borderLeftWidth: 4,
+    borderLeftColor: '#10B981', // Green indicator for mastered
   },
   wordContent: {
     flex: 1,
   },
+  wordHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: 4,
+  },
   wordText: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: colors.text,
-    marginBottom: 4,
+    fontSize: 20,
+    fontWeight: '800',
+    color: colors.primary,
+    marginRight: 8,
   },
-  wordDefinition: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    lineHeight: 12 * 1.4,
+  audioIcon: {
+      padding: 4,
+      marginRight: 8,
   },
-  masteredBadge: {
-    width: scale(32),
-    height: scale(32),
-    borderRadius: scale(16),
-    backgroundColor: colors.success,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginLeft: 16,
+  posBadge: {
+      backgroundColor: '#F3F4F6',
+      paddingHorizontal: 8,
+      paddingVertical: 2,
+      borderRadius: 6,
   },
-  masteredBadgeText: {
-    color: '#FFFFFF',
-    fontSize: 18,
-    fontWeight: 'bold',
+  posText: {
+      fontSize: 12,
+      color: colors.textLight,
+      fontWeight: '600',
+      fontStyle: 'italic',
+  },
+  pronunciation: {
+      fontSize: 14,
+      color: colors.textLight,
+      fontFamily: 'monospace', // Monospace for phonetic
+      marginBottom: 8,
+  },
+  meaning: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: colors.text,
+      marginBottom: 12,
+  },
+  statusContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      backgroundColor: '#ECFDF5',
+      alignSelf: 'flex-start',
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 12,
+  },
+  statusText: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: '#10B981',
   },
   bottomSpacing: {
     height: verticalScale(80),

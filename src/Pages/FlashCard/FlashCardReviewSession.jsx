@@ -31,29 +31,36 @@ const FlashCardReviewSession = ({ navigation }) => {
     loadDueCards();
   }, []);
 
+  const getResponseData = (res) => {
+      if (!res) return null;
+      // Unwrap axios response
+      let data = res.data || res;
+      // Unwrap ServiceResponse
+      if (data.data) {
+          data = data.data;
+      }
+      return data;
+  };
+
   const loadDueCards = async () => {
     try {
       setLoading(true);
       const response = await flashcardReviewService.getDueFlashCards();
       
-      let data = [];
-      if (response && response.data) {
-       
-        const responseData = response.data;
-        
-        if (Array.isArray(responseData)) {
-          data = responseData;
-        } else if (responseData.flashCards) {
-          
-          data = responseData.flashCards;
-        } else if (responseData.cards) {
-          data = responseData.cards;
-        } else if (responseData.data && Array.isArray(responseData.data)) {
-            data = responseData.data;
-        }
+      const payload = getResponseData(response);
+      let list = [];
+
+      if (payload) {
+          if (Array.isArray(payload)) {
+              list = payload;
+          } else if (payload.flashCards) {
+              list = payload.flashCards;
+          } else if (payload.cards) {
+              list = payload.cards;
+          }
       }
       
-      setCards(data);
+      setCards(list);
     } catch (error) {
       console.error('Error loading review cards:', error);
       Alert.alert('Lỗi', 'Không thể tải danh sách ôn tập.');
