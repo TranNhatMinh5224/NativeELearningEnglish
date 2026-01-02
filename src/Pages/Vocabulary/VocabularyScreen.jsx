@@ -35,6 +35,10 @@ const VocabularyScreen = ({ navigation }) => {
     }, [])
   );
 
+  const [dueCards, setDueCards] = useState([]);
+
+  // ...
+
   const checkLoginAndLoadData = async () => {
     try {
       setLoading(true);
@@ -42,7 +46,11 @@ const VocabularyScreen = ({ navigation }) => {
       setIsLoggedIn(loggedIn);
       
       if (loggedIn) {
-        await loadStatistics();
+        // Load cả stats và danh sách thực tế
+        await Promise.all([
+            loadStatistics(),
+            loadDueCardsList()
+        ]);
       }
     } catch (error) {
       // Error handled silently
@@ -51,25 +59,47 @@ const VocabularyScreen = ({ navigation }) => {
     }
   };
 
+  const loadDueCardsList = async () => {
+      try {
+          const response = await flashcardReviewService.getDueFlashCards();
+          console.log('Due Cards Response:', JSON.stringify(response, null, 2));
+          
+          let cards = [];
+          const data = response?.data || response;
+          
+          if (Array.isArray(data)) {
+              cards = data;
+          } else if (data?.cards) {
+              cards = data.cards;
+          } else if (data?.data && Array.isArray(data.data)) {
+              // ServiceResponse<List<T>>
+              cards = data.data;
+          }
+          
+          setDueCards(cards);
+      } catch (error) {
+          console.error('Error loading due cards:', error);
+          setDueCards([]);
+      }
+  }
+
   const loadStatistics = async () => {
     try {
       const response = await flashcardReviewService.getStatistics();
+      console.log('Stats Response:', JSON.stringify(response, null, 2)); // Debug log
       
       let statsData = null;
+      // Handle ServiceResponse structure
       if (response && response.data) {
         statsData = response.data;
-      } else if (response && (response.dueCount !== undefined || response.masteredCount !== undefined)) {
+      } else {
         statsData = response;
       }
 
       setStatistics(statsData);
     } catch (error) {
       console.error('Load statistics error:', error);
-      setStatistics({
-        dueCount: 0,
-        masteredCount: 0,
-        totalCount: 0,
-      });
+      setStatistics({ dueFlashCardsCount: 0 });
     }
   };
 
@@ -99,12 +129,9 @@ const VocabularyScreen = ({ navigation }) => {
         return;
       }
 
-      // TODO: Navigate to review screen
-      setToast({
-        visible: true,
-        message: 'Tính năng đang được phát triển',
-        type: 'info',
-      });
+      // Navigate to review session
+      navigation.navigate('FlashCardReviewSession');
+      
     } catch (error) {
       const errorMessage = error?.response?.data?.message || error?.message || 'Lỗi khi tải từ cần ôn';
       setToast({
@@ -175,7 +202,15 @@ const VocabularyScreen = ({ navigation }) => {
     return renderGuestUI();
   }
 
-  const dueCount = statistics?.dueCount || statistics?.dueFlashCardsCount || 0;
+  // Ưu tiên đếm số thẻ thực tế, sau đó đến các trường thống kê (bao gồm dueToday từ log thực tế)
+  const dueCount = dueCards.length > 0 ? dueCards.length : (
+      statistics?.dueToday || 
+      statistics?.DueToday ||
+      statistics?.DueFlashCardsCount || 
+      statistics?.dueFlashCardsCount || 
+      statistics?.dueCount || 
+      0
+  );
 
   return (
     <View style={styles.container}>
