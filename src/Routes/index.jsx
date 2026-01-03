@@ -24,6 +24,11 @@ import { PaymentScreen, PaymentSuccess, PaymentFailed, PaymentHistoryScreen } fr
 import NotificationScreen from '../Pages/Notification/NotificationScreen';
 import FlashCardLearningScreen from '../Pages/FlashCard/FlashCardLearningScreen';
 import FlashCardReviewSession from '../Pages/FlashCard/FlashCardReviewSession';
+import TeacherHomeScreen from '../Pages/Teacher/TeacherHomeScreen';
+import TeacherClassListScreen from '../Pages/Teacher/TeacherClassListScreen';
+import CreateCourseScreen from '../Pages/Teacher/CreateCourseScreen';
+import TeacherCourseDetailScreen from '../Pages/Teacher/TeacherCourseDetailScreen';
+import TeacherLessonDetailScreen from '../Pages/Teacher/TeacherLessonDetailScreen';
 
 // Theme
 import colors from '../Theme/colors';
@@ -307,42 +312,50 @@ const AppNavigator = () => {
           }}
         />
         <Stack.Screen
-          name="LectureDetailScreen"
-          component={LectureDetailScreen}
+          name="PronunciationDetail"
+          component={PronunciationDetailScreen}
+          options={{
+            headerShown: false,
+            presentation: 'card',
+          }}
+        />
+        
+        {/* Teacher Screens */}
+        <Stack.Screen
+          name="TeacherHome"
+          component={TeacherHomeScreen}
           options={{
             headerShown: false,
             presentation: 'card',
           }}
         />
         <Stack.Screen
-          name="AssignmentDetailScreen"
-          component={AssignmentDetailScreen}
+          name="TeacherClasses"
+          component={TeacherClassListScreen}
           options={{
             headerShown: false,
             presentation: 'card',
           }}
         />
         <Stack.Screen
-          name="QuizScreen"
-          component={QuizScreen}
+          name="CreateCourse"
+          component={CreateCourseScreen}
           options={{
             headerShown: false,
-            presentation: 'fullScreenModal',
-            animation: 'slide_from_bottom',
+            presentation: 'card',
           }}
         />
         <Stack.Screen
-          name="LessonResultScreen"
-          component={LessonResultScreen}
+          name="TeacherCourseDetail"
+          component={TeacherCourseDetailScreen}
           options={{
             headerShown: false,
-            presentation: 'fullScreenModal',
-            animation: 'fade',
+            presentation: 'card',
           }}
         />
         <Stack.Screen
-          name="EssayScreen"
-          component={EssayScreen}
+          name="TeacherLessonDetail"
+          component={TeacherLessonDetailScreen}
           options={{
             headerShown: false,
             presentation: 'card',
