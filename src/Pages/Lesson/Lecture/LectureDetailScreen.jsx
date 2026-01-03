@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -9,7 +9,7 @@ import {
   Dimensions,
   useWindowDimensions,
   Modal,
-  FlatList,
+  StatusBar,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -18,27 +18,103 @@ import RenderHTML from 'react-native-render-html';
 import colors from '../../../Theme/colors';
 import { scale, verticalScale } from '../../../Theme/responsive';
 import lessonService from '../../../Services/lessonService';
+import courseService from '../../../Services/courseService';
 import Toast from '../../../Components/Common/Toast';
 
 const { width } = Dimensions.get('window');
 
 const LectureDetailScreen = ({ route, navigation }) => {
-  const { lectureId, moduleId, moduleName, lectures: passedLectures } = route.params || {};
+  const { 
+    lectureId, 
+    moduleId, 
+    moduleName, 
+    lessonId, 
+    lessonTitle,
+    courseId,
+    courseTitle,
+    lectures: passedLectures 
+  } = route.params || {};
+  
   const insets = useSafeAreaInsets();
   const { width: windowWidth } = useWindowDimensions();
 
   const [lecture, setLecture] = useState(null);
-  const [lectures, setLectures] = useState(passedLectures || []);
+  const [lectureTree, setLectureTree] = useState([]);
+  const [expandedItems, setExpandedItems] = useState(new Set());
+  const [course, setCourse] = useState(null);
+  const [lesson, setLesson] = useState(null);
+  const [module, setModule] = useState(null);
   const [showSidebar, setShowSidebar] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [loadingLecture, setLoadingLecture] = useState(false);
   const [toast, setToast] = useState({ visible: false, message: '', type: 'success' });
 
+  // Load course, lesson, module info for breadcrumb
+  useEffect(() => {
+    const loadInfo = async () => {
+      try {
+        if (courseId && !course) {
+          const courseResponse = await courseService.getCourseById(courseId);
+          const courseData = courseResponse?.data || courseResponse;
+          setCourse(courseData);
+        }
+        if (lessonId && !lesson) {
+          const lessonResponse = await lessonService.getLessonById(lessonId);
+          const lessonData = lessonResponse?.data || lessonResponse;
+          setLesson(lessonData);
+        }
+        if (moduleId && !module) {
+          const moduleResponse = await lessonService.getModuleById(moduleId);
+          const moduleData = moduleResponse?.data || moduleResponse;
+          setModule(moduleData);
+        }
+      } catch (error) {
+        console.error('Error loading info:', error);
+      }
+    };
+    loadInfo();
+  }, [courseId, lessonId, moduleId]);
+
+  // Load lecture tree
+  useEffect(() => {
+    if (moduleId && lectureTree.length === 0) {
+      loadLectureTree();
+    }
+  }, [moduleId]);
+
+  // Auto-expand parent items containing current lecture
+  useEffect(() => {
+    if (lectureId && lectureTree.length > 0) {
+      const findParentIds = (items, targetId, parentIds = []) => {
+        for (const item of items) {
+          const itemId = item.lectureId || item.LectureId;
+          const children = item.children || item.Children || [];
+          
+          if (itemId === targetId) {
+            return parentIds;
+          }
+          
+          if (children.length > 0) {
+            const result = findParentIds(children, targetId, [...parentIds, itemId]);
+            if (result !== null) {
+              return result;
+            }
+          }
+        }
+        return null;
+      };
+
+      const parentIds = findParentIds(lectureTree, parseInt(lectureId));
+      if (parentIds && parentIds.length > 0) {
+        setExpandedItems(new Set(parentIds));
+      }
+    }
+  }, [lectureId, lectureTree]);
+
+  // Load lecture detail
   useEffect(() => {
     if (lectureId) {
       loadLecture();
-    }
-    if (!lectures || lectures.length === 0) {
-      loadLectureTree();
     }
   }, [lectureId]);
 
@@ -46,22 +122,7 @@ const LectureDetailScreen = ({ route, navigation }) => {
     try {
       const treeResponse = await lessonService.getLectureTreeByModuleId(moduleId);
       const treeData = treeResponse?.data || treeResponse || [];
-      
-      // Flatten tree structure
-      const flattenLectures = (lectures, result = [], level = 0) => {
-        lectures.forEach(lecture => {
-          result.push({ ...lecture, level });
-          if (lecture.Children && lecture.Children.length > 0) {
-            flattenLectures(lecture.Children, result, level + 1);
-          } else if (lecture.children && lecture.children.length > 0) {
-            flattenLectures(lecture.children, result, level + 1);
-          }
-        });
-        return result;
-      };
-      
-      const allLectures = flattenLectures(treeData);
-      setLectures(allLectures);
+      setLectureTree(Array.isArray(treeData) ? treeData : []);
     } catch (error) {
       console.error('Error loading lecture tree:', error);
     }
@@ -69,15 +130,11 @@ const LectureDetailScreen = ({ route, navigation }) => {
 
   const loadLecture = async () => {
     try {
-      setLoading(true);
+      setLoadingLecture(true);
       const response = await lessonService.getLectureById(lectureId);
-      console.log('✅ Lecture Response:', JSON.stringify(response, null, 2));
-      
-      // axiosClient already unwraps one layer
       const lectureData = response?.data || response;
-      console.log('✅ Lecture Data:', JSON.stringify(lectureData, null, 2));
-      
       setLecture(lectureData);
+      setLoading(false);
     } catch (error) {
       console.error('❌ Error loading lecture:', error);
       setToast({
@@ -87,21 +144,19 @@ const LectureDetailScreen = ({ route, navigation }) => {
       });
       setTimeout(() => navigation.goBack(), 2000);
     } finally {
+      setLoadingLecture(false);
       setLoading(false);
     }
   };
 
   const handleComplete = async () => {
     try {
-      // Mark lecture as completed (auto-complete for lecture type)
       await lessonService.startModule(moduleId);
-      
       setToast({
         visible: true,
         message: '✅ Đã hoàn thành bài giảng!',
         type: 'success',
       });
-      
       setTimeout(() => {
         navigation.goBack();
       }, 1500);
@@ -115,36 +170,179 @@ const LectureDetailScreen = ({ route, navigation }) => {
     }
   };
 
-  if (loading) {
+  const handleLectureClick = (selectedLectureId) => {
+    navigation.replace('LectureDetailScreen', {
+      lectureId: selectedLectureId,
+      moduleId,
+      moduleName: module?.name || module?.Name || moduleName,
+      lessonId,
+      lessonTitle: lesson?.title || lesson?.Title || lessonTitle,
+      courseId,
+      courseTitle: course?.title || course?.Title || courseTitle,
+    });
+    setShowSidebar(false);
+  };
+
+  const toggleExpand = (lectureId) => {
+    const newExpanded = new Set(expandedItems);
+    if (newExpanded.has(lectureId)) {
+      newExpanded.delete(lectureId);
+    } else {
+      newExpanded.add(lectureId);
+    }
+    setExpandedItems(newExpanded);
+  };
+
+  const renderLectureItem = (lecture, level = 0) => {
+    const itemId = lecture.lectureId || lecture.LectureId;
+    const title = lecture.title || lecture.Title || '';
+    const numberingLabel = lecture.numberingLabel || lecture.NumberingLabel || '';
+    const children = lecture.children || lecture.Children || [];
+    const hasChildren = children.length > 0;
+    const isExpanded = expandedItems.has(itemId);
+    const isActive = String(itemId) === String(lectureId);
+
+    const displayLabel = numberingLabel || `${lecture.orderIndex || lecture.OrderIndex || ''}`;
+
+    const handleItemPress = () => {
+      if (hasChildren) {
+        toggleExpand(itemId);
+      } else {
+        handleLectureClick(itemId);
+      }
+    };
+
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={styles.loadingText}>Đang tải bài giảng...</Text>
+      <View key={itemId}>
+        <TouchableOpacity
+          style={[
+            styles.sidebarItem,
+            isActive && styles.sidebarItemActive,
+            { paddingLeft: scale(16 + level * 20) },
+          ]}
+          onPress={handleItemPress}
+          activeOpacity={0.7}
+        >
+          <View style={styles.sidebarItemLeft}>
+            {hasChildren ? (
+              <TouchableOpacity
+                onPress={() => toggleExpand(itemId)}
+                style={styles.expandButton}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <Ionicons
+                  name={isExpanded ? 'chevron-down' : 'chevron-forward'}
+                  size={scale(18)}
+                  color={isActive ? colors.primary : colors.textSecondary}
+                />
+              </TouchableOpacity>
+            ) : (
+              <View style={styles.expandPlaceholder} />
+            )}
+            
+            <View style={[
+              styles.sidebarItemIcon,
+              isActive && styles.sidebarItemIconActive
+            ]}>
+              {isActive ? (
+                <Ionicons name="play-circle" size={scale(18)} color="#FFFFFF" />
+              ) : (
+                <Text style={styles.sidebarItemNumber}>{displayLabel}</Text>
+              )}
+            </View>
+            
+            <View style={styles.sidebarItemContent}>
+              <Text
+                style={[
+                  styles.sidebarItemText,
+                  isActive && styles.sidebarItemTextActive,
+                ]}
+                numberOfLines={2}
+              >
+                {title}
+              </Text>
+              {isActive && (
+                <View style={styles.sidebarItemBadge}>
+                  <Text style={styles.sidebarItemBadgeText}>Đang học</Text>
+                </View>
+              )}
+            </View>
+          </View>
+        </TouchableOpacity>
+        
+        {hasChildren && isExpanded && (
+          <View style={styles.sidebarChildren}>
+            {children.map((child) => renderLectureItem(child, level + 1))}
+          </View>
+        )}
+      </View>
+    );
+  };
+
+  // Calculate progress
+  const calculateProgress = () => {
+    const flattenLectures = (lectures, result = []) => {
+      lectures.forEach(lecture => {
+        const children = lecture.children || lecture.Children || [];
+        if (children.length === 0) {
+          result.push(lecture);
+        } else {
+          flattenLectures(children, result);
+        }
+      });
+      return result;
+    };
+    
+    const allLectures = flattenLectures(lectureTree);
+    const currentIndex = allLectures.findIndex(l => 
+      String(l?.lectureId || l?.LectureId) === String(lectureId)
+    );
+    return {
+      current: currentIndex + 1,
+      total: allLectures.length,
+    };
+  };
+
+  const progress = calculateProgress();
+
+  if (loading && !lecture) {
+    return (
+      <View style={styles.container}>
+        <View style={[styles.loadingContainer, { paddingTop: insets.top }]}>
+          <ActivityIndicator size="large" color={colors.primary} />
+          <Text style={styles.loadingText}>Đang tải bài giảng...</Text>
+        </View>
       </View>
     );
   }
 
-  if (!lecture) {
+  if (!lecture && !loadingLecture) {
     return (
-      <View style={styles.errorContainer}>
-        <Ionicons name="alert-circle-outline" size={scale(64)} color={colors.error} />
-        <Text style={styles.errorTitle}>Không tìm thấy</Text>
-        <Text style={styles.errorText}>Bài giảng không tồn tại</Text>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
-          <Text style={styles.backButtonText}>Quay lại</Text>
-        </TouchableOpacity>
+      <View style={styles.container}>
+        <View style={[styles.errorContainer, { paddingTop: insets.top }]}>
+          <Ionicons name="alert-circle-outline" size={scale(64)} color={colors.error} />
+          <Text style={styles.errorTitle}>Không tìm thấy</Text>
+          <Text style={styles.errorText}>Bài giảng không tồn tại</Text>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+          >
+            <Text style={styles.backButtonText}>Quay lại</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     );
   }
 
   const title = lecture?.Title || lecture?.title || '';
   const content = lecture?.RenderedHtml || lecture?.renderedHtml || lecture?.MarkdownContent || lecture?.markdownContent || '';
+  const finalCourseTitle = course?.title || course?.Title || courseTitle || 'Khóa học';
+  const finalLessonTitle = lesson?.title || lesson?.Title || lessonTitle || 'Bài học';
+  const finalModuleName = module?.name || module?.Name || moduleName || 'Module';
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
       <Toast
         visible={toast.visible}
         message={toast.message}
@@ -157,7 +355,7 @@ const LectureDetailScreen = ({ route, navigation }) => {
         colors={['#6366F1', '#4F46E5']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 0 }}
-        style={styles.header}
+        style={[styles.header, { paddingTop: insets.top + 20 }]}
       >
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.headerButton}>
           <Ionicons name="arrow-back" size={scale(28)} color="#FFFFFF" />
@@ -165,64 +363,94 @@ const LectureDetailScreen = ({ route, navigation }) => {
         <Text style={styles.headerTitle} numberOfLines={1}>
           {title}
         </Text>
-        <View style={styles.headerButton} />
+        <TouchableOpacity 
+          onPress={() => setShowSidebar(true)} 
+          style={styles.headerButton}
+        >
+          <Ionicons name="menu" size={scale(28)} color="#FFFFFF" />
+        </TouchableOpacity>
       </LinearGradient>
 
       {/* Breadcrumb */}
       <View style={styles.breadcrumb}>
-        <Text style={styles.breadcrumbText}>
-          Khóa học của tôi / {moduleName || 'Module'} / Lesson / {title}
-        </Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          <View style={styles.breadcrumbContent}>
+            <TouchableOpacity 
+              onPress={() => navigation.navigate('MyCourses')}
+              style={styles.breadcrumbLink}
+            >
+              <Text style={styles.breadcrumbLinkText}>Khóa học của tôi</Text>
+            </TouchableOpacity>
+            <Text style={styles.breadcrumbSeparator}> / </Text>
+            {courseId && (
+              <>
+                <TouchableOpacity 
+                  onPress={() => courseId && navigation.navigate('CourseDetail', { courseId })}
+                  style={styles.breadcrumbLink}
+                >
+                  <Text style={styles.breadcrumbLinkText}>{finalCourseTitle}</Text>
+                </TouchableOpacity>
+                <Text style={styles.breadcrumbSeparator}> / </Text>
+              </>
+            )}
+            <Text style={styles.breadcrumbLinkText}>Lesson</Text>
+            <Text style={styles.breadcrumbSeparator}> / </Text>
+            {lessonId && (
+              <>
+                <TouchableOpacity 
+                  onPress={() => lessonId && navigation.navigate('LessonDetail', { 
+                    lessonId, 
+                    lessonTitle: finalLessonTitle,
+                    courseId,
+                    courseTitle: finalCourseTitle,
+                  })}
+                  style={styles.breadcrumbLink}
+                >
+                  <Text style={styles.breadcrumbLinkText}>{finalLessonTitle}</Text>
+                </TouchableOpacity>
+                <Text style={styles.breadcrumbSeparator}> / </Text>
+              </>
+            )}
+            <Text style={styles.breadcrumbCurrent}>{finalModuleName}</Text>
+          </View>
+        </ScrollView>
       </View>
 
-
-      {/* Simple Menu Button */}
-      <TouchableOpacity 
-        style={styles.menuButton}
-        onPress={() => setShowSidebar(true)}
-        activeOpacity={0.7}
-      >
-        <Ionicons name="menu" size={scale(28)} color="#6B7280" />
-      </TouchableOpacity>
-
       {/* Content */}
-      <ScrollView 
+      <ScrollView
         style={styles.content}
         contentContainerStyle={styles.contentContainer}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.contentCard}>
-          <View style={styles.titleRow}>
-            <Text style={styles.contentTitle}>{title}</Text>
-            <TouchableOpacity 
-              style={styles.inlineMenuButton}
-              onPress={() => setShowSidebar(true)}
-              activeOpacity={0.7}
-            >
-              <Ionicons name="menu" size={scale(28)} color="#6B7280" />
-            </TouchableOpacity>
+        {loadingLecture ? (
+          <View style={styles.loadingContent}>
+            <ActivityIndicator size="large" color={colors.primary} />
+            <Text style={styles.loadingContentText}>Đang tải nội dung...</Text>
           </View>
-          
-          {content ? (
-            <RenderHTML
-              contentWidth={windowWidth - scale(64)}
-              source={{ html: content }}
-              tagsStyles={{
-                p: styles.htmlParagraph,
-                h1: styles.htmlH1,
-                h2: styles.htmlH2,
-                h3: styles.htmlH3,
-                strong: styles.htmlStrong,
-                em: styles.htmlEm,
-                ul: styles.htmlList,
-                ol: styles.htmlList,
-                li: styles.htmlListItem,
-              }}
-            />
-          ) : (
-            <Text style={styles.noContent}>Nội dung bài giảng đang được cập nhật...</Text>
-          )}
-        </View>
+        ) : (
+          <View style={styles.contentCard}>
+            <Text style={styles.contentTitle}>{title}</Text>
+            {content ? (
+              <RenderHTML
+                contentWidth={windowWidth - scale(64)}
+                source={{ html: content }}
+                tagsStyles={{
+                  p: styles.htmlParagraph,
+                  h1: styles.htmlH1,
+                  h2: styles.htmlH2,
+                  h3: styles.htmlH3,
+                  strong: styles.htmlStrong,
+                  em: styles.htmlEm,
+                  ul: styles.htmlList,
+                  ol: styles.htmlList,
+                  li: styles.htmlListItem,
+                }}
+              />
+            ) : (
+              <Text style={styles.noContent}>Nội dung bài giảng đang được cập nhật...</Text>
+            )}
+          </View>
+        )}
       </ScrollView>
 
       {/* Complete Button */}
@@ -251,8 +479,8 @@ const LectureDetailScreen = ({ route, navigation }) => {
         onRequestClose={() => setShowSidebar(false)}
       >
         <View style={styles.sidebarOverlay}>
-          <TouchableOpacity 
-            style={styles.sidebarBackdrop} 
+          <TouchableOpacity
+            style={styles.sidebarBackdrop}
             activeOpacity={1}
             onPress={() => setShowSidebar(false)}
           />
@@ -268,7 +496,7 @@ const LectureDetailScreen = ({ route, navigation }) => {
                   <Ionicons name="list" size={scale(24)} color="#FFFFFF" />
                   <Text style={styles.sidebarTitle}>Mục lục bài giảng</Text>
                 </View>
-                <TouchableOpacity 
+                <TouchableOpacity
                   onPress={() => setShowSidebar(false)}
                   style={styles.sidebarCloseButton}
                 >
@@ -276,81 +504,28 @@ const LectureDetailScreen = ({ route, navigation }) => {
                 </TouchableOpacity>
               </View>
             </LinearGradient>
-            
-            <View style={styles.sidebarProgress}>
-              <Text style={styles.sidebarProgressText}>
-                Tiến độ: {lectures.findIndex(l => String(l?.LectureId || l?.lectureId) === String(lectureId)) + 1}/{lectures.length}
-              </Text>
-            </View>
-            
-            <FlatList
-              data={lectures}
-              keyExtractor={(item, index) => String(item?.LectureId || item?.lectureId || index)}
-              renderItem={({ item, index }) => {
-                const lectureIdStr = String(item?.LectureId || item?.lectureId);
-                const currentLectureIdStr = String(lectureId);
-                const isActive = lectureIdStr === currentLectureIdStr;
-                const itemTitle = item?.Title || item?.title || `Bài ${index + 1}`;
-                const level = item?.level || 0;
-                const numberingLabel = item?.NumberingLabel || item?.numberingLabel || `${index + 1}`;
-                
-                return (
-                  <TouchableOpacity
-                    style={[
-                      styles.sidebarItem,
-                      isActive && styles.sidebarItemActive,
-                      { marginLeft: scale(level * 16) },
-                    ]}
-                    onPress={() => {
-                      navigation.replace('LectureDetailScreen', {
-                        lectureId: item?.LectureId || item?.lectureId,
-                        moduleId,
-                        moduleName,
-                        lectures,
-                      });
-                      setShowSidebar(false);
-                    }}
-                    activeOpacity={0.7}
-                  >
-                    <View style={styles.sidebarItemLeft}>
-                      <View style={[
-                        styles.sidebarItemIcon,
-                        isActive && styles.sidebarItemIconActive
-                      ]}>
-                        {isActive ? (
-                          <Ionicons name="play-circle" size={scale(20)} color="#FFFFFF" />
-                        ) : (
-                          <Text style={styles.sidebarItemNumber}>{numberingLabel}</Text>
-                        )}
-                      </View>
-                      <View style={styles.sidebarItemContent}>
-                        <Text 
-                          style={[
-                            styles.sidebarItemText,
-                            isActive && styles.sidebarItemTextActive,
-                          ]}
-                          numberOfLines={2}
-                        >
-                          {itemTitle}
-                        </Text>
-                        {isActive && (
-                          <View style={styles.sidebarItemBadge}>
-                            <Text style={styles.sidebarItemBadgeText}>Đang học</Text>
-                          </View>
-                        )}
-                      </View>
-                    </View>
-                    <Ionicons 
-                      name={isActive ? "checkmark-circle" : "chevron-forward"} 
-                      size={scale(20)} 
-                      color={isActive ? "#10B981" : "#9CA3AF"} 
-                    />
-                  </TouchableOpacity>
-                );
-              }}
+
+            {progress.total > 0 && (
+              <View style={styles.sidebarProgress}>
+                <Text style={styles.sidebarProgressText}>
+                  Tiến độ: {progress.current}/{progress.total}
+                </Text>
+              </View>
+            )}
+
+            <ScrollView
+              style={styles.sidebarContent}
               showsVerticalScrollIndicator={false}
-              ItemSeparatorComponent={() => <View style={styles.sidebarSeparator} />}
-            />
+            >
+              {lectureTree.length > 0 ? (
+                lectureTree.map((lecture) => renderLectureItem(lecture, 0))
+              ) : (
+                <View style={styles.noLectures}>
+                  <Ionicons name="document-outline" size={scale(48)} color={colors.textLight} />
+                  <Text style={styles.noLecturesText}>Chưa có bài giảng nào</Text>
+                </View>
+              )}
+            </ScrollView>
           </View>
         </View>
       </Modal>
@@ -373,7 +548,6 @@ const styles = StyleSheet.create({
     marginTop: verticalScale(16),
     fontSize: scale(16),
     color: colors.textSecondary,
-    fontFamily: 'Quicksand-Medium',
   },
   errorContainer: {
     flex: 1,
@@ -384,7 +558,7 @@ const styles = StyleSheet.create({
   },
   errorTitle: {
     fontSize: scale(24),
-    fontFamily: 'Quicksand-Bold',
+    fontWeight: '700',
     color: colors.text,
     marginTop: verticalScale(16),
   },
@@ -404,14 +578,14 @@ const styles = StyleSheet.create({
   backButtonText: {
     fontSize: scale(16),
     color: '#FFFFFF',
-    fontFamily: 'Quicksand-Bold',
+    fontWeight: '600',
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: scale(16),
-    paddingVertical: verticalScale(12),
+    paddingBottom: verticalScale(12),
     elevation: 4,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -428,28 +602,54 @@ const styles = StyleSheet.create({
   headerTitle: {
     flex: 1,
     fontSize: scale(18),
-    fontFamily: 'Quicksand-Bold',
+    fontWeight: '700',
     color: '#FFFFFF',
     textAlign: 'center',
     marginHorizontal: scale(8),
   },
   breadcrumb: {
     backgroundColor: '#F9FAFB',
-    paddingHorizontal: scale(16),
-    paddingVertical: verticalScale(12),
+    paddingVertical: verticalScale(10),
     borderBottomWidth: 1,
     borderBottomColor: '#E5E7EB',
   },
-  breadcrumbText: {
+  breadcrumbContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: scale(16),
+  },
+  breadcrumbLink: {
+    paddingVertical: scale(4),
+  },
+  breadcrumbLinkText: {
+    fontSize: scale(12),
+    color: colors.primary,
+  },
+  breadcrumbSeparator: {
     fontSize: scale(12),
     color: colors.textSecondary,
-    fontFamily: 'Quicksand-Regular',
+    marginHorizontal: scale(4),
+  },
+  breadcrumbCurrent: {
+    fontSize: scale(12),
+    color: colors.text,
+    fontWeight: '600',
   },
   content: {
     flex: 1,
   },
   contentContainer: {
     padding: scale(16),
+  },
+  loadingContent: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: verticalScale(40),
+  },
+  loadingContentText: {
+    marginTop: verticalScale(16),
+    fontSize: scale(16),
+    color: colors.textSecondary,
   },
   contentCard: {
     backgroundColor: '#FFFFFF',
@@ -461,35 +661,16 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 2,
   },
-  titleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: verticalScale(16),
-  },
   contentTitle: {
-    flex: 1,
-    fontSize: scale(18),
-    fontFamily: 'Quicksand-Bold',
+    fontSize: scale(24),
+    fontWeight: '700',
     color: colors.text,
-    lineHeight: scale(22),
-    paddingRight: scale(8),
-  },
-  inlineMenuButton: {
-    width: scale(32),
-    height: scale(32),
-    borderRadius: scale(16),
-    backgroundColor: '#F9FAFB',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    marginLeft: scale(8),
+    marginBottom: verticalScale(16),
+    lineHeight: scale(30),
   },
   noContent: {
     fontSize: scale(16),
     color: colors.textSecondary,
-    fontFamily: 'Quicksand-Regular',
     fontStyle: 'italic',
     textAlign: 'center',
     marginVertical: verticalScale(32),
@@ -497,37 +678,36 @@ const styles = StyleSheet.create({
   htmlParagraph: {
     fontSize: scale(16),
     color: colors.text,
-    fontFamily: 'Quicksand-Regular',
     lineHeight: scale(24),
     marginBottom: verticalScale(12),
   },
   htmlH1: {
     fontSize: scale(28),
-    fontFamily: 'Quicksand-Bold',
+    fontWeight: '700',
     color: colors.text,
     marginTop: verticalScale(16),
     marginBottom: verticalScale(12),
   },
   htmlH2: {
     fontSize: scale(24),
-    fontFamily: 'Quicksand-Bold',
+    fontWeight: '700',
     color: colors.text,
     marginTop: verticalScale(14),
     marginBottom: verticalScale(10),
   },
   htmlH3: {
     fontSize: scale(20),
-    fontFamily: 'Quicksand-Bold',
+    fontWeight: '700',
     color: colors.text,
     marginTop: verticalScale(12),
     marginBottom: verticalScale(8),
   },
   htmlStrong: {
-    fontFamily: 'Quicksand-Bold',
+    fontWeight: '700',
     color: colors.text,
   },
   htmlEm: {
-    fontFamily: 'Quicksand-RegularItalic',
+    fontStyle: 'italic',
     color: colors.text,
   },
   htmlList: {
@@ -537,7 +717,6 @@ const styles = StyleSheet.create({
   htmlListItem: {
     fontSize: scale(16),
     color: colors.text,
-    fontFamily: 'Quicksand-Regular',
     lineHeight: scale(24),
     marginBottom: verticalScale(6),
   },
@@ -566,7 +745,7 @@ const styles = StyleSheet.create({
   },
   completeButtonText: {
     fontSize: scale(18),
-    fontFamily: 'Quicksand-Bold',
+    fontWeight: '700',
     color: '#FFFFFF',
   },
   sidebarOverlay: {
@@ -603,7 +782,7 @@ const styles = StyleSheet.create({
   },
   sidebarTitle: {
     fontSize: scale(20),
-    fontFamily: 'Quicksand-Bold',
+    fontWeight: '700',
     color: '#FFFFFF',
     flex: 1,
   },
@@ -624,43 +803,44 @@ const styles = StyleSheet.create({
   },
   sidebarProgressText: {
     fontSize: scale(14),
-    fontFamily: 'Quicksand-SemiBold',
+    fontWeight: '600',
     color: colors.primary,
     textAlign: 'center',
   },
+  sidebarContent: {
+    flex: 1,
+  },
   sidebarItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: verticalScale(16),
-    paddingHorizontal: scale(16),
     backgroundColor: '#FFFFFF',
-    marginHorizontal: scale(8),
-    marginVertical: scale(4),
-    borderRadius: scale(12),
-    elevation: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
+    paddingVertical: verticalScale(12),
+    paddingRight: scale(16),
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
   },
   sidebarItemActive: {
     backgroundColor: '#EEF2FF',
     borderLeftWidth: scale(4),
     borderLeftColor: colors.primary,
-    elevation: 2,
-    shadowOpacity: 0.1,
   },
   sidebarItemLeft: {
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
-    gap: scale(12),
+    gap: scale(8),
+  },
+  expandButton: {
+    width: scale(24),
+    height: scale(24),
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  expandPlaceholder: {
+    width: scale(24),
   },
   sidebarItemIcon: {
-    width: scale(36),
-    height: scale(36),
-    borderRadius: scale(18),
+    width: scale(32),
+    height: scale(32),
+    borderRadius: scale(16),
     backgroundColor: '#E5E7EB',
     justifyContent: 'center',
     alignItems: 'center',
@@ -669,8 +849,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
   },
   sidebarItemNumber: {
-    fontSize: scale(14),
-    fontFamily: 'Quicksand-Bold',
+    fontSize: scale(12),
+    fontWeight: '700',
     color: colors.textSecondary,
   },
   sidebarItemContent: {
@@ -678,13 +858,13 @@ const styles = StyleSheet.create({
   },
   sidebarItemText: {
     fontSize: scale(15),
-    fontFamily: 'Quicksand-SemiBold',
+    fontWeight: '500',
     color: colors.text,
     lineHeight: scale(20),
   },
   sidebarItemTextActive: {
     color: colors.primary,
-    fontFamily: 'Quicksand-Bold',
+    fontWeight: '700',
   },
   sidebarItemBadge: {
     backgroundColor: '#10B981',
@@ -696,11 +876,22 @@ const styles = StyleSheet.create({
   },
   sidebarItemBadgeText: {
     fontSize: scale(11),
-    fontFamily: 'Quicksand-Bold',
+    fontWeight: '700',
     color: '#FFFFFF',
   },
-  sidebarSeparator: {
-    height: 0,
+  sidebarChildren: {
+    backgroundColor: '#F9FAFB',
+  },
+  noLectures: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: verticalScale(40),
+  },
+  noLecturesText: {
+    marginTop: verticalScale(16),
+    fontSize: scale(14),
+    color: colors.textSecondary,
+    textAlign: 'center',
   },
 });
 

@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Dimensions,
+  Alert,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -149,10 +150,66 @@ const AssignmentDetailScreen = ({ route, navigation }) => {
   const handleStartQuiz = async (quiz) => {
     try {
       const quizId = quiz?.quizId || quiz?.QuizId;
-      const quizTitle = quiz?.title || quiz?.Title || 'Làm quiz';
+      const quizTitle = quiz?.title || quiz?.Title || '';
       const assessmentData = quiz?.assessment || {};
       
-      // Navigate to quiz screen with quizId
+      // Check for active attempt first
+      try {
+        const activeAttemptResponse = await quizService.checkActiveAttempt(quizId);
+        // axiosClient unwraps one layer, so response is ServiceResponse
+        // ServiceResponse has .data property containing ActiveAttemptDto
+        const responseData = activeAttemptResponse?.data || activeAttemptResponse;
+        
+        if (responseData?.hasActiveAttempt || responseData?.HasActiveAttempt) {
+          const activeAttemptId = responseData?.attemptId || responseData?.AttemptId;
+          
+          if (activeAttemptId) {
+            // Show alert with options
+            Alert.alert(
+              'Bài làm đang dở',
+              'Bạn có một bài làm đang dở. Bạn muốn tiếp tục hay bắt đầu làm bài mới?',
+              [
+                {
+                  text: 'Bắt đầu làm bài mới',
+                  style: 'destructive',
+                  onPress: () => {
+                    // Navigate to quiz screen to start new attempt (forceNewAttempt flag to skip active attempt check)
+                    navigation.navigate('QuizScreen', {
+                      quizId,
+                      quizTitle,
+                      assessment: assessmentData,
+                      moduleId,
+                      moduleName,
+                      forceNewAttempt: true, // Flag to skip active attempt check
+                    });
+                  },
+                },
+                {
+                  text: 'Tiếp tục bài làm',
+                  onPress: () => {
+                    // Navigate to quiz screen with attemptId to resume
+                    navigation.navigate('QuizScreen', {
+                      quizId,
+                      attemptId: activeAttemptId,
+                      quizTitle,
+                      assessment: assessmentData,
+                      moduleId,
+                      moduleName,
+                    });
+                  },
+                },
+              ],
+              { cancelable: true }
+            );
+            return;
+          }
+        }
+      } catch (checkError) {
+        // If check fails, continue with normal flow
+        console.log('No active attempt found or error checking:', checkError);
+      }
+      
+      // No active attempt, navigate directly to start new quiz
       navigation.navigate('QuizScreen', {
         quizId,
         quizTitle,
@@ -173,7 +230,7 @@ const AssignmentDetailScreen = ({ route, navigation }) => {
   const handleStartEssay = async (essay) => {
     try {
       const essayId = essay?.essayId || essay?.EssayId;
-      const essayTitle = essay?.title || essay?.Title || 'Làm essay';
+      const essayTitle = essay?.title || essay?.Title || '';
       const assessmentData = essay?.assessment || {};
       
       // Navigate to essay screen with essayId
@@ -219,7 +276,7 @@ const AssignmentDetailScreen = ({ route, navigation }) => {
     );
   }
 
-  const title = assessment?.Title || assessment?.title || 'Assignment: Self Introduction';
+  const title = assessment?.Title || assessment?.title || '';
   const description = assessment?.Description || assessment?.description || '';
 
   return (
@@ -270,22 +327,25 @@ const AssignmentDetailScreen = ({ route, navigation }) => {
         {/* Quiz Section */}
         {quizzes.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>📝 Danh sách bài tập ({quizzes.length})</Text>
+            <Text style={styles.sectionTitle}>📝 Danh sách bài tập</Text>
             {quizzes.map((quiz, index) => {
-              const quizTitle = quiz?.Title || quiz?.title || quiz?.name || 'Bài tập';
+              const quizTitle = quiz?.Title || quiz?.title || quiz?.name || '';
               const assessmentData = quiz?.assessment || assessment || {};
 
               const durationMinutes = quiz?.Duration || quiz?.duration;
+              const timeLimitFromAssessment = assessmentData?.TimeLimit || assessmentData?.timeLimit;
               const duration = durationMinutes
                 ? `${durationMinutes} phút`
-                : assessmentData?.TimeLimit || '30 phút';
+                : timeLimitFromAssessment
+                ? timeLimitFromAssessment
+                : null;
 
               const totalScore =
                 quiz?.TotalPossibleScore ??
                 quiz?.totalPossibleScore ??
                 assessmentData?.TotalPoints ??
                 assessmentData?.totalPoints ??
-                10;
+                null;
 
               const passingScore =
                 quiz?.PassingScore ??
@@ -294,9 +354,13 @@ const AssignmentDetailScreen = ({ route, navigation }) => {
                 assessmentData?.passingScore ??
                 null;
 
+              const totalQuestions = quiz?.TotalQuestions ?? quiz?.totalQuestions ?? null;
+              const allowUnlimitedAttempts = quiz?.AllowUnlimitedAttempts ?? quiz?.allowUnlimitedAttempts ?? false;
+              const maxAttempts = quiz?.MaxAttempts ?? quiz?.maxAttempts ?? null;
+
               const openAt = formatDateTimeVi(assessmentData?.OpenAt || assessmentData?.openAt);
               const dueAt = formatDateTimeVi(assessmentData?.DueAt || assessmentData?.dueAt);
-              const description = quiz?.Description || quiz?.description || 'Làm bài tập';
+              const description = quiz?.Description || quiz?.description || '';
               
               return (
                 <View key={index} style={styles.card}>
@@ -306,25 +370,44 @@ const AssignmentDetailScreen = ({ route, navigation }) => {
                     </View>
                     <View style={styles.cardInfo}>
                       <Text style={styles.cardTitle}>{quizTitle}</Text>
-                      <Text style={styles.cardSubtitle}>Assignment</Text>
                     </View>
                   </View>
 
-                  <Text style={styles.cardDescription}>{description}</Text>
+                  {description ? (
+                    <Text style={styles.cardDescription}>{description}</Text>
+                  ) : null}
 
                   <View style={styles.cardDetails}>
-                    <View style={styles.detailItem}>
-                      <Ionicons name="time-outline" size={scale(18)} color={colors.textSecondary} />
-                      <Text style={styles.detailText}>Thời gian làm bài: {duration}</Text>
-                    </View>
-                    <View style={styles.detailItem}>
-                      <Ionicons name="star-outline" size={scale(18)} color={colors.textSecondary} />
-                      <Text style={styles.detailText}>Tổng điểm: {totalScore}</Text>
-                    </View>
+                    {duration && (
+                      <View style={styles.detailItem}>
+                        <Ionicons name="time-outline" size={scale(18)} color={colors.textSecondary} />
+                        <Text style={styles.detailText}>Thời gian làm bài: {duration}</Text>
+                      </View>
+                    )}
+                    {totalScore !== null && (
+                      <View style={styles.detailItem}>
+                        <Ionicons name="star-outline" size={scale(18)} color={colors.textSecondary} />
+                        <Text style={styles.detailText}>Tổng điểm: {totalScore}</Text>
+                      </View>
+                    )}
                     {passingScore !== null && (
                       <View style={styles.detailItem}>
                         <Ionicons name="checkmark-done-outline" size={scale(18)} color={colors.textSecondary} />
                         <Text style={styles.detailText}>Điểm đạt: {passingScore}</Text>
+                      </View>
+                    )}
+                    {totalQuestions !== null && (
+                      <View style={styles.detailItem}>
+                        <Ionicons name="list-outline" size={scale(18)} color={colors.textSecondary} />
+                        <Text style={styles.detailText}>Tổng số câu hỏi: {totalQuestions}</Text>
+                      </View>
+                    )}
+                    {(allowUnlimitedAttempts || maxAttempts !== null) && (
+                      <View style={styles.detailItem}>
+                        <Ionicons name="repeat-outline" size={scale(18)} color={colors.textSecondary} />
+                        <Text style={styles.detailText}>
+                          Số lần làm bài: {allowUnlimitedAttempts ? 'Không giới hạn' : `${maxAttempts} lần`}
+                        </Text>
                       </View>
                     )}
                     {openAt && (
@@ -363,14 +446,13 @@ const AssignmentDetailScreen = ({ route, navigation }) => {
         {/* Essay Section */}
         {essays.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Essay</Text>
             {essays.map((essay, index) => {
-              const essayTitle = essay?.Title || essay?.title || 'Làm bài tự luận Essay';
-              const description = essay?.Description || essay?.description || 'Luyện kỹ năng viết giúp cải thiện ngữ pháp';
+              const essayTitle = essay?.Title || essay?.title || '';
+              const description = essay?.Description || essay?.description || '';
               const assessmentData = essay?.assessment || assessment || {};
 
-              const timeLimit = assessmentData?.TimeLimit || '50 phút';
-              const totalScore = assessmentData?.TotalPoints ?? assessmentData?.totalPoints ?? 10;
+              const timeLimit = assessmentData?.TimeLimit || assessmentData?.timeLimit || null;
+              const totalScore = assessmentData?.TotalPoints ?? assessmentData?.totalPoints ?? null;
               const passingScore = assessmentData?.PassingScore ?? assessmentData?.passingScore ?? null;
 
               const openAt = formatDateTimeVi(assessmentData?.OpenAt || assessmentData?.openAt);
@@ -384,21 +466,26 @@ const AssignmentDetailScreen = ({ route, navigation }) => {
                     </View>
                     <View style={styles.cardInfo}>
                       <Text style={styles.cardTitle}>{essayTitle}</Text>
-                      <Text style={styles.cardSubtitle}>Essay</Text>
                     </View>
                   </View>
 
-                  <Text style={styles.cardDescription}>{description}</Text>
+                  {description ? (
+                    <Text style={styles.cardDescription}>{description}</Text>
+                  ) : null}
 
                   <View style={styles.cardDetails}>
-                    <View style={styles.detailItem}>
-                      <Ionicons name="time-outline" size={scale(18)} color={colors.textSecondary} />
-                      <Text style={styles.detailText}>Thời gian làm bài: {timeLimit}</Text>
-                    </View>
-                    <View style={styles.detailItem}>
-                      <Ionicons name="star-outline" size={scale(18)} color={colors.textSecondary} />
-                      <Text style={styles.detailText}>Tổng điểm: {totalScore}</Text>
-                    </View>
+                    {timeLimit && (
+                      <View style={styles.detailItem}>
+                        <Ionicons name="time-outline" size={scale(18)} color={colors.textSecondary} />
+                        <Text style={styles.detailText}>Thời gian làm bài: {timeLimit}</Text>
+                      </View>
+                    )}
+                    {totalScore !== null && (
+                      <View style={styles.detailItem}>
+                        <Ionicons name="star-outline" size={scale(18)} color={colors.textSecondary} />
+                        <Text style={styles.detailText}>Tổng điểm: {totalScore}</Text>
+                      </View>
+                    )}
                     {passingScore !== null && (
                       <View style={styles.detailItem}>
                         <Ionicons name="checkmark-done-outline" size={scale(18)} color={colors.textSecondary} />

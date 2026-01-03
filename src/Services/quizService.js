@@ -69,6 +69,26 @@ const quizService = {
       throw error.response?.data || error;
     }
   },
+
+  // Check if there's an active attempt for a quiz
+  checkActiveAttempt: async (quizId) => {
+    try {
+      const response = await axiosClient.get(`/user/quiz-attempts/check-active/${quizId}`);
+      return response;
+    } catch (error) {
+      throw error.response?.data || error;
+    }
+  },
+
+  // Resume an existing quiz attempt
+  resumeQuizAttempt: async (attemptId) => {
+    try {
+      const response = await axiosClient.get(`/user/quiz-attempts/resume/${attemptId}`);
+      return response;
+    } catch (error) {
+      throw error.response?.data || error;
+    }
+  },
 };
 
 export default quizService;

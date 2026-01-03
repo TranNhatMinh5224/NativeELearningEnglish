@@ -187,6 +187,8 @@ const LessonDetailScreen = ({ route, navigation }) => {
         moduleName,
         lessonId,
         lessonTitle,
+        courseId,
+        courseTitle,
       });
     } else {
       // Default: navigate to Lecture screen
@@ -195,6 +197,8 @@ const LessonDetailScreen = ({ route, navigation }) => {
         moduleName,
         lessonId,
         lessonTitle,
+        courseId,
+        courseTitle,
       });
     }
   };

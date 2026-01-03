@@ -92,8 +92,9 @@ const EssayScreen = ({ route, navigation }) => {
       return;
     }
 
-    const minWords = 50; // Default minimum words
-    if (wordCount < minWords) {
+    // Kiểm tra minWords từ backend nếu có
+    const minWords = essay?.MinWords || essay?.minWords;
+    if (minWords && wordCount < minWords) {
       Alert.alert(
         'Chưa đủ số từ',
         `Bài viết cần tối thiểu ${minWords} từ. Hiện tại: ${wordCount} từ.`
@@ -148,7 +149,7 @@ const EssayScreen = ({ route, navigation }) => {
     );
   }
 
-  const title = essay?.Title || essay?.title || essayTitle || 'Bài tập Essay';
+  const title = essay?.Title || essay?.title || essayTitle || '';
   const description = essay?.Description || essay?.description || '';
   const isSubmitted = !!submission;
 
@@ -188,7 +189,9 @@ const EssayScreen = ({ route, navigation }) => {
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>{title}</Text>
+          {title ? (
+            <Text style={styles.cardTitle}>{title}</Text>
+          ) : null}
           
           {description ? (
             <Text style={styles.description}>{description}</Text>
@@ -202,14 +205,18 @@ const EssayScreen = ({ route, navigation }) => {
           )}
 
           <View style={styles.infoContainer}>
-            <View style={styles.infoItem}>
-              <Ionicons name="time-outline" size={scale(20)} color={colors.textSecondary} />
-              <Text style={styles.infoText}>Thời gian: 50 phút</Text>
-            </View>
-            <View style={styles.infoItem}>
-              <Ionicons name="star-outline" size={scale(20)} color={colors.textSecondary} />
-              <Text style={styles.infoText}>Điểm: 10</Text>
-            </View>
+            {(essay?.TimeLimit || essay?.timeLimit) && (
+              <View style={styles.infoItem}>
+                <Ionicons name="time-outline" size={scale(20)} color={colors.textSecondary} />
+                <Text style={styles.infoText}>Thời gian: {essay.TimeLimit || essay.timeLimit}</Text>
+              </View>
+            )}
+            {(essay?.TotalPoints || essay?.totalPoints) && (
+              <View style={styles.infoItem}>
+                <Ionicons name="star-outline" size={scale(20)} color={colors.textSecondary} />
+                <Text style={styles.infoText}>Điểm: {essay.TotalPoints || essay.totalPoints}</Text>
+              </View>
+            )}
           </View>
 
           <View style={styles.inputContainer}>

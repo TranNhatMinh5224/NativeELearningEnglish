@@ -4,7 +4,6 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { View, Text, StyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-
 // Import Pages
 import LoadingPage from '../Pages/Loading';
 import { LoginPage, RegisterPage, ForgotPasswordPage, OTPVerificationPage, ResetPasswordPage } from '../Pages/Auth';
@@ -29,21 +28,18 @@ import TeacherClassListScreen from '../Pages/Teacher/TeacherClassListScreen';
 import CreateCourseScreen from '../Pages/Teacher/CreateCourseScreen';
 import TeacherCourseDetailScreen from '../Pages/Teacher/TeacherCourseDetailScreen';
 import TeacherLessonDetailScreen from '../Pages/Teacher/TeacherLessonDetailScreen';
-
 // Theme
 import colors from '../Theme/colors';
 import { scale, SAFE_AREA_PADDING } from '../Theme/responsive';
-
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
-
 // Custom Tab Bar Icon with Outline Icons
 const TabIcon = ({ iconName, label, focused }) => {
   return (
     <View style={styles.tabItem}>
-      <Ionicons 
-        name={focused ? iconName : `${iconName}-outline`} 
-        size={scale(24)} 
+      <Ionicons
+        name={focused ? iconName : `${iconName}-outline`}
+        size={scale(24)}
         color={focused ? colors.primary : colors.textLight}
         style={styles.tabIcon}
       />
@@ -51,7 +47,6 @@ const TabIcon = ({ iconName, label, focused }) => {
     </View>
   );
 };
-
 // Profile Stack Navigator - Nested stack cho Profile và ProScreen
 const ProfileStack = () => {
   return (
@@ -61,8 +56,8 @@ const ProfileStack = () => {
       }}
     >
       <Stack.Screen name="ProfileMain" component={ProfileScreen} />
-      <Stack.Screen 
-        name="Pro" 
+      <Stack.Screen
+        name="Pro"
         component={ProScreen}
         options={{
           headerShown: true,
@@ -84,7 +79,6 @@ const ProfileStack = () => {
     </Stack.Navigator>
   );
 };
-
 // Main Tab Navigator - 5 tabs
 const MainTabs = () => {
   return (
@@ -145,7 +139,6 @@ const MainTabs = () => {
     </Tab.Navigator>
   );
 };
-
 // Deep Linking Configuration
 const linking = {
   prefixes: ['elearningenglish://', 'https://elearningenglish.com'], // Scheme và universal links
@@ -172,7 +165,6 @@ const linking = {
     },
   },
 };
-
 // App Navigator
 const AppNavigator = () => {
   return (
@@ -180,29 +172,29 @@ const AppNavigator = () => {
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {/* Loading Screen - Màn đầu tiên */}
         <Stack.Screen name="Loading" component={LoadingPage} />
-        
+       
         {/* Main App - Sau khi loading xong */}
         <Stack.Screen name="MainApp" component={MainTabs} />
-        
+       
         {/* Auth Screens */}
         <Stack.Screen name="Login" component={LoginPage} />
         <Stack.Screen name="Register" component={RegisterPage} />
         <Stack.Screen name="ForgotPassword" component={ForgotPasswordPage} />
-        <Stack.Screen 
-          name="OTPVerification" 
+        <Stack.Screen
+          name="OTPVerification"
           component={OTPVerificationPage}
           options={{
             headerShown: false,
           }}
         />
-        <Stack.Screen 
-          name="ResetPassword" 
+        <Stack.Screen
+          name="ResetPassword"
           component={ResetPasswordPage}
           options={{
             headerShown: false,
           }}
         />
-        
+       
         {/* Detail Screens */}
         <Stack.Screen
           name="CourseDetail"
@@ -319,7 +311,49 @@ const AppNavigator = () => {
             presentation: 'card',
           }}
         />
-        
+        <Stack.Screen
+          name="LectureDetailScreen"
+          component={LectureDetailScreen}
+          options={{
+            headerShown: false,
+            presentation: 'card',
+          }}
+        />
+        <Stack.Screen
+          name="AssignmentDetailScreen"
+          component={AssignmentDetailScreen}
+          options={{
+            headerShown: false,
+            presentation: 'card',
+          }}
+        />
+        <Stack.Screen
+          name="QuizScreen"
+          component={QuizScreen}
+          options={{
+            headerShown: false,
+            presentation: 'fullScreenModal',
+            animation: 'slide_from_bottom',
+          }}
+        />
+        <Stack.Screen
+          name="LessonResultScreen"
+          component={LessonResultScreen}
+          options={{
+            headerShown: false,
+            presentation: 'fullScreenModal',
+            animation: 'fade',
+          }}
+        />
+        <Stack.Screen
+          name="EssayScreen"
+          component={EssayScreen}
+          options={{
+            headerShown: false,
+            presentation: 'card',
+          }}
+        />
+       
         {/* Teacher Screens */}
         <Stack.Screen
           name="TeacherHome"
@@ -365,7 +399,6 @@ const AppNavigator = () => {
     </NavigationContainer>
   );
 };
-
 const styles = StyleSheet.create({
   tabBar: {
     height: scale(65) + (Platform.OS === 'ios' ? SAFE_AREA_PADDING.bottom : scale(8)),
@@ -397,5 +430,4 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
 });
-
 export default AppNavigator;

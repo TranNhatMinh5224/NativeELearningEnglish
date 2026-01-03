@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -25,13 +25,49 @@ const LectureContent = ({ lecture, onComplete }) => {
 
   const lectureType = lecture?.Type || lecture?.type || 1;
   const title = lecture?.Title || lecture?.title || '';
-  const htmlContent = lecture?.RenderedHtml || lecture?.renderedHtml || '';
-  const mediaKey = lecture?.MediaKey || lecture?.mediaKey;
+  // Lấy HTML content từ nhiều nguồn có thể
+  const htmlContent = lecture?.RenderedHtml || lecture?.renderedHtml || lecture?.RenderedHTML || '';
+  // Fallback sang MarkdownContent nếu không có HTML
+  const markdownContent = lecture?.MarkdownContent || lecture?.markdownContent || '';
+  const mediaKey = lecture?.MediaKey || lecture?.mediaKey || lecture?.MediaUrl || lecture?.mediaUrl;
   const mediaType = lecture?.MediaType || lecture?.mediaType;
+  
+  // Debug log để kiểm tra
+  useEffect(() => {
+    if (lecture) {
+      console.log('📄 LectureContent - Lecture data:', {
+        hasRenderedHtml: !!(lecture.RenderedHtml || lecture.renderedHtml),
+        hasMarkdownContent: !!(lecture.MarkdownContent || lecture.markdownContent),
+        htmlContentLength: htmlContent?.length || 0,
+        markdownContentLength: markdownContent?.length || 0,
+        title,
+        lectureType,
+        lectureKeys: Object.keys(lecture),
+      });
+    }
+  }, [lecture, htmlContent, markdownContent, title, lectureType]);
 
   // Render Content Type (Text/HTML)
   const renderContent = () => {
-    if (!htmlContent) return null;
+    // Nếu không có HTML content, hiển thị message
+    if (!htmlContent && !markdownContent) {
+      return (
+        <View style={styles.contentContainer}>
+          <Text style={styles.emptyContentText}>
+            Nội dung bài học đang được cập nhật...
+          </Text>
+        </View>
+      );
+    }
+    
+    // Nếu có markdown nhưng không có HTML, hiển thị markdown dạng text
+    if (!htmlContent && markdownContent) {
+      return (
+        <View style={styles.contentContainer}>
+          <Text style={styles.markdownText}>{markdownContent}</Text>
+        </View>
+      );
+    }
 
     return (
       <View style={styles.contentContainer}>
@@ -359,6 +395,18 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 14,
     fontWeight: '600',
+  },
+  emptyContentText: {
+    fontSize: 16,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    paddingVertical: verticalScale(40),
+    fontStyle: 'italic',
+  },
+  markdownText: {
+    fontSize: 15,
+    lineHeight: 24,
+    color: colors.text,
   },
 });
 
