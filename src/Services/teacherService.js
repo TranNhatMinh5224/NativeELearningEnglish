@@ -81,6 +81,16 @@ const teacherService = {
     }
   },
 
+  // Get student detail in course
+  getStudentDetail: async (courseId, studentId) => {
+    try {
+      const response = await axiosClient.get(`/teacher/courses/${courseId}/students/${studentId}`);
+      return response;
+    } catch (error) {
+      throw error.response?.data || error;
+    }
+  },
+
   // Get lessons by course
   getLessonsByCourse: async (courseId) => {
     try {

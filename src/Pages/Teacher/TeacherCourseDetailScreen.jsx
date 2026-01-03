@@ -18,6 +18,8 @@ import teacherService from '../../Services/teacherService';
 import { getResponseData } from '../../Utils/apiHelper';
 import Toast from '../../Components/Common/Toast';
 import LessonModal from '../../Components/Teacher/LessonModal';
+import AddStudentModal from '../../Components/Teacher/AddStudentModal';
+import StudentDetailModal from '../../Components/Teacher/StudentDetailModal';
 
 const DEFAULT_COURSE_IMAGE = require('../../../assets/images/mochi-course-teacher.jpg');
 const DEFAULT_LESSON_IMAGE = require('../../../assets/images/mochi-lesson-teacher.jpg');
@@ -191,6 +193,9 @@ const StudentsTab = ({ courseId, refreshing, onRefresh }) => {
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [showAddStudentModal, setShowAddStudentModal] = useState(false);
+  const [showStudentDetailModal, setShowStudentDetailModal] = useState(false);
+  const [selectedStudent, setSelectedStudent] = useState(null);
 
   useEffect(() => {
     loadStudents();
@@ -202,7 +207,18 @@ const StudentsTab = ({ courseId, refreshing, onRefresh }) => {
       setError('');
       const response = await teacherService.getCourseStudents(courseId);
       const data = getResponseData(response);
-      const studentsList = Array.isArray(data) ? data : (data?.students || data?.Students || []);
+      
+      // Handle pagination response (web app returns { items, totalCount, totalPages })
+      // or simple array
+      let studentsList = [];
+      if (Array.isArray(data)) {
+        studentsList = data;
+      } else if (data?.items || data?.Items) {
+        studentsList = data.items || data.Items || [];
+      } else if (data?.students || data?.Students) {
+        studentsList = data.students || data.Students || [];
+      }
+      
       setStudents(studentsList);
     } catch (err) {
       console.error('Error loading students:', err);
@@ -238,6 +254,24 @@ const StudentsTab = ({ courseId, refreshing, onRefresh }) => {
     ]);
   };
 
+  const handleAddStudentSuccess = () => {
+    loadStudents();
+  };
+
+  const handleStudentClick = async (studentId) => {
+    try {
+      const response = await teacherService.getStudentDetail(courseId, studentId);
+      const data = getResponseData(response);
+      if (data) {
+        setSelectedStudent(data);
+        setShowStudentDetailModal(true);
+      }
+    } catch (err) {
+      console.error('Error fetching student detail:', err);
+      Toast.show('Không thể tải thông tin học viên', 'error');
+    }
+  };
+
   if (loading && students.length === 0) {
     return (
       <View style={[styles.tabContent, styles.centerContent]}>
@@ -260,41 +294,117 @@ const StudentsTab = ({ courseId, refreshing, onRefresh }) => {
   }
 
   return (
-    <ScrollView
-      style={styles.tabContent}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
-    >
-      {students.length === 0 ? (
-        <View style={styles.emptyState}>
-          <Ionicons name="people-outline" size={64} color={colors.textLight} />
-          <Text style={styles.emptyText}>Chưa có học viên nào</Text>
-          <Text style={styles.emptySubtext}>Học viên sẽ xuất hiện ở đây khi đăng ký khóa học</Text>
-        </View>
-      ) : (
-        students.map((student, index) => {
-          const studentId = student.userId || student.UserId || student.id || student.Id || index;
-          const studentName =
-            student.fullName || student.FullName || student.name || student.Name || 'Không có tên';
-          const studentEmail = student.email || student.Email || '';
-
-          return (
-            <View key={studentId} style={styles.studentItem}>
-              <View style={styles.studentAvatar}>
-                <Ionicons name="person" size={24} color={colors.primary} />
-              </View>
-              <View style={styles.studentInfo}>
-                <Text style={styles.studentName}>{studentName}</Text>
-                {studentEmail ? <Text style={styles.studentEmail}>{studentEmail}</Text> : null}
-              </View>
-              <TouchableOpacity onPress={() => handleRemoveStudent(studentId)} style={styles.removeButton}>
-                <Ionicons name="trash-outline" size={20} color="#EF4444" />
+    <>
+      <ScrollView
+        style={styles.tabContent}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
+      >
+        {students.length === 0 ? (
+          <View style={styles.emptyState}>
+            <Ionicons name="people-outline" size={64} color={colors.textLight} />
+            <Text style={styles.emptyText}>Chưa có học viên nào</Text>
+            <Text style={styles.emptySubtext}>Học viên sẽ xuất hiện ở đây khi đăng ký khóa học</Text>
+            <TouchableOpacity
+              style={styles.addStudentButton}
+              onPress={() => setShowAddStudentModal(true)}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="add-circle" size={24} color="#FFF" />
+              <Text style={styles.addStudentButtonText}>Thêm học viên</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <>
+            <View style={styles.studentsHeader}>
+              <Text style={styles.studentsCount}>
+                Tổng số học viên: {String(students.length)}
+              </Text>
+              <TouchableOpacity
+                style={styles.addStudentButtonSmall}
+                onPress={() => setShowAddStudentModal(true)}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="add-circle" size={20} color="#FFF" />
+                <Text style={styles.addStudentButtonSmallText}>Thêm</Text>
               </TouchableOpacity>
             </View>
-          );
-        })
-      )}
-      <View style={{ height: 40 }} />
-    </ScrollView>
+            {students.map((student, index) => {
+              if (!student) return null;
+              
+              const studentId = student.userId || student.UserId || student.id || student.Id || index;
+              const studentName =
+                student.fullName || 
+                student.FullName || 
+                student.displayName ||
+                student.DisplayName ||
+                `${student.firstName || student.FirstName || ''} ${student.lastName || student.LastName || ''}`.trim() ||
+                student.name || 
+                student.Name || 
+                'Không có tên';
+              const studentEmail = student.email || student.Email || '';
+              const avatarUrl = student.avatarUrl || student.AvatarUrl;
+
+              return (
+                <TouchableOpacity
+                  key={String(studentId)}
+                  style={styles.studentItem}
+                  onPress={() => handleStudentClick(studentId)}
+                  activeOpacity={0.7}
+                >
+                  <View style={styles.studentAvatar}>
+                    {avatarUrl ? (
+                      <Image source={{ uri: avatarUrl }} style={styles.studentAvatarImage} />
+                    ) : (
+                      <Ionicons name="person" size={24} color={colors.primary} />
+                    )}
+                  </View>
+                  <View style={styles.studentInfo}>
+                    <Text style={styles.studentName} numberOfLines={1}>
+                      {String(studentName)}
+                    </Text>
+                    {studentEmail ? (
+                      <Text style={styles.studentEmail} numberOfLines={1}>
+                        {String(studentEmail)}
+                      </Text>
+                    ) : null}
+                  </View>
+                  <View style={styles.studentActions}>
+                    <TouchableOpacity 
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        handleRemoveStudent(studentId);
+                      }} 
+                      style={styles.removeButton}
+                    >
+                      <Ionicons name="trash-outline" size={20} color="#EF4444" />
+                    </TouchableOpacity>
+                    <Ionicons name="chevron-forward" size={20} color={colors.textLight} style={styles.chevronIcon} />
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
+          </>
+        )}
+        <View style={{ height: 40 }} />
+      </ScrollView>
+
+      <AddStudentModal
+        visible={showAddStudentModal}
+        onClose={() => setShowAddStudentModal(false)}
+        onSuccess={handleAddStudentSuccess}
+        courseId={courseId}
+      />
+
+      <StudentDetailModal
+        visible={showStudentDetailModal}
+        onClose={() => {
+          setShowStudentDetailModal(false);
+          setSelectedStudent(null);
+        }}
+        student={selectedStudent}
+        courseId={courseId}
+      />
+    </>
   );
 };
 
@@ -659,11 +769,64 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
+    overflow: 'hidden',
+  },
+  studentAvatarImage: {
+    width: '100%',
+    height: '100%',
   },
   studentInfo: { flex: 1 },
   studentName: { fontSize: 15, fontWeight: '600', color: colors.text, marginBottom: 4 },
   studentEmail: { fontSize: 13, color: colors.textLight },
+  studentActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   removeButton: { padding: 8, borderRadius: 6, backgroundColor: '#FEE2E2' },
+  chevronIcon: { marginLeft: 4 },
+  studentsHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+    paddingHorizontal: 4,
+  },
+  studentsCount: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.text,
+  },
+  addStudentButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.primary,
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+    marginTop: 24,
+    gap: 8,
+  },
+  addStudentButtonText: {
+    color: '#FFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  addStudentButtonSmall: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.primary,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 6,
+    gap: 6,
+  },
+  addStudentButtonSmallText: {
+    color: '#FFF',
+    fontSize: 14,
+    fontWeight: '600',
+  },
 });
 
 export default TeacherCourseDetailScreen;
