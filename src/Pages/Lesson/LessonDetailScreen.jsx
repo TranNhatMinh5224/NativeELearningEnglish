@@ -129,9 +129,7 @@ const LessonDetailScreen = ({ route, navigation }) => {
 
     // Call startModule API before navigation (like Web app)
     try {
-      console.log(`Starting module ${moduleId}...`);
       await lessonService.startModule(moduleId);
-      console.log(`Module ${moduleId} started successfully`);
 
       // Refresh modules list to update completion status
       try {
@@ -173,11 +171,17 @@ const LessonDetailScreen = ({ route, navigation }) => {
                contentTypeName.includes('essay') ||
                contentTypeName.includes('quiz') ||
                contentTypeName.includes('test')) {
-      // Navigate to Assignment screen (if available)
-      console.log('Assignment module:', moduleId);
-      // TODO: Add Assignment screen navigation when available
+      // Navigate to AssignmentDetail screen
+      navigation.navigate('AssignmentDetailScreen', {
+        moduleId,
+        moduleName,
+        lessonId,
+        lessonTitle,
+      });
     } else if (contentType === 1 || contentTypeName.includes('lecture')) {
       // Navigate to Lecture screen
+      // Check if module has single lecture, navigate directly to LectureDetailScreen
+      // Otherwise, navigate to ModuleLearning for multiple lectures
       navigation.navigate('ModuleLearning', {
         moduleId,
         moduleName,
@@ -204,8 +208,8 @@ const LessonDetailScreen = ({ route, navigation }) => {
       return;
     }
 
-    // Navigate to PronunciationDetail screen
-    navigation.navigate('PronunciationDetail', {
+    // Navigate to PronunciationDetail screen (route name phải khớp với navigator)
+    navigation.navigate('PronunciationDetailScreen', {
       moduleId,
       moduleName,
       lessonId,

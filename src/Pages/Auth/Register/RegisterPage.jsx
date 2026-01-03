@@ -10,6 +10,7 @@ import {
   ScrollView,
   ActivityIndicator,
   Image,
+  Alert,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -87,9 +88,10 @@ const RegisterPage = ({ navigation }) => {
       }
 
       const userData = {
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-        email: formData.email,
+        firstName: formData.firstName.trim(),
+        lastName: formData.lastName.trim(),
+        // Chuẩn hóa email để trùng cách backend dùng NormalizedEmail (tránh lỗi duplicate)
+        email: formData.email.trim().toLowerCase(),
         password: formData.password,
         phoneNumber: formData.phone.trim() || "", // Gửi empty string nếu không nhập (database NOT NULL)
         dateOfBirth: birthDate,
@@ -114,25 +116,46 @@ const RegisterPage = ({ navigation }) => {
       }, 1500);
     } catch (error) {
       console.error('Register Error Detail:', error);
-      
+
       // Parse error message (Backend trả về ServiceResponse hoặc Validation errors)
       let errorMessage = 'Đăng ký thất bại. Vui lòng thử lại.';
-      
+      const fieldErrors = {};
+
       if (error && typeof error === 'object') {
-          errorMessage = error.message || error.Message || error.detail || errorMessage;
-          
-          // Nếu là lỗi validation từ FluentValidation (trả về object errors)
-          if (error.errors && typeof error.errors === 'object') {
-              const firstErrorField = Object.keys(error.errors)[0];
-              const fieldErrors = error.errors[firstErrorField];
-              if (Array.isArray(fieldErrors) && fieldErrors.length > 0) {
-                  errorMessage = `${firstErrorField}: ${fieldErrors[0]}`;
-              }
+        const backendMessage = error.message || error.Message || error.detail;
+
+        if (backendMessage) {
+          // Map cụ thể các lỗi trùng dữ liệu từ backend
+          if (backendMessage.includes('Email đã tồn tại')) {
+            fieldErrors.email = 'Email đã tồn tại trong hệ thống';
+            errorMessage = fieldErrors.email;
+          } else if (backendMessage.includes('Số điện thoại đã tồn tại')) {
+            fieldErrors.phone = 'Số điện thoại đã tồn tại trong hệ thống';
+            errorMessage = fieldErrors.phone;
+          } else {
+            // Với các lỗi hệ thống chung chung (ví dụ EF: "An error occurred while saving the entity changes")
+            // không nên tự suy đoán là do trùng email/số điện thoại, mà hiển thị đúng message backend
+            errorMessage = backendMessage;
           }
+        }
+
+        // Nếu là lỗi validation từ FluentValidation (trả về object errors)
+        if (error.errors && typeof error.errors === 'object') {
+          const firstErrorField = Object.keys(error.errors)[0];
+          const validationFieldErrors = error.errors[firstErrorField];
+          if (Array.isArray(validationFieldErrors) && validationFieldErrors.length > 0) {
+            errorMessage = `${firstErrorField}: ${validationFieldErrors[0]}`;
+          }
+        }
       } else if (typeof error === 'string') {
-          errorMessage = error;
+        errorMessage = error;
       }
-      
+
+      // Gán lỗi cụ thể cho từng field để hiện chữ đỏ dưới input
+      if (Object.keys(fieldErrors).length > 0) {
+        setErrors((prev) => ({ ...prev, ...fieldErrors }));
+      }
+
       setToast({
         visible: true,
         message: errorMessage,
@@ -141,7 +164,7 @@ const RegisterPage = ({ navigation }) => {
 
       // Thêm Alert để chắc chắn user thấy lỗi nếu Toast bị che
       Alert.alert('Lỗi đăng ký', errorMessage);
-      
+
     } finally {
       setLoading(false);
     }

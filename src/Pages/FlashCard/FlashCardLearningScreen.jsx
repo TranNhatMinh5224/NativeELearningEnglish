@@ -61,12 +61,13 @@ const FlashCardLearningScreen = ({ navigation, route }) => {
       setCompleting(true);
       // Gọi API startModule (cũng là api mark complete cho flashcard module)
       await lessonService.startModule(moduleId);
-      
-      Alert.alert(
-        'Chúc mừng! 🎉',
-        `Bạn đã học xong ${flashcards.length} từ vựng mới.`,
-        [{ text: 'OK', onPress: () => navigation.goBack() }]
-      );
+
+      // Điều hướng sang màn hình kết quả bài học
+      navigation.replace('LessonResultScreen', {
+        type: 'flashcard',
+        moduleName,
+        totalItems: flashcards.length,
+      });
     } catch (error) {
       console.error('Error completing module:', error);
       Alert.alert('Lỗi', 'Không thể lưu tiến độ học tập.');

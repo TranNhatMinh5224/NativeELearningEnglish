@@ -1,10 +1,22 @@
 import axiosClient from './axiosClient';
 
 const quizService = {
+  // Get quizzes by assessment ID (list on Assignment screen)
+  getQuizzesByAssessmentId: async (assessmentId) => {
+    try {
+      // Backend route: GET api/user/quizzes/assessment/{assessmentId}
+      const response = await axiosClient.get(`/user/quizzes/assessment/${assessmentId}`);
+      return response;
+    } catch (error) {
+      throw error.response?.data || error;
+    }
+  },
+
   // Get quiz details by quiz ID
   getQuizById: async (quizId) => {
     try {
-      const response = await axiosClient.get(`/user/quizzes/${quizId}`);
+      // Backend route: GET api/user/quizzes/quiz/{quizId}
+      const response = await axiosClient.get(`/user/quizzes/quiz/${quizId}`);
       return response;
     } catch (error) {
       throw error.response?.data || error;
@@ -31,12 +43,16 @@ const quizService = {
     }
   },
 
-  // Save individual answer
+  // Save individual answer (real-time scoring)
   saveAnswer: async (attemptId, questionId, selectedOptionId) => {
     try {
       const response = await axiosClient.post(
-        `/user/quiz-attempts/${attemptId}/answer`,
-        { questionId, selectedOptionId }
+        `/user/quiz-attempts/update-answer/${attemptId}`,
+        {
+          questionId,
+          // Backend expects UserAnswer in UpdateAnswerRequestDto
+          userAnswer: selectedOptionId,
+        }
       );
       return response;
     } catch (error) {
