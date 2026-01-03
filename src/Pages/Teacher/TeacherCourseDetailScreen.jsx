@@ -19,6 +19,7 @@ import { getResponseData } from '../../Utils/apiHelper';
 import Toast from '../../Components/Common/Toast';
 
 const DEFAULT_COURSE_IMAGE = require('../../../assets/images/mochi-course-teacher.jpg');
+const DEFAULT_LESSON_IMAGE = require('../../../assets/images/mochi-lesson-teacher.jpg');
 const Tab = createMaterialTopTabNavigator();
 
 // --- Custom Tab Bar with "|" separator ---
@@ -151,13 +152,11 @@ const CurriculumTab = ({ lessons, onAddLesson, onEditLesson, refreshing, onRefre
                 onPress={() => onEditLesson(lesson)}
                 activeOpacity={0.7}
               >
-                {lessonImage ? (
-                  <Image source={{ uri: lessonImage }} style={styles.lessonItemImage} resizeMode="cover" />
-                ) : (
-                  <View style={styles.lessonItemImagePlaceholder}>
-                    <Ionicons name="book" size={24} color={colors.primary} />
-                  </View>
-                )}
+                <Image
+                  source={lessonImage ? { uri: lessonImage } : DEFAULT_LESSON_IMAGE}
+                  style={styles.lessonItemImage}
+                  resizeMode="cover"
+                />
                 <Text style={styles.lessonItemTitle} numberOfLines={2}>
                   {lessonTitle}
                 </Text>
@@ -563,15 +562,6 @@ const styles = StyleSheet.create({
   },
   lessonItemContent: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
   lessonItemImage: { width: 60, height: 60, borderRadius: 8, marginRight: 12, backgroundColor: '#F0F0F0' },
-  lessonItemImagePlaceholder: {
-    width: 60,
-    height: 60,
-    borderRadius: 8,
-    marginRight: 12,
-    backgroundColor: '#EEF2FF',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   lessonItemTitle: { flex: 1, fontSize: 16, fontWeight: '500', color: colors.text },
 
   addModuleButton: {
