@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Báo Cáo Đồng Bộ React Native App với Backend và Database Mới
 
 ## 📋 Tổng Quan
@@ -193,7 +194,12 @@ Báo cáo này kiểm tra việc đồng bộ giữa React Native app (`NativeEL
 **Phiên bản Backend**: Latest
 **Phiên bản React Native App**: Latest
 edfejfksnkfnk
+=======
+>>>>>>> 498dadf044707b965779db2b520f6f8d6ab382f5
+
+<<<<<<< HEAD
+=======
 
 
 
-
+>>>

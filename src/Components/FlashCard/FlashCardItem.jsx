@@ -15,7 +15,7 @@ const FlashCardItem = ({ card, active }) => {
   const [isFlipped, setIsFlipped] = useState(false);
   const animatedValue = useRef(new Animated.Value(0)).current;
   const [sound, setSound] = useState();
-  
+
   // Pronunciation States
   const [recording, setRecording] = useState(null);
   const [isRecording, setIsRecording] = useState(false);
@@ -307,7 +307,7 @@ const FlashCardItem = ({ card, active }) => {
                 <View style={styles.backHint}>
                   <Text style={styles.backHintText}>Ấn vào thẻ để lật</Text>
                 </View>
-              </View>
+            </View>
             </ScrollView>
           </Animated.View>
 
