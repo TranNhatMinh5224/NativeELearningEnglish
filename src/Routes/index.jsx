@@ -21,6 +21,8 @@ import { PaymentScreen, PaymentSuccess, PaymentFailed, PaymentHistoryScreen } fr
 import NotificationScreen from '../Pages/Notification/NotificationScreen';
 import FlashCardLearningScreen from '../Pages/FlashCard/FlashCardLearningScreen';
 import FlashCardReviewSession from '../Pages/FlashCard/FlashCardReviewSession';
+import TeacherHomeScreen from '../Pages/Teacher/TeacherHomeScreen';
+import TeacherClassListScreen from '../Pages/Teacher/TeacherClassListScreen';
 
 // Theme
 import colors from '../Theme/colors';
@@ -146,16 +148,16 @@ const linking = {
       PaymentSuccess: {
         path: 'payment-success',
         parse: {
-          paymentId: (paymentId: string) => paymentId,
-          orderCode: (orderCode: string) => orderCode,
-          courseId: (courseId: string) => courseId,
+          paymentId: (paymentId) => paymentId,
+          orderCode: (orderCode) => orderCode,
+          courseId: (courseId) => courseId,
         },
       },
       PaymentFailed: {
         path: 'payment-failed',
         parse: {
-          reason: (reason: string) => reason || 'Canceled',
-          orderCode: (orderCode: string) => orderCode,
+          reason: (reason) => reason || 'Canceled',
+          orderCode: (orderCode) => orderCode,
         },
       },
       // Các screens khác
@@ -298,6 +300,24 @@ const AppNavigator = () => {
         <Stack.Screen
           name="PronunciationDetail"
           component={PronunciationDetailScreen}
+          options={{
+            headerShown: false,
+            presentation: 'card',
+          }}
+        />
+        
+        {/* Teacher Screens */}
+        <Stack.Screen
+          name="TeacherHome"
+          component={TeacherHomeScreen}
+          options={{
+            headerShown: false,
+            presentation: 'card',
+          }}
+        />
+        <Stack.Screen
+          name="TeacherClasses"
+          component={TeacherClassListScreen}
           options={{
             headerShown: false,
             presentation: 'card',
