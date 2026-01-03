@@ -23,6 +23,7 @@ import FlashCardLearningScreen from '../Pages/FlashCard/FlashCardLearningScreen'
 import FlashCardReviewSession from '../Pages/FlashCard/FlashCardReviewSession';
 import TeacherHomeScreen from '../Pages/Teacher/TeacherHomeScreen';
 import TeacherClassListScreen from '../Pages/Teacher/TeacherClassListScreen';
+import CreateCourseScreen from '../Pages/Teacher/CreateCourseScreen';
 
 // Theme
 import colors from '../Theme/colors';
@@ -318,6 +319,14 @@ const AppNavigator = () => {
         <Stack.Screen
           name="TeacherClasses"
           component={TeacherClassListScreen}
+          options={{
+            headerShown: false,
+            presentation: 'card',
+          }}
+        />
+        <Stack.Screen
+          name="CreateCourse"
+          component={CreateCourseScreen}
           options={{
             headerShown: false,
             presentation: 'card',

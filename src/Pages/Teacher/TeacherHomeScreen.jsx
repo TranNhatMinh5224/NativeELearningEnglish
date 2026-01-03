@@ -94,10 +94,7 @@ const TeacherHomeScreen = ({ navigation }) => {
 
           <TouchableOpacity 
             style={styles.actionCard}
-            onPress={() => {
-              // TODO: Navigate to create class screen
-              console.log('Create class');
-            }}
+            onPress={() => navigation.navigate('CreateCourse')}
           >
             <View style={[styles.iconBox, { backgroundColor: '#ECFDF5' }]}>
               <Ionicons name="add-circle" size={28} color="#10B981" />
