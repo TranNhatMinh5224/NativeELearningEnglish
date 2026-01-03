@@ -1,1 +1,1 @@
-export { default as ModuleLearningScreen } from './ModuleLearningScreen';
+export { default as LectureDetailScreen } from './LectureDetailScreen';

@@ -14,10 +14,56 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import colors from '../../../Theme/colors';
 import { scale, verticalScale } from '../../../Theme/responsive';
 import quizService from '../../../Services/quizService';
+import lessonService from '../../../Services/lessonService';
 import Toast from '../../../Components/Common/Toast';
 
+// Helper: flatten QuizSections -> flat list of questions
+// Hỗ trợ cả cấu trúc cũ (Questions + QuizGroups) và cấu trúc mới (Items)
+const extractQuestionsFromSections = (sections) => {
+  if (!sections || !Array.isArray(sections)) return [];
+
+  const result = [];
+
+  sections.forEach((section) => {
+    // Cấu trúc mới: AttemptQuizSectionDto với Items (QuizItemDto)
+    const items = section?.Items || section?.items;
+    if (Array.isArray(items) && items.length > 0) {
+      items.forEach((item) => {
+        const itemType = (item?.ItemType || item?.itemType || '').toLowerCase();
+
+        // Item là 1 câu hỏi độc lập
+        if (itemType === 'question' || item?.QuestionId || item?.questionId) {
+          result.push(item);
+          return;
+        }
+
+        // Item là 1 group chứa nhiều câu hỏi
+        if (itemType === 'group' || item?.Questions || item?.questions) {
+          const gQuestions = item?.Questions || item?.questions || [];
+          gQuestions.forEach((q) => result.push(q));
+        }
+      });
+
+      // Đã xử lý cấu trúc mới thì bỏ qua logic cũ
+      return;
+    }
+
+    // Fallback: cấu trúc cũ (section.Questions + section.QuizGroups)
+    const standalone = section?.Questions || section?.questions || [];
+    standalone.forEach((q) => result.push(q));
+
+    const groups = section?.QuizGroups || section?.quizGroups || [];
+    groups.forEach((group) => {
+      const gQuestions = group?.Questions || group?.questions || [];
+      gQuestions.forEach((q) => result.push(q));
+    });
+  });
+
+  return result;
+};
+
 const QuizScreen = ({ route, navigation }) => {
-  const { moduleId, moduleName } = route.params || {};
+  const { quizId: routeQuizId, assessmentId, quizTitle, assessmentTitle, moduleId, moduleName, assessment } = route.params || {};
   const insets = useSafeAreaInsets();
 
   const [quiz, setQuiz] = useState(null);
@@ -27,35 +73,84 @@ const QuizScreen = ({ route, navigation }) => {
   const [attemptId, setAttemptId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [maxAttemptsError, setMaxAttemptsError] = useState(null);
   const [toast, setToast] = useState({ visible: false, message: '', type: 'success' });
 
   useEffect(() => {
-    startQuiz();
-  }, []);
+    if (routeQuizId || assessmentId) {
+      startQuiz();
+    }
+  }, [routeQuizId, assessmentId]);
 
   const startQuiz = async () => {
     try {
       setLoading(true);
-      // moduleId chính là quizId từ module quiz
-      const response = await quizService.startQuizAttempt(moduleId);
-      const data = response?.data || response;
       
-      setAttemptId(data?.attemptId || data?.AttemptId);
-      setQuiz(data?.quiz || data?.Quiz);
+      // Use quizId if provided directly, otherwise get from assessment
+      let quizId = routeQuizId;
       
-      const questionsData = data?.quiz?.questions || data?.Quiz?.Questions || [];
-      setQuestions(questionsData);
-      
-      if (questionsData.length === 0) {
-        throw new Error('Quiz không có câu hỏi');
+      if (!quizId && assessmentId) {
+        // Fallback: get assessment details to find quizId
+        const assessmentResponse = await lessonService.getAssessmentById(assessmentId);
+        const assessmentData = assessmentResponse?.data || assessmentResponse;
+        
+        // Get quizId from assessment - try multiple field name variations
+        quizId = assessmentData?.quizzes?.[0]?.quizId || assessmentData?.Quizzes?.[0]?.QuizId || assessmentData?.quizId || assessmentData?.QuizId;
       }
+      
+      if (!quizId) {
+        throw new Error('Assessment này chưa có quiz. Vui lòng liên hệ giáo viên.');
+      }
+      
+      // Start quiz attempt with quizId
+      const response = await quizService.startQuizAttempt(quizId);
+
+      // axiosClient đã unwrap 1 lớp nên response chính là ServiceResponse
+      // với Data = QuizAttemptWithQuestionsDto
+      const dto = response?.data || response; // QuizAttemptWithQuestionsDto
+
+      const attemptIdValue = dto?.attemptId || dto?.AttemptId;
+      const sections = dto?.quizSections || dto?.QuizSections || [];
+      const questionsData = extractQuestionsFromSections(sections);
+
+      if (!questionsData || questionsData.length === 0) {
+        setToast({
+          visible: true,
+          message: 'Quiz không có câu hỏi. Vui lòng liên hệ giáo viên.',
+          type: 'error',
+        });
+        setTimeout(() => navigation.goBack(), 3000);
+        return;
+      }
+
+      setAttemptId(attemptIdValue);
+      setQuestions(questionsData);
     } catch (error) {
+      // Extract error message from various possible locations
+      let errorMessage = 'Không thể bắt đầu quiz';
+      const errData = error?.response?.data || error;
+
+      if (errData) {
+        errorMessage =
+          errData?.message ||
+          errData?.Message ||
+          errData?.error ||
+          errorMessage;
+      } else if (error?.message) {
+        errorMessage = error.message;
+      }
+      
+      // Show user-friendly error
       setToast({
         visible: true,
-        message: error?.message || 'Không thể bắt đầu quiz',
+        message: errorMessage,
         type: 'error',
       });
-      setTimeout(() => navigation.goBack(), 2000);
+
+      const isMaxAttemptsError =
+        errorMessage.includes('hết lượt') ||
+        errorMessage.toLowerCase().includes('max');
+      setTimeout(() => navigation.goBack(), isMaxAttemptsError ? 4000 : 2500);
     } finally {
       setLoading(false);
     }
@@ -114,19 +209,41 @@ const QuizScreen = ({ route, navigation }) => {
       // Backend tự động chấm điểm dựa trên answers đã chọn trong attempt
       const response = await quizService.submitQuizAttempt(attemptId);
       const result = response?.data || response;
-      
-      const score = result?.score || result?.Score || 0;
-      const passed = result?.passed || result?.Passed || false;
-      
-      setToast({
-        visible: true,
-        message: `Đã nộp bài! Điểm: ${score}/${questions.length} - ${passed ? 'Đạt' : 'Chưa đạt'}`,
-        type: passed ? 'success' : 'error',
+
+      // QuizAttemptResultDto từ backend
+      const totalScore =
+        result?.totalScore ?? result?.TotalScore ?? 0;
+      const isPassed =
+        result?.isPassed ?? result?.IsPassed ?? false;
+      const percentage =
+        result?.percentage ?? result?.Percentage ?? 0;
+      const timeSpentSeconds =
+        result?.timeSpentSeconds ?? result?.TimeSpentSeconds ?? 0;
+      const scoresByQuestion =
+        result?.scoresByQuestion || result?.ScoresByQuestion || {};
+
+      const totalQuestions =
+        questions.length ||
+        (scoresByQuestion ? Object.keys(scoresByQuestion).length : 0);
+
+      const correctCount = scoresByQuestion
+        ? Object.values(scoresByQuestion).filter((s) =>
+            typeof s === 'number' ? s > 0 : Number(s) > 0
+          ).length
+        : 0;
+
+      // Điều hướng tới màn hình kết quả bài học
+      navigation.replace('LessonResultScreen', {
+        type: 'quiz',
+        moduleName,
+        quizTitle,
+        totalScore,
+        totalQuestions,
+        correctCount,
+        percentage,
+        isPassed,
+        timeSpentSeconds,
       });
-      
-      setTimeout(() => {
-        navigation.goBack();
-      }, 2000);
     } catch (error) {
       setToast({
         visible: true,
@@ -144,7 +261,12 @@ const QuizScreen = ({ route, navigation }) => {
     const question = questions[currentQuestionIndex];
     const questionId = question?.QuestionId || question?.questionId;
     const questionText = question?.QuestionText || question?.questionText;
-    const answers = question?.Answers || question?.answers || [];
+    const answers =
+      question?.Answers ||
+      question?.answers ||
+      question?.Options ||
+      question?.options ||
+      [];
     const selectedAnswer = selectedAnswers[questionId];
 
     return (
@@ -161,8 +283,16 @@ const QuizScreen = ({ route, navigation }) => {
 
         <View style={styles.answersContainer}>
           {answers.map((answer, index) => {
-            const answerId = answer?.AnswerId || answer?.answerId;
-            const answerText = answer?.AnswerText || answer?.answerText;
+            const answerId =
+              answer?.AnswerId ||
+              answer?.answerId ||
+              answer?.OptionId ||
+              answer?.optionId;
+            const answerText =
+              answer?.AnswerText ||
+              answer?.answerText ||
+              answer?.OptionText ||
+              answer?.optionText;
             const isSelected = selectedAnswer === answerId;
 
             return (

@@ -1,1 +1,2 @@
-export { default as AssignmentScreen } from './AssignmentScreen';
+export { default as AssignmentDetailScreen } from './AssignmentDetailScreen';
+export { default as EssayScreen } from './EssayScreen';

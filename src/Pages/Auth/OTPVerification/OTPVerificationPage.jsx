@@ -127,9 +127,14 @@ const OTPVerificationPage = ({ route, navigation }) => {
     setResendLoading(true);
     try {
       if (type === 'register') {
-        // For register, resend OTP by calling register again (backend will resend OTP)
-        // Or use a dedicated resend endpoint if available
-        await authService.forgotPassword(email); // Temporary: use forgot password endpoint
+        // Luồng đăng ký: hiện tại backend CHƯA có endpoint resend OTP riêng cho verify email
+        // Không được dùng nhầm forgotPassword vì đó là OTP cho quên mật khẩu
+        setToast({
+          visible: true,
+          message: 'Hiện tại chưa hỗ trợ gửi lại OTP cho đăng ký. Vui lòng dùng mã OTP đã gửi trong email.',
+          type: 'error',
+        });
+        return;
       } else {
         // For forgot password, use forgot password endpoint to resend
         await authService.forgotPassword(email);

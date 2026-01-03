@@ -16,7 +16,10 @@ import ProfileScreen from '../Pages/Profile/ProfileScreen';
 import VocabularyScreen from '../Pages/Vocabulary/VocabularyScreen';
 import CourseDetailScreen from '../Pages/Course/CourseDetailScreen';
 import SearchScreen from '../Pages/Search/SearchScreen';
-import { LessonListScreen, LessonDetailScreen, ModuleLearningScreen, PronunciationDetailScreen } from '../Pages/Lesson';
+import { LessonListScreen, LessonDetailScreen, ModuleLearningScreen, PronunciationDetailScreen, LessonResultScreen } from '../Pages/Lesson';
+import { AssignmentDetailScreen, EssayScreen } from '../Pages/Lesson/Assignment';
+import { LectureDetailScreen } from '../Pages/Lesson/Lecture';
+import { QuizScreen } from '../Pages/Lesson/Quiz';
 import { PaymentScreen, PaymentSuccess, PaymentFailed, PaymentHistoryScreen } from '../Pages/Payment';
 import NotificationScreen from '../Pages/Notification/NotificationScreen';
 import FlashCardLearningScreen from '../Pages/FlashCard/FlashCardLearningScreen';
@@ -228,6 +231,14 @@ const AppNavigator = () => {
         <Stack.Screen
           name="LessonDetail"
           component={LessonDetailScreen}
+          options={{
+            headerShown: false,
+            presentation: 'card',
+          }}
+        />
+        <Stack.Screen
+          name="PronunciationDetailScreen"
+          component={PronunciationDetailScreen}
           options={{
             headerShown: false,
             presentation: 'card',

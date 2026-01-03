@@ -10,10 +10,7 @@ const authService = {
         password,
       });
 
-      // Backend trả về ServiceResponse với Data = AuthResponseDto { AccessToken, RefreshToken, User }
-      // axiosClient interceptor trả về response.data, nên response có thể là:
-      // - { success, data: { AccessToken, RefreshToken, User } } nếu là ServiceResponse
-      // - { AccessToken, RefreshToken, User } nếu là AuthResponseDto trực tiếp
+    
       
       let authData = null;
       if (response && response.data) {
