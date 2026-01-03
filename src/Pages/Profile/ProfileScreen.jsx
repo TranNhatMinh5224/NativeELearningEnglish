@@ -110,6 +110,51 @@ const ProfileScreen = ({ navigation }) => {
     }
   };
 
+  // Check if user is a teacher
+  const isTeacher = () => {
+    if (!user) return false;
+    // Check roles array
+    const roles = user.roles || user.Roles || [];
+    const hasTeacherRole = Array.isArray(roles) 
+      ? roles.some(role => {
+          const roleName = typeof role === 'string' ? role : role?.name || role;
+          return roleName === 'Teacher';
+        })
+      : false;
+    
+    // Check teacherSubscription
+    const teacherSubscription = user.teacherSubscription || user.TeacherSubscription;
+    const hasActiveSubscription = teacherSubscription?.isTeacher === true || 
+                                  teacherSubscription?.IsTeacher === true;
+    
+    return hasTeacherRole || hasActiveSubscription;
+  };
+
+  // Get teacher subscription info
+  const getTeacherSubscriptionInfo = () => {
+    if (!user) return null;
+    const subscription = user.teacherSubscription || user.TeacherSubscription;
+    if (!subscription) return null;
+
+    const packageLevel = subscription.packageLevel || subscription.PackageLevel || 
+                        subscription.subscriptionType || subscription.SubscriptionType || 'Basic';
+    const isPremium = packageLevel === 'Premium' || packageLevel === 'premium';
+    const expiresAt = subscription.expiresAt || subscription.ExpiresAt || 
+                     subscription.endDate || subscription.EndDate;
+
+    return {
+      packageLevel,
+      isPremium,
+      expiresAt,
+      packageName: subscription.packageName || subscription.PackageName || 'Gói giáo viên'
+    };
+  };
+
+  // Handle switch to teacher interface
+  const handleSwitchToTeacher = () => {
+    navigation.navigate('TeacherHome');
+  };
+
   const handleLogout = () => {
     Alert.alert('Đăng xuất', 'Bạn có chắc muốn đăng xuất?', [
       { text: 'Hủy', style: 'cancel' },
@@ -246,6 +291,48 @@ const ProfileScreen = ({ navigation }) => {
         />
 
         <View style={styles.actions}>
+          {/* Teacher Package Info & Switch Button */}
+          {isTeacher() && getTeacherSubscriptionInfo() && (
+            <>
+              <View style={styles.teacherPackageCard}>
+                <View style={styles.teacherPackageHeader}>
+                  <View style={styles.teacherPackageLeft}>
+                    <Ionicons name="school-outline" size={scale(22)} color={colors.primary} />
+                    <View style={styles.teacherPackageInfo}>
+                      <Text style={styles.teacherPackageLabel}>Gói giáo viên</Text>
+                      <View style={styles.teacherPackageBadgeContainer}>
+                        <View style={[
+                          styles.teacherPackageBadge,
+                          getTeacherSubscriptionInfo().isPremium ? styles.teacherPackageBadgePremium : styles.teacherPackageBadgeBasic
+                        ]}>
+                          <Text style={[
+                            styles.teacherPackageBadgeText,
+                            getTeacherSubscriptionInfo().isPremium ? styles.teacherPackageBadgeTextPremium : styles.teacherPackageBadgeTextBasic
+                          ]}>
+                            {getTeacherSubscriptionInfo().isPremium ? 'Premium' : 'Cơ bản'}
+                          </Text>
+                        </View>
+                      </View>
+                    </View>
+                  </View>
+                </View>
+                {getTeacherSubscriptionInfo().expiresAt && (
+                  <Text style={styles.teacherPackageExpiry}>
+                    Hết hạn: {new Date(getTeacherSubscriptionInfo().expiresAt).toLocaleDateString('vi-VN')}
+                  </Text>
+                )}
+                <TouchableOpacity 
+                  style={styles.teacherSwitchButton}
+                  onPress={handleSwitchToTeacher}
+                >
+                  <Ionicons name="swap-horizontal-outline" size={scale(20)} color={colors.primary} />
+                  <Text style={styles.teacherSwitchText}>Chuyển giao diện giáo viên</Text>
+                </TouchableOpacity>
+              </View>
+              <View style={styles.divider} />
+            </>
+          )}
+
           <TouchableOpacity style={styles.action} onPress={() => setShowChangePassword(true)}>
             <View style={styles.actionIcon}>
               <Ionicons name="key-outline" size={scale(22)} color={colors.primary} />
@@ -391,6 +478,84 @@ const styles = StyleSheet.create({
     fontSize: scale(15),
     fontWeight: '600',
     color: colors.error,
+  },
+  teacherPackageCard: {
+    backgroundColor: '#FFF',
+    padding: 16,
+    borderRadius: scale(12),
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+    borderWidth: 1,
+    borderColor: `${colors.primary}20`,
+  },
+  teacherPackageHeader: {
+    marginBottom: 12,
+  },
+  teacherPackageLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  teacherPackageInfo: {
+    marginLeft: 12,
+    flex: 1,
+  },
+  teacherPackageLabel: {
+    fontSize: scale(14),
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 4,
+  },
+  teacherPackageBadgeContainer: {
+    flexDirection: 'row',
+  },
+  teacherPackageBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  teacherPackageBadgePremium: {
+    backgroundColor: '#FEF3C7',
+  },
+  teacherPackageBadgeBasic: {
+    backgroundColor: '#E5E7EB',
+  },
+  teacherPackageBadgeText: {
+    fontSize: scale(11),
+    fontWeight: '600',
+  },
+  teacherPackageBadgeTextPremium: {
+    color: '#D97706',
+  },
+  teacherPackageBadgeTextBasic: {
+    color: '#6B7280',
+  },
+  teacherPackageExpiry: {
+    fontSize: scale(12),
+    color: colors.textSecondary,
+    marginBottom: 12,
+  },
+  teacherSwitchButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: `${colors.primary}15`,
+    padding: 12,
+    borderRadius: scale(8),
+    gap: 8,
+  },
+  teacherSwitchText: {
+    fontSize: scale(14),
+    fontWeight: '600',
+    color: colors.primary,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: colors.border,
+    marginVertical: 12,
   },
 });
 
