@@ -100,6 +100,86 @@ const teacherService = {
       throw error.response?.data || error;
     }
   },
+
+  // Get lesson by ID
+  getLessonById: async (lessonId) => {
+    try {
+      const response = await axiosClient.get(`/teacher/lessons/${lessonId}`);
+      return response;
+    } catch (error) {
+      throw error.response?.data || error;
+    }
+  },
+
+  // Update lesson
+  updateLesson: async (lessonId, data) => {
+    try {
+      const response = await axiosClient.put(`/teacher/lessons/${lessonId}`, data);
+      return response;
+    } catch (error) {
+      throw error.response?.data || error;
+    }
+  },
+
+  // Delete lesson
+  deleteLesson: async (lessonId) => {
+    try {
+      const response = await axiosClient.delete(`/teacher/lessons/${lessonId}`);
+      return response;
+    } catch (error) {
+      throw error.response?.data || error;
+    }
+  },
+
+  // Get modules by lesson
+  getModulesByLesson: async (lessonId) => {
+    try {
+      const response = await axiosClient.get(`/teacher/modules/lesson/${lessonId}`);
+      return response;
+    } catch (error) {
+      throw error.response?.data || error;
+    }
+  },
+
+  // Create new module
+  createModule: async (data) => {
+    try {
+      const response = await axiosClient.post('/teacher/modules', data);
+      return response;
+    } catch (error) {
+      throw error.response?.data || error;
+    }
+  },
+
+  // Get module by ID
+  getModuleById: async (moduleId) => {
+    try {
+      const response = await axiosClient.get(`/teacher/modules/${moduleId}`);
+      return response;
+    } catch (error) {
+      throw error.response?.data || error;
+    }
+  },
+
+  // Update module
+  updateModule: async (moduleId, data) => {
+    try {
+      const response = await axiosClient.put(`/teacher/modules/${moduleId}`, data);
+      return response;
+    } catch (error) {
+      throw error.response?.data || error;
+    }
+  },
+
+  // Delete module
+  deleteModule: async (moduleId) => {
+    try {
+      const response = await axiosClient.delete(`/teacher/modules/${moduleId}`);
+      return response;
+    } catch (error) {
+      throw error.response?.data || error;
+    }
+  },
 };
 
 export default teacherService;

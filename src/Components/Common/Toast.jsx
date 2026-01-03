@@ -1,8 +1,9 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, Animated, TouchableOpacity, Platform, StatusBar } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { scale, SAFE_AREA_PADDING } from '../../Theme/responsive';
 import colors from '../../Theme/colors';
+import toastManager from '../../Utils/ToastManager';
 
 const Toast = ({ visible, message, type = 'success', onHide, duration = 3000 }) => {
   const slideAnim = useRef(new Animated.Value(-100)).current;
@@ -129,5 +130,51 @@ const styles = StyleSheet.create({
   },
 });
 
+const ToastContainer = () => {
+  const [toast, setToast] = useState({ visible: false, message: '', type: 'success', duration: 3000 });
+
+  useEffect(() => {
+    const handleShow = ({ message, type, duration }) => {
+      setToast({ visible: true, message, type, duration });
+    };
+
+    toastManager.on('show', handleShow);
+    return () => {
+      toastManager.off('show', handleShow);
+    };
+  }, []);
+
+  return (
+    <Toast
+      visible={toast.visible}
+      message={toast.message}
+      type={toast.type}
+      duration={toast.duration}
+      onHide={() => setToast({ ...toast, visible: false })}
+    />
+  );
+};
+
+Toast.show = (message, type = 'success', duration = 3000) => {
+  toastManager.show(message, type, duration);
+};
+
+Toast.success = (message, duration = 3000) => {
+  toastManager.success(message, duration);
+};
+
+Toast.error = (message, duration = 3000) => {
+  toastManager.error(message, duration);
+};
+
+Toast.warning = (message, duration = 3000) => {
+  toastManager.warning(message, duration);
+};
+
+Toast.info = (message, duration = 3000) => {
+  toastManager.info(message, duration);
+};
+
 export default Toast;
+export { ToastContainer };
 

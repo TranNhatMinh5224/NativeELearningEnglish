@@ -17,6 +17,8 @@ import colors from '../../Theme/colors';
 import teacherService from '../../Services/teacherService';
 import { getResponseData } from '../../Utils/apiHelper';
 import Toast from '../../Components/Common/Toast';
+import LessonModal from '../../Components/Teacher/LessonModal';
+import ModuleModal from '../../Components/Teacher/ModuleModal';
 
 const DEFAULT_COURSE_IMAGE = require('../../../assets/images/mochi-course-teacher.jpg');
 const DEFAULT_LESSON_IMAGE = require('../../../assets/images/mochi-lesson-teacher.jpg');
@@ -126,7 +128,7 @@ const OverviewTab = ({ course, onEdit }) => {
 };
 
 // --- TAB: CURRICULUM ---
-const CurriculumTab = ({ lessons, onAddLesson, onEditLesson, refreshing, onRefresh }) => {
+const CurriculumTab = ({ lessons, onAddLesson, onEditLesson, onAddModule, refreshing, onRefresh }) => {
   return (
     <ScrollView
       style={styles.tabContent}
@@ -164,7 +166,7 @@ const CurriculumTab = ({ lessons, onAddLesson, onEditLesson, refreshing, onRefre
 
               <TouchableOpacity
                 style={styles.addModuleButton}
-                onPress={() => onEditLesson(lesson)}
+                onPress={() => onAddModule(lesson)}
                 activeOpacity={0.8}
               >
                 <Ionicons name="add" size={16} color="#FFF" />
@@ -306,9 +308,14 @@ const TeacherCourseDetailScreen = ({ route, navigation }) => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [toast, setToast] = useState({ visible: false, message: '', type: 'success' });
+  const [lessons, setLessons] = useState([]);
+  const [showLessonModal, setShowLessonModal] = useState(false);
+  const [showModuleModal, setShowModuleModal] = useState(false);
+  const [selectedLesson, setSelectedLesson] = useState(null);
 
   useEffect(() => {
     loadCourseDetail();
+    loadLessons();
   }, [courseId]);
 
   const loadCourseDetail = async () => {
@@ -325,9 +332,19 @@ const TeacherCourseDetailScreen = ({ route, navigation }) => {
     }
   };
 
+  const loadLessons = async () => {
+    try {
+      const response = await teacherService.getLessonsByCourse(courseId);
+      const data = getResponseData(response);
+      setLessons(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error('Error loading lessons:', error);
+    }
+  };
+
   const handleRefresh = async () => {
     setRefreshing(true);
-    await loadCourseDetail();
+    await Promise.all([loadCourseDetail(), loadLessons()]);
     setRefreshing(false);
   };
 
@@ -346,11 +363,28 @@ const TeacherCourseDetailScreen = ({ route, navigation }) => {
   };
 
   const handleAddLesson = () => {
-    Alert.alert('Tính năng đang phát triển', 'Chức năng thêm bài học sẽ sớm được cập nhật.', [{ text: 'OK' }]);
+    setSelectedLesson(null);
+    setShowLessonModal(true);
   };
 
   const handleEditLesson = (lesson) => {
-    Alert.alert('Tính năng đang phát triển', 'Chức năng quản lý bài học sẽ sớm được cập nhật.', [{ text: 'OK' }]);
+    setSelectedLesson(lesson);
+    setShowLessonModal(true);
+  };
+
+  const handleAddModule = (lesson) => {
+    setSelectedLesson(lesson);
+    setShowModuleModal(true);
+  };
+
+  const handleLessonSuccess = () => {
+    loadLessons();
+    loadCourseDetail();
+  };
+
+  const handleModuleSuccess = () => {
+    loadLessons();
+    loadCourseDetail();
   };
 
   if (loading) {
@@ -391,9 +425,10 @@ const TeacherCourseDetailScreen = ({ route, navigation }) => {
           <Tab.Screen name="Curriculum" options={{ tabBarLabel: 'Chương trình' }}>
             {() => (
               <CurriculumTab
-                lessons={course?.lessons || course?.Lessons || []}
+                lessons={lessons}
                 onAddLesson={handleAddLesson}
                 onEditLesson={handleEditLesson}
+                onAddModule={handleAddModule}
                 refreshing={refreshing}
                 onRefresh={handleRefresh}
               />
@@ -411,6 +446,21 @@ const TeacherCourseDetailScreen = ({ route, navigation }) => {
           </Tab.Screen>
         </Tab.Navigator>
       </View>
+
+      <LessonModal
+        visible={showLessonModal}
+        onClose={() => setShowLessonModal(false)}
+        courseId={courseId}
+        lesson={selectedLesson}
+        onSuccess={handleLessonSuccess}
+      />
+
+      <ModuleModal
+        visible={showModuleModal}
+        onClose={() => setShowModuleModal(false)}
+        lessonId={selectedLesson?.lessonId || selectedLesson?.LessonId}
+        onSuccess={handleModuleSuccess}
+      />
 
       <Toast
         visible={toast.visible}
