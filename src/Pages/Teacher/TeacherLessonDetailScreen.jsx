@@ -145,6 +145,36 @@ const TeacherLessonDetailScreen = ({ route, navigation }) => {
     );
   };
 
+  const handleDeleteLesson = () => {
+    const lessonName = lesson?.title || lesson?.Title || 'bài học này';
+
+    Alert.alert(
+      'Xác nhận xóa',
+      `Bạn có chắc chắn muốn xóa bài học "${lessonName}"? Hành động này sẽ xóa tất cả modules trong bài học và không thể hoàn tác.`,
+      [
+        {
+          text: 'Hủy',
+          style: 'cancel',
+        },
+        {
+          text: 'Xóa',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await teacherService.deleteLesson(lessonId);
+              Toast.show('Đã xóa bài học thành công', 'success');
+              navigation.goBack();
+            } catch (error) {
+              console.error('Error deleting lesson:', error);
+              const errorMessage = error?.message || error?.Message || 'Không thể xóa bài học';
+              Toast.show(errorMessage, 'error');
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const getContentTypeName = (contentType) => {
     const contentTypeMap = {
       1: 'Lecture',
@@ -188,12 +218,20 @@ const TeacherLessonDetailScreen = ({ route, navigation }) => {
             <View style={styles.lessonInfoContent}>
               <Text style={styles.lessonTitle}>{lessonTitle}</Text>
               {lessonDescription ? <Text style={styles.lessonDescription}>{lessonDescription}</Text> : null}
-              <TouchableOpacity
-                style={styles.updateButton}
-                onPress={() => setShowLessonModal(true)}
-              >
-                <Text style={styles.updateButtonText}>Cập nhật</Text>
-              </TouchableOpacity>
+              <View style={styles.lessonActions}>
+                <TouchableOpacity
+                  style={styles.updateButton}
+                  onPress={() => setShowLessonModal(true)}
+                >
+                  <Text style={styles.updateButtonText}>Cập nhật</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.deleteButton}
+                  onPress={handleDeleteLesson}
+                >
+                  <Ionicons name="trash-outline" size={16} color="#EF4444" />
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
 
@@ -334,8 +372,14 @@ const styles = StyleSheet.create({
     color: colors.textLight,
     lineHeight: 20,
   },
-  updateButton: {
+  lessonActions: {
     marginTop: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  updateButton: {
+    flex: 1,
     paddingVertical: 12,
     paddingHorizontal: 24,
     backgroundColor: '#E5E7EB',
@@ -346,6 +390,13 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: colors.text,
+  },
+  deleteButton: {
+    padding: 12,
+    borderRadius: 8,
+    backgroundColor: '#FEE2E2',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   modulesCard: {
     backgroundColor: '#FFF',
