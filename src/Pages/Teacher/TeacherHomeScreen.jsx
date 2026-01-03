@@ -8,10 +8,11 @@ import colors from '../../Theme/colors';
 import { scale, verticalScale } from '../../Theme/responsive';
 import teacherService from '../../Services/teacherService';
 import authService from '../../Services/authService';
+import { getResponseData } from '../../Utils/apiHelper';
 
 const TeacherHomeScreen = ({ navigation }) => {
   const insets = useSafeAreaInsets();
-  const [stats, setStats] = useState({ totalCourses: 0, totalStudents: 0 });
+  const [stats, setStats] = useState({ totalCourses: 0 });
   const [user, setUser] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -26,13 +27,17 @@ const TeacherHomeScreen = ({ navigation }) => {
       const currentUser = await authService.getCurrentUser();
       setUser(currentUser);
 
-      // Lấy danh sách lớp để đếm (tạm thời, sau này có API stats riêng thì thay)
-      const coursesRes = await teacherService.getMyCourses({ PageIndex: 1, PageSize: 100 });
-      const courses = coursesRes?.data?.items || coursesRes?.items || [];
+      // Lấy danh sách lớp để lấy TotalCount
+      const coursesRes = await teacherService.getMyCourses({ 
+        pageNumber: 1, 
+        pageSize: 1 // Chỉ cần TotalCount, không cần lấy tất cả courses
+      });
+      
+      const responseData = getResponseData(coursesRes);
+      const totalCount = responseData?.totalCount || responseData?.TotalCount || 0;
       
       setStats({
-        totalCourses: courses.length,
-        totalStudents: 0, // Cần logic đếm sau
+        totalCourses: totalCount, // Dùng TotalCount từ backend
       });
     } catch (error) {
       console.error('Error loading teacher home:', error);
@@ -65,11 +70,6 @@ const TeacherHomeScreen = ({ navigation }) => {
           <View style={styles.statBox}>
             <Text style={styles.statNumber}>{stats.totalCourses}</Text>
             <Text style={styles.statLabel}>Lớp học</Text>
-          </View>
-          <View style={styles.statDivider} />
-          <View style={styles.statBox}>
-            <Text style={styles.statNumber}>{stats.totalStudents}</Text>
-            <Text style={styles.statLabel}>Học viên</Text>
           </View>
         </View>
       </LinearGradient>
@@ -151,15 +151,14 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   statsContainer: {
-    flexDirection: 'row',
     backgroundColor: 'rgba(255,255,255,0.1)',
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.2)',
+    alignItems: 'center',
   },
   statBox: {
-    flex: 1,
     alignItems: 'center',
   },
   statNumber: {
@@ -171,10 +170,6 @@ const styles = StyleSheet.create({
   statLabel: {
     color: 'rgba(255,255,255,0.8)',
     fontSize: 12,
-  },
-  statDivider: {
-    width: 1,
-    backgroundColor: 'rgba(255,255,255,0.2)',
   },
   content: {
     flex: 1,

@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   Alert,
   RefreshControl,
+  TextInput,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -205,6 +206,7 @@ const StudentsTab = ({ courseId, refreshing, onRefresh }) => {
     try {
       setLoading(true);
       setError('');
+      
       const response = await teacherService.getCourseStudents(courseId);
       const data = getResponseData(response);
       
@@ -319,15 +321,15 @@ const StudentsTab = ({ courseId, refreshing, onRefresh }) => {
               <Text style={styles.studentsCount}>
                 Tổng số học viên: {String(students.length)}
               </Text>
-              <TouchableOpacity
-                style={styles.addStudentButtonSmall}
-                onPress={() => setShowAddStudentModal(true)}
-                activeOpacity={0.8}
-              >
-                <Ionicons name="add-circle" size={20} color="#FFF" />
-                <Text style={styles.addStudentButtonSmallText}>Thêm</Text>
-              </TouchableOpacity>
-            </View>
+                <TouchableOpacity
+                  style={styles.addStudentButtonSmall}
+                  onPress={() => setShowAddStudentModal(true)}
+                  activeOpacity={0.8}
+                >
+                  <Ionicons name="add-circle" size={20} color="#FFF" />
+                  <Text style={styles.addStudentButtonSmallText}>Thêm</Text>
+                </TouchableOpacity>
+              </View>
             {students.map((student, index) => {
               if (!student) return null;
               
