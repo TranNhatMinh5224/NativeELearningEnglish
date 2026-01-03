@@ -21,7 +21,7 @@ import fileService from '../../Services/fileService';
 import { getResponseData } from '../../Utils/apiHelper';
 import Toast from '../Common/Toast';
 
-const ModuleModal = ({ visible, onClose, lessonId, onSuccess }) => {
+const ModuleModal = ({ visible, onClose, lessonId, module, onSuccess }) => {
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -33,10 +33,19 @@ const ModuleModal = ({ visible, onClose, lessonId, onSuccess }) => {
 
   useEffect(() => {
     if (visible) {
-      setFormData({ name: '', description: '', contentType: 1 });
-      setImage(null);
+      if (module) {
+        setFormData({
+          name: module.name || module.Name || '',
+          description: module.description || module.Description || '',
+          contentType: module.contentType || module.ContentType || 1,
+        });
+        setImage(module.imageUrl || module.ImageUrl ? { uri: module.imageUrl || module.ImageUrl } : null);
+      } else {
+        setFormData({ name: '', description: '', contentType: 1 });
+        setImage(null);
+      }
     }
-  }, [visible]);
+  }, [visible, module]);
 
   const handlePickImage = async () => {
     try {
@@ -106,22 +115,32 @@ const ModuleModal = ({ visible, onClose, lessonId, onSuccess }) => {
       }
 
       const payload = {
-        LessonId: lessonId,
         Name: formData.name.trim(),
         Description: formData.description.trim() || null,
-        OrderIndex: 0,
-        ContentType: formData.contentType,
       };
+
+      if (!module) {
+        payload.LessonId = lessonId;
+        payload.OrderIndex = 0;
+        payload.ContentType = formData.contentType;
+      }
 
       if (imageTempKey) {
         payload.ImageTempKey = imageTempKey;
         payload.ImageType = imageType;
       }
 
-      const response = await teacherService.createModule(payload);
+      let response;
+      if (module) {
+        const moduleId = module.moduleId || module.ModuleId;
+        response = await teacherService.updateModule(moduleId, payload);
+      } else {
+        response = await teacherService.createModule(payload);
+      }
+
       const responseData = getResponseData(response);
       if (responseData && (responseData.success !== false)) {
-        Toast.show('Tạo module thành công', 'success');
+        Toast.show(module ? 'Cập nhật module thành công' : 'Tạo module thành công', 'success');
         onSuccess();
         onClose();
       } else {
@@ -144,7 +163,7 @@ const ModuleModal = ({ visible, onClose, lessonId, onSuccess }) => {
       >
         <View style={styles.modalContainer}>
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Thêm Module mới</Text>
+            <Text style={styles.modalTitle}>{module ? 'Chỉnh sửa Module' : 'Thêm Module mới'}</Text>
             <TouchableOpacity onPress={onClose}>
               <Ionicons name="close" size={24} color={colors.text} />
             </TouchableOpacity>

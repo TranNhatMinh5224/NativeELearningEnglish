@@ -25,6 +25,7 @@ import TeacherHomeScreen from '../Pages/Teacher/TeacherHomeScreen';
 import TeacherClassListScreen from '../Pages/Teacher/TeacherClassListScreen';
 import CreateCourseScreen from '../Pages/Teacher/CreateCourseScreen';
 import TeacherCourseDetailScreen from '../Pages/Teacher/TeacherCourseDetailScreen';
+import TeacherLessonDetailScreen from '../Pages/Teacher/TeacherLessonDetailScreen';
 
 // Theme
 import colors from '../Theme/colors';
@@ -336,6 +337,14 @@ const AppNavigator = () => {
         <Stack.Screen
           name="TeacherCourseDetail"
           component={TeacherCourseDetailScreen}
+          options={{
+            headerShown: false,
+            presentation: 'card',
+          }}
+        />
+        <Stack.Screen
+          name="TeacherLessonDetail"
+          component={TeacherLessonDetailScreen}
           options={{
             headerShown: false,
             presentation: 'card',

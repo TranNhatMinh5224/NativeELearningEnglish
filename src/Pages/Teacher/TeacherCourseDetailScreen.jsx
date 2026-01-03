@@ -18,7 +18,6 @@ import teacherService from '../../Services/teacherService';
 import { getResponseData } from '../../Utils/apiHelper';
 import Toast from '../../Components/Common/Toast';
 import LessonModal from '../../Components/Teacher/LessonModal';
-import ModuleModal from '../../Components/Teacher/ModuleModal';
 
 const DEFAULT_COURSE_IMAGE = require('../../../assets/images/mochi-course-teacher.jpg');
 const DEFAULT_LESSON_IMAGE = require('../../../assets/images/mochi-lesson-teacher.jpg');
@@ -310,7 +309,6 @@ const TeacherCourseDetailScreen = ({ route, navigation }) => {
   const [toast, setToast] = useState({ visible: false, message: '', type: 'success' });
   const [lessons, setLessons] = useState([]);
   const [showLessonModal, setShowLessonModal] = useState(false);
-  const [showModuleModal, setShowModuleModal] = useState(false);
   const [selectedLesson, setSelectedLesson] = useState(null);
 
   useEffect(() => {
@@ -373,16 +371,16 @@ const TeacherCourseDetailScreen = ({ route, navigation }) => {
   };
 
   const handleAddModule = (lesson) => {
-    setSelectedLesson(lesson);
-    setShowModuleModal(true);
+    const lessonId = lesson.lessonId || lesson.LessonId;
+    if (lessonId) {
+      navigation.navigate('TeacherLessonDetail', {
+        courseId: courseId,
+        lessonId: lessonId,
+      });
+    }
   };
 
   const handleLessonSuccess = () => {
-    loadLessons();
-    loadCourseDetail();
-  };
-
-  const handleModuleSuccess = () => {
     loadLessons();
     loadCourseDetail();
   };
@@ -453,13 +451,6 @@ const TeacherCourseDetailScreen = ({ route, navigation }) => {
         courseId={courseId}
         lesson={selectedLesson}
         onSuccess={handleLessonSuccess}
-      />
-
-      <ModuleModal
-        visible={showModuleModal}
-        onClose={() => setShowModuleModal(false)}
-        lessonId={selectedLesson?.lessonId || selectedLesson?.LessonId}
-        onSuccess={handleModuleSuccess}
       />
 
       <Toast
