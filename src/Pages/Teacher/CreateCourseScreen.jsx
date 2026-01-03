@@ -25,23 +25,29 @@ import fileService from '../../Services/fileService';
 import Toast from '../../Components/Common/Toast';
 import { getResponseData } from '../../Utils/apiHelper';
 
-const CreateCourseScreen = ({ navigation }) => {
+const CreateCourseScreen = ({ route, navigation }) => {
   const insets = useSafeAreaInsets();
+  const { courseData, isUpdateMode = false } = route.params || {};
   const [loading, setLoading] = useState(false);
   const [fetchingProfile, setFetchingProfile] = useState(true);
   const [previewMode, setPreviewMode] = useState(false);
   
   const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    maxStudent: 0,
+    title: courseData?.title || courseData?.Title || '',
+    description: courseData?.description || courseData?.Description || '',
+    maxStudent: courseData?.maxStudent || courseData?.MaxStudent || 0,
   });
   
-  const [image, setImage] = useState(null);
+  const [image, setImage] = useState(courseData?.imageUrl || courseData?.ImageUrl ? { uri: courseData.imageUrl || courseData.ImageUrl } : null);
   const [toast, setToast] = useState({ visible: false, message: '', type: 'success' });
 
   useEffect(() => {
-    loadTeacherInfo();
+    if (isUpdateMode && courseData) {
+      // If update mode, don't load teacher info (maxStudent already set from courseData)
+      setFetchingProfile(false);
+    } else {
+      loadTeacherInfo();
+    }
   }, []);
 
   const loadTeacherInfo = async () => {
@@ -127,8 +133,8 @@ const CreateCourseScreen = ({ navigation }) => {
       let imageTempKey = null;
       let imageType = null;
 
-      // Upload ảnh lên temp storage với bucket 'courses'
-      if (image) {
+      // Upload ảnh lên temp storage với bucket 'courses' (chỉ nếu có ảnh mới)
+      if (image && image.uri && !image.uri.startsWith('http')) {
         const uploadRes = await fileService.uploadTempFile(
           {
             uri: image.uri,
@@ -149,6 +155,7 @@ const CreateCourseScreen = ({ navigation }) => {
         }
       }
 
+      const courseId = courseData?.courseId || courseData?.CourseId;
       const payload = {
         Title: formData.title.trim(),
         Description: formData.description.trim(),
@@ -158,16 +165,24 @@ const CreateCourseScreen = ({ navigation }) => {
         ...(imageType && { ImageType: imageType })
       };
 
-      await teacherService.createCourse(payload);
-
-      Alert.alert(
-        'Thành công',
-        'Lớp học đã được tạo thành công!',
-        [{ text: 'OK', onPress: () => navigation.goBack() }]
-      );
+      if (isUpdateMode && courseId) {
+        await teacherService.updateCourse(courseId, payload);
+        Alert.alert(
+          'Thành công',
+          'Lớp học đã được cập nhật thành công!',
+          [{ text: 'OK', onPress: () => navigation.goBack() }]
+        );
+      } else {
+        await teacherService.createCourse(payload);
+        Alert.alert(
+          'Thành công',
+          'Lớp học đã được tạo thành công!',
+          [{ text: 'OK', onPress: () => navigation.goBack() }]
+        );
+      }
 
     } catch (error) {
-      console.error('Create course error:', error);
+      console.error(isUpdateMode ? 'Update course error:' : 'Create course error:', error);
       const msg = error?.response?.data?.message || error?.message || 'Có lỗi xảy ra';
       setToast({ visible: true, message: msg, type: 'error' });
     } finally {
@@ -198,7 +213,9 @@ const CreateCourseScreen = ({ navigation }) => {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color={colors.text} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Tạo lớp học mới</Text>
+        <Text style={styles.headerTitle}>
+          {isUpdateMode ? 'Cập nhật lớp học' : 'Tạo lớp học mới'}
+        </Text>
         <View style={{ width: 40 }} />
       </View>
 
@@ -299,7 +316,9 @@ const CreateCourseScreen = ({ navigation }) => {
             {loading ? (
                 <ActivityIndicator color="#FFF" />
             ) : (
-                <Text style={styles.createButtonText}>Tạo lớp học ngay</Text>
+                <Text style={styles.createButtonText}>
+                  {isUpdateMode ? 'Cập nhật lớp học' : 'Tạo lớp học ngay'}
+                </Text>
             )}
         </TouchableOpacity>
       </View>

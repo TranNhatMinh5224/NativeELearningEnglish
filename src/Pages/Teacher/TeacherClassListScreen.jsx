@@ -77,8 +77,10 @@ const TeacherClassListScreen = ({ navigation }) => {
                 key={courseId || index}
                 style={styles.courseCard}
                 onPress={() => {
-                  // TODO: Navigate to course detail
-                  console.log('Navigate to course:', courseId);
+                  navigation.navigate('TeacherCourseDetail', {
+                    courseId,
+                    courseTitle: title
+                  });
                 }}
               >
                 <View style={styles.courseIcon}>

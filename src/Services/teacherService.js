@@ -80,6 +80,26 @@ const teacherService = {
       throw error.response?.data || error;
     }
   },
+
+  // Get lessons by course
+  getLessonsByCourse: async (courseId) => {
+    try {
+      const response = await axiosClient.get(`/teacher/lessons/course/${courseId}`);
+      return response;
+    } catch (error) {
+      throw error.response?.data || error;
+    }
+  },
+
+  // Create new lesson
+  createLesson: async (data) => {
+    try {
+      const response = await axiosClient.post('/teacher/lessons', data);
+      return response;
+    } catch (error) {
+      throw error.response?.data || error;
+    }
+  },
 };
 
 export default teacherService;
