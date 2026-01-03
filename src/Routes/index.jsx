@@ -295,6 +295,14 @@ const AppNavigator = () => {
             animation: 'slide_from_bottom',
           }}
         />
+        <Stack.Screen
+          name="PronunciationDetail"
+          component={PronunciationDetailScreen}
+          options={{
+            headerShown: false,
+            presentation: 'card',
+          }}
+        />
       </Stack.Navigator>
     </NavigationContainer>
   );
