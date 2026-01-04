@@ -195,6 +195,7 @@ const QuizScreen = ({ route, navigation }) => {
       setLoading(true);
       
       let quizId = routeQuizId;
+      let quizIdForDuration = routeQuizId; // Store quizId for fetching duration
       
       // If we have attemptId, try to resume
       if (routeAttemptId) {
@@ -1032,14 +1033,14 @@ const QuizScreen = ({ route, navigation }) => {
 
       const moveUp = (index) => {
         if (index === 0) return;
-        const newOrder = [...orderedOptions];
+        const newOrder = [...currentOrderedOptions];
         [newOrder[index - 1], newOrder[index]] = [newOrder[index], newOrder[index - 1]];
         setOrderedOptions(newOrder);
       };
 
       const moveDown = (index) => {
-        if (index === orderedOptions.length - 1) return;
-        const newOrder = [...orderedOptions];
+        if (index === currentOrderedOptions.length - 1) return;
+        const newOrder = [...currentOrderedOptions];
         [newOrder[index], newOrder[index + 1]] = [newOrder[index + 1], newOrder[index]];
         setOrderedOptions(newOrder);
       };

@@ -27,15 +27,16 @@ const essayService = {
   // DTO: CreateEssaySubmissionDto { EssayId, TextContent, AttachmentTempKey?, AttachmentType? }
   submitEssay: async (essayId, textContent, attachmentTempKey = null, attachmentType = null) => {
     try {
+      // Backend expects PascalCase: EssayId, TextContent, AttachmentTempKey, AttachmentType
       const payload = {
-        essayId,
-        textContent,
+        EssayId: essayId,
+        TextContent: textContent,
       };
 
       if (attachmentTempKey) {
-        payload.attachmentTempKey = attachmentTempKey;
+        payload.AttachmentTempKey = attachmentTempKey;
         if (attachmentType) {
-          payload.attachmentType = attachmentType;
+          payload.AttachmentType = attachmentType;
         }
       }
 
@@ -78,12 +79,52 @@ const essayService = {
   },
 
   // Update essay submission
-  updateSubmission: async (submissionId, content, attachments = []) => {
+  // Backend endpoint: PUT api/user/essay-submissions/update/{submissionId}
+  // DTO: UpdateEssaySubmissionDto { TextContent?, AttachmentTempKey?, AttachmentType?, RemoveAttachment }
+  updateSubmission: async (submissionId, textContent, attachmentTempKey = null, attachmentType = null, removeAttachment = false) => {
     try {
-      const response = await axiosClient.put(`/user/essay-submissions/update/${submissionId}`, {
-        content,
-        attachments
-      });
+      // Backend expects PascalCase: TextContent, AttachmentTempKey, AttachmentType, RemoveAttachment
+      // Đảm bảo RemoveAttachment là boolean thực sự
+      const payload = {
+        RemoveAttachment: Boolean(removeAttachment),
+      };
+
+      // Chỉ thêm TextContent nếu có giá trị (có thể là empty string)
+      if (textContent !== null && textContent !== undefined) {
+        payload.TextContent = textContent;
+      }
+
+      // Chỉ thêm attachment fields nếu có
+      if (attachmentTempKey) {
+        payload.AttachmentTempKey = attachmentTempKey;
+        if (attachmentType) {
+          payload.AttachmentType = attachmentType;
+        }
+      }
+
+      const response = await axiosClient.put(`/user/essay-submissions/update/${submissionId}`, payload);
+      return response;
+    } catch (error) {
+      throw error.response?.data || error;
+    }
+  },
+
+  // Delete essay submission
+  // Backend endpoint: DELETE api/user/essay-submissions/delete/{submissionId}
+  deleteSubmission: async (submissionId) => {
+    try {
+      const response = await axiosClient.delete(`/user/essay-submissions/delete/${submissionId}`);
+      return response;
+    } catch (error) {
+      throw error.response?.data || error;
+    }
+  },
+
+  // Request AI grading for essay submission (System Course only)
+  // Backend endpoint: POST api/user/essay-submissions/{submissionId}/request-ai-grading
+  requestAiGrading: async (submissionId) => {
+    try {
+      const response = await axiosClient.post(`/user/essay-submissions/${submissionId}/request-ai-grading`);
       return response;
     } catch (error) {
       throw error.response?.data || error;
