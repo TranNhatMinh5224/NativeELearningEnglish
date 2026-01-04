@@ -69,9 +69,31 @@ const LoginPage = ({ navigation }) => {
         });
       }, 1500);
     } catch (error) {
+      // Xử lý error message từ backend
+      let errorMessage = 'Đăng nhập thất bại';
+      
+      if (error?.message) {
+        errorMessage = error.message;
+      } else if (error?.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (typeof error === 'string') {
+        errorMessage = error;
+      }
+      
+      // Kiểm tra các message phổ biến từ backend
+      const lowerMessage = errorMessage.toLowerCase();
+      if (lowerMessage.includes('sai') || lowerMessage.includes('incorrect') || 
+          lowerMessage.includes('invalid') || lowerMessage.includes('không đúng')) {
+        errorMessage = 'Email hoặc mật khẩu không đúng';
+      } else if (lowerMessage.includes('not found') || lowerMessage.includes('không tìm thấy')) {
+        errorMessage = 'Email hoặc mật khẩu không đúng';
+      } else if (lowerMessage.includes('unauthorized') || lowerMessage.includes('401')) {
+        errorMessage = 'Email hoặc mật khẩu không đúng';
+      }
+      
       setToast({
         visible: true,
-        message: error.message || 'Đăng nhập thất bại',
+        message: errorMessage,
         type: 'error',
       });
     } finally {

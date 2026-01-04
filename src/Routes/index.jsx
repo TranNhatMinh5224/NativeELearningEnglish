@@ -28,6 +28,11 @@ import TeacherClassListScreen from '../Pages/Teacher/TeacherClassListScreen';
 import CreateCourseScreen from '../Pages/Teacher/CreateCourseScreen';
 import TeacherCourseDetailScreen from '../Pages/Teacher/TeacherCourseDetailScreen';
 import TeacherLessonDetailScreen from '../Pages/Teacher/TeacherLessonDetailScreen';
+import TeacherEssaySubmissionsScreen from '../Pages/Teacher/TeacherEssaySubmissionsScreen';
+import TeacherSubmissionDetailScreen from '../Pages/Teacher/TeacherSubmissionDetailScreen';
+import TeacherCourseSubmissionsScreen from '../Pages/Teacher/TeacherCourseSubmissionsScreen';
+import TeacherQuizAttemptsScreen from '../Pages/Teacher/TeacherQuizAttemptsScreen';
+import TeacherQuizAttemptDetailScreen from '../Pages/Teacher/TeacherQuizAttemptDetailScreen';
 // Theme
 import colors from '../Theme/colors';
 import { scale, SAFE_AREA_PADDING } from '../Theme/responsive';
@@ -395,6 +400,46 @@ const AppNavigator = () => {
             presentation: 'card',
           }}
         />
+              <Stack.Screen
+                name="TeacherCourseSubmissions"
+                component={TeacherCourseSubmissionsScreen}
+                options={{
+                  headerShown: false,
+                  presentation: 'card',
+                }}
+              />
+              <Stack.Screen
+                name="TeacherEssaySubmissions"
+                component={TeacherEssaySubmissionsScreen}
+                options={{
+                  headerShown: false,
+                  presentation: 'card',
+                }}
+              />
+              <Stack.Screen
+                name="TeacherSubmissionDetail"
+                component={TeacherSubmissionDetailScreen}
+                options={{
+                  headerShown: false,
+                  presentation: 'card',
+                }}
+              />
+              <Stack.Screen
+                name="TeacherQuizAttempts"
+                component={TeacherQuizAttemptsScreen}
+                options={{
+                  headerShown: false,
+                  presentation: 'card',
+                }}
+              />
+              <Stack.Screen
+                name="TeacherQuizAttemptDetail"
+                component={TeacherQuizAttemptDetailScreen}
+                options={{
+                  headerShown: false,
+                  presentation: 'card',
+                }}
+              />
       </Stack.Navigator>
     </NavigationContainer>
   );

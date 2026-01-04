@@ -6,12 +6,15 @@ import { Ionicons } from '@expo/vector-icons';
 import colors from '../../Theme/colors';
 import { scale } from '../../Theme/responsive';
 import teacherService from '../../Services/teacherService';
+import CourseActionModal from '../../Components/Teacher/CourseActionModal';
 
 const TeacherClassListScreen = ({ navigation }) => {
   const insets = useSafeAreaInsets();
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [selectedCourse, setSelectedCourse] = useState(null);
+  const [showActionModal, setShowActionModal] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -77,10 +80,8 @@ const TeacherClassListScreen = ({ navigation }) => {
                 key={courseId || index}
                 style={styles.courseCard}
                 onPress={() => {
-                  navigation.navigate('TeacherCourseDetail', {
-                    courseId,
-                    courseTitle: title
-                  });
+                  setSelectedCourse({ courseId, title });
+                  setShowActionModal(true);
                 }}
               >
                 <View style={styles.courseIcon}>
@@ -98,6 +99,31 @@ const TeacherClassListScreen = ({ navigation }) => {
           })
         )}
       </ScrollView>
+
+      <CourseActionModal
+        visible={showActionModal}
+        onClose={() => {
+          setShowActionModal(false);
+          setSelectedCourse(null);
+        }}
+        courseTitle={selectedCourse?.title}
+        onManageCourse={() => {
+          if (selectedCourse) {
+            navigation.navigate('TeacherCourseDetail', {
+              courseId: selectedCourse.courseId,
+              courseTitle: selectedCourse.title
+            });
+          }
+        }}
+        onManageSubmissions={() => {
+          if (selectedCourse) {
+            navigation.navigate('TeacherCourseSubmissions', {
+              courseId: selectedCourse.courseId,
+              courseTitle: selectedCourse.title
+            });
+          }
+        }}
+      />
     </View>
   );
 };
