@@ -46,12 +46,13 @@ const quizService = {
   // Save individual answer (real-time scoring)
   saveAnswer: async (attemptId, questionId, selectedOptionId) => {
     try {
+      // Backend DTO yêu cầu PascalCase: QuestionId, UserAnswer
       const response = await axiosClient.post(
         `/user/quiz-attempts/update-answer/${attemptId}`,
         {
-          questionId,
+          QuestionId: questionId,
           // Backend expects UserAnswer in UpdateAnswerRequestDto
-          userAnswer: selectedOptionId,
+          UserAnswer: selectedOptionId,
         }
       );
       return response;

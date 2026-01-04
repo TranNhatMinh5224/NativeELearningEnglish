@@ -41,6 +41,66 @@ const RegisterPage = ({ navigation }) => {
   const [errors, setErrors] = useState({});
   const [toast, setToast] = useState({ visible: false, message: '', type: 'success' });
 
+  
+  const validateEmail = (email) => {
+    if (!email || !email.trim()) {
+      return { isValid: false, message: 'Vui lòng nhập email' };
+    }
+
+    const trimmedEmail = email.trim().toLowerCase();
+    
+    // Regex pattern chặt chẽ cho email
+    // Pattern: local-part@domain
+    // - local-part: 1-64 ký tự, có thể chứa chữ, số, dấu chấm, gạch dưới, dấu gạch ngang
+    // - domain: phải có ít nhất 1 dấu chấm, TLD phải có ít nhất 2 ký tự
+    const emailRegex = /^[a-z0-9]([a-z0-9._-]*[a-z0-9])?@[a-z0-9]([a-z0-9.-]*[a-z0-9])?\.[a-z]{2,}$/i;
+    
+    // Kiểm tra độ dài tối đa
+    if (trimmedEmail.length > 254) {
+      return { isValid: false, message: 'Email không được vượt quá 254 ký tự' };
+    }
+    
+    // Kiểm tra không có khoảng trắng
+    if (/\s/.test(trimmedEmail)) {
+      return { isValid: false, message: 'Email không được chứa khoảng trắng' };
+    }
+    
+    // Kiểm tra không có ký tự đặc biệt không hợp lệ
+    if (!/^[a-z0-9._-]+@[a-z0-9.-]+\.[a-z]+$/i.test(trimmedEmail)) {
+      return { isValid: false, message: 'Email chứa ký tự không hợp lệ' };
+    }
+    
+    // Kiểm tra format cơ bản
+    if (!emailRegex.test(trimmedEmail)) {
+      return { isValid: false, message: 'Email không đúng định dạng (ví dụ: example@email.com)' };
+    }
+    
+    // Kiểm tra không có dấu chấm liên tiếp
+    if (trimmedEmail.includes('..')) {
+      return { isValid: false, message: 'Email không được chứa dấu chấm liên tiếp' };
+    }
+    
+    // Kiểm tra @ chỉ xuất hiện 1 lần
+    const atCount = (trimmedEmail.match(/@/g) || []).length;
+    if (atCount !== 1) {
+      return { isValid: false, message: 'Email phải chứa đúng 1 ký tự @' };
+    }
+    
+    // Kiểm tra domain có ít nhất 1 dấu chấm
+    const domain = trimmedEmail.split('@')[1];
+    if (!domain || !domain.includes('.')) {
+      return { isValid: false, message: 'Email phải có domain hợp lệ (ví dụ: @gmail.com)' };
+    }
+    
+    // Kiểm tra TLD có ít nhất 2 ký tự
+    const tld = domain.split('.').pop();
+    if (!tld || tld.length < 2) {
+      return { isValid: false, message: 'Phần mở rộng domain phải có ít nhất 2 ký tự (ví dụ: .com, .vn)' };
+    }
+    
+    return { isValid: true, message: '' };
+  };
+
   const validateForm = () => {
     const newErrors = {};
 
@@ -52,10 +112,10 @@ const RegisterPage = ({ navigation }) => {
       newErrors.lastName = 'Vui lòng nhập họ';
     }
 
-    if (!formData.email.trim()) {
-      newErrors.email = 'Vui lòng nhập email';
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = 'Email không hợp lệ';
+    // Validate email với hàm validateEmail mới
+    const emailValidation = validateEmail(formData.email);
+    if (!emailValidation.isValid) {
+      newErrors.email = emailValidation.message;
     }
 
     if (!formData.password.trim()) {
@@ -84,18 +144,26 @@ const RegisterPage = ({ navigation }) => {
       // Validate date if entered partially
       let birthDate = null;
       if (formData.birthYear && formData.birthMonth && formData.birthDay) {
-          birthDate = `${formData.birthYear}-${formData.birthMonth.padStart(2, '0')}-${formData.birthDay.padStart(2, '0')}`;
+        // Tạo Date object và convert sang ISO string để backend nhận dạng đúng
+        const year = parseInt(formData.birthYear);
+        const month = parseInt(formData.birthMonth) - 1; // JavaScript month is 0-indexed
+        const day = parseInt(formData.birthDay);
+        const dateObj = new Date(year, month, day);
+        // Gửi ISO string hoặc null
+        birthDate = dateObj.toISOString();
       }
 
+      // Backend DTO yêu cầu PascalCase: FirstName, LastName, Email, Password, PhoneNumber, DateOfBirth, IsMale
+      // DateOfBirth có thể là null hoặc ISO string (DateTime?)
       const userData = {
-        firstName: formData.firstName.trim(),
-        lastName: formData.lastName.trim(),
+        FirstName: formData.firstName.trim(),
+        LastName: formData.lastName.trim(),
         // Chuẩn hóa email để trùng cách backend dùng NormalizedEmail (tránh lỗi duplicate)
-        email: formData.email.trim().toLowerCase(),
-        password: formData.password,
-        phoneNumber: formData.phone.trim() || "", // Gửi empty string nếu không nhập (database NOT NULL)
-        dateOfBirth: birthDate,
-        isMale: formData.gender === 'Nam'
+        Email: formData.email.trim().toLowerCase(),
+        Password: formData.password,
+        PhoneNumber: formData.phone.trim() || "", // Gửi empty string nếu không nhập (database NOT NULL)
+        DateOfBirth: birthDate, // null hoặc ISO string
+        IsMale: formData.gender === 'Nam'
       };
       
       console.log('Register payload:', userData);
@@ -172,7 +240,23 @@ const RegisterPage = ({ navigation }) => {
 
   const updateFormData = (key, value) => {
     setFormData({ ...formData, [key]: value });
-    setErrors({ ...errors, [key]: null });
+    // Clear error khi user đang nhập
+    if (errors[key]) {
+      setErrors({ ...errors, [key]: null });
+    }
+  };
+
+  // Validate email real-time khi user blur khỏi input
+  const handleEmailBlur = () => {
+    if (formData.email.trim()) {
+      const emailValidation = validateEmail(formData.email);
+      if (!emailValidation.isValid) {
+        setErrors({ ...errors, email: emailValidation.message });
+      } else {
+        // Clear error nếu email hợp lệ
+        setErrors({ ...errors, email: null });
+      }
+    }
   };
 
   const handleGuestLogin = () => {
@@ -282,6 +366,7 @@ const RegisterPage = ({ navigation }) => {
                   placeholderTextColor={colors.textLight}
                   value={formData.email}
                   onChangeText={(text) => updateFormData('email', text)}
+                  onBlur={handleEmailBlur}
                   keyboardType="email-address"
                   autoCapitalize="none"
                   autoCorrect={false}

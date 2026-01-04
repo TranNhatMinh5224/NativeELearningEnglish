@@ -38,7 +38,21 @@ const authService = {
 
       return response;
     } catch (error) {
-      throw error.response?.data || error;
+      // Xử lý error từ backend để trả về message rõ ràng
+      const errorData = error.response?.data || error;
+      
+      // Nếu là ServiceResponse format từ backend
+      if (errorData?.message) {
+        throw new Error(errorData.message);
+      }
+      
+      // Nếu là error object có message
+      if (errorData?.error || errorData?.Error) {
+        throw new Error(errorData.error || errorData.Error);
+      }
+      
+      // Fallback: trả về error gốc
+      throw error;
     }
   },
 

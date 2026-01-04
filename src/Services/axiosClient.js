@@ -51,14 +51,26 @@ axiosClient.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
+    // Không refresh token cho các request authentication (login, register, etc.)
+    // Vì các request này không cần token và nếu 401 thì là do sai thông tin đăng nhập
+    const isAuthRequest = originalRequest.url?.includes('/auth/login') || 
+                          originalRequest.url?.includes('/auth/register') ||
+                          originalRequest.url?.includes('/auth/forgot-password') ||
+                          originalRequest.url?.includes('/auth/verify-otp') ||
+                          originalRequest.url?.includes('/auth/verify-email') ||
+                          originalRequest.url?.includes('/auth/set-new-password') ||
+                          originalRequest.url?.includes('/auth/reset-password');
+
     // If 401 and not already retried, try refresh token
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    // Nhưng không refresh cho auth requests và không refresh nếu không có refresh token
+    if (error.response?.status === 401 && !originalRequest._retry && !isAuthRequest) {
       originalRequest._retry = true;
 
       try {
         const refreshToken = await AsyncStorage.getItem('refreshToken');
         if (!refreshToken) {
-          throw new Error('No refresh token');
+          // Không có refresh token, trả về error gốc từ backend
+          return Promise.reject(error);
         }
         // Backend endpoint là /auth/refresh-token
         const response = await axios.post(`${BASE_URL}/auth/refresh-token`, {
@@ -80,10 +92,10 @@ axiosClient.interceptors.response.use(
         }
         throw new Error('No access token in response');
       } catch (refreshError) {
-        console.error('Token refresh failed:', refreshError);
         // Refresh failed, logout user
         await AsyncStorage.multiRemove(['accessToken', 'refreshToken', 'user']);
-        return Promise.reject(refreshError);
+        // Trả về error gốc từ backend thay vì refresh error
+        return Promise.reject(error);
       }
     }
 

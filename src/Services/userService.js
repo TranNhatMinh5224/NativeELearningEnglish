@@ -24,9 +24,10 @@ const userService = {
   // Change password
   changePassword: async (currentPassword, newPassword) => {
     try {
+      // Backend DTO yêu cầu PascalCase: CurrentPassword, NewPassword
       const response = await axiosClient.put('/auth/change-password', {
-        currentPassword,
-        newPassword,
+        CurrentPassword: currentPassword,
+        NewPassword: newPassword,
       });
       return response;
     } catch (error) {
