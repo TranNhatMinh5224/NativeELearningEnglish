@@ -84,18 +84,26 @@ const RegisterPage = ({ navigation }) => {
       // Validate date if entered partially
       let birthDate = null;
       if (formData.birthYear && formData.birthMonth && formData.birthDay) {
-          birthDate = `${formData.birthYear}-${formData.birthMonth.padStart(2, '0')}-${formData.birthDay.padStart(2, '0')}`;
+        // Tạo Date object và convert sang ISO string để backend nhận dạng đúng
+        const year = parseInt(formData.birthYear);
+        const month = parseInt(formData.birthMonth) - 1; // JavaScript month is 0-indexed
+        const day = parseInt(formData.birthDay);
+        const dateObj = new Date(year, month, day);
+        // Gửi ISO string hoặc null
+        birthDate = dateObj.toISOString();
       }
 
+      // Backend DTO yêu cầu PascalCase: FirstName, LastName, Email, Password, PhoneNumber, DateOfBirth, IsMale
+      // DateOfBirth có thể là null hoặc ISO string (DateTime?)
       const userData = {
-        firstName: formData.firstName.trim(),
-        lastName: formData.lastName.trim(),
+        FirstName: formData.firstName.trim(),
+        LastName: formData.lastName.trim(),
         // Chuẩn hóa email để trùng cách backend dùng NormalizedEmail (tránh lỗi duplicate)
-        email: formData.email.trim().toLowerCase(),
-        password: formData.password,
-        phoneNumber: formData.phone.trim() || "", // Gửi empty string nếu không nhập (database NOT NULL)
-        dateOfBirth: birthDate,
-        isMale: formData.gender === 'Nam'
+        Email: formData.email.trim().toLowerCase(),
+        Password: formData.password,
+        PhoneNumber: formData.phone.trim() || "", // Gửi empty string nếu không nhập (database NOT NULL)
+        DateOfBirth: birthDate, // null hoặc ISO string
+        IsMale: formData.gender === 'Nam'
       };
       
       console.log('Register payload:', userData);

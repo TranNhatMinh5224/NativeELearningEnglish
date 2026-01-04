@@ -34,9 +34,10 @@ const flashcardReviewService = {
   // Review a flashcard
   reviewFlashCard: async (flashCardId, quality) => {
     try {
+      // Backend DTO yêu cầu PascalCase: FlashCardId, Quality
       const response = await axiosClient.post('/user/flashcard-review/review', {
-        flashCardId,
-        quality,
+        FlashCardId: flashCardId,
+        Quality: quality,
       });
       return response;
     } catch (error) {

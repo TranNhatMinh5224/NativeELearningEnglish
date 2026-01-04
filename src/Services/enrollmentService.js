@@ -3,11 +3,16 @@ import axiosClient from './axiosClient';
 const enrollmentService = {
   /**
    * Đăng ký khóa học
-   * @param {object} data - { courseId }
+   * @param {object} data - { CourseId } (PascalCase)
    * @returns {Promise} Response đăng ký
    */
   enroll: (data) => {
-    return axiosClient.post('/user/enrollments/course', data);
+    // Backend DTO yêu cầu PascalCase: CourseId
+    // Đảm bảo format đúng nếu caller gửi camelCase
+    const payload = {
+      CourseId: data.CourseId || data.courseId,
+    };
+    return axiosClient.post('/user/enrollments/course', payload);
   },
 
   /**
@@ -24,11 +29,16 @@ const enrollmentService = {
 
   /**
    * Tham gia khóa học bằng mã lớp
-   * @param {object} data - { classCode }
+   * @param {object} data - { ClassCode } (PascalCase)
    * @returns {Promise} Response tham gia
    */
   joinByClassCode: (data) => {
-    return axiosClient.post('/user/enrollments/join-by-class-code', data);
+    // Backend DTO yêu cầu PascalCase: ClassCode
+    // Đảm bảo format đúng nếu caller gửi camelCase
+    const payload = {
+      ClassCode: data.ClassCode || data.classCode,
+    };
+    return axiosClient.post('/user/enrollments/join-by-class-code', payload);
   },
 };
 

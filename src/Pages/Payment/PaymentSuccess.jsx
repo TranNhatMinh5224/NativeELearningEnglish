@@ -104,7 +104,8 @@ const PaymentSuccess = ({ navigation, route }) => {
           // Enroll vào course nếu là Course (productType = 1)
           if (payment && payment.productType === 1 && payment.productId) {
             try {
-              await enrollmentService.enroll({ courseId: payment.productId });
+              // Backend DTO yêu cầu PascalCase: CourseId
+              await enrollmentService.enroll({ CourseId: payment.productId });
               setEnrolled(true);
               console.log('✅ Đã enroll vào course:', payment.productId);
             } catch (enrollErr) {

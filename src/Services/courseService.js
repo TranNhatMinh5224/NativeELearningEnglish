@@ -24,8 +24,9 @@ const courseService = {
   // Join course by class code
   joinByClassCode: async (classCode) => {
     try {
+      // Backend DTO yêu cầu PascalCase: ClassCode
       const response = await axiosClient.post('/user/enrollments/join-by-class-code', {
-        classCode,
+        ClassCode: classCode,
       });
       return response;
     } catch (error) {
@@ -58,8 +59,9 @@ const courseService = {
   // Enroll in course
   enrollCourse: async (courseId) => {
     try {
+      // Backend DTO yêu cầu PascalCase: CourseId
       const response = await axiosClient.post('/user/enrollments/course', {
-        courseId,
+        CourseId: courseId,
       });
       return response;
     } catch (error) {
