@@ -39,16 +39,17 @@ const TeacherQuizAttemptsScreen = ({ route, navigation }) => {
   useFocusEffect(
     useCallback(() => {
       if (quizId) {
-        loadData(1);
+        setCurrentPage(1); // Reset to page 1 when screen is focused
+        loadData(1); // Load page 1 when screen is focused
       }
     }, [quizId])
   );
 
   useEffect(() => {
-    if (quizId) {
-      loadData(currentPage);
+    if (quizId && currentPage > 1) {
+      loadData(currentPage); // Only load when currentPage changes (pagination)
     }
-  }, [currentPage, quizId]);
+  }, [currentPage]);
 
   const loadData = async (page = 1) => {
     try {
@@ -64,7 +65,7 @@ const TeacherQuizAttemptsScreen = ({ route, navigation }) => {
       
       if (attemptsData) {
         const items = attemptsData.items || attemptsData.data || [];
-        setAttempts(items);
+        setAttempts(items); // Always replace, not append
         
         // Tính totalPages từ totalCount hoặc totalPages
         const totalCountValue = attemptsData.totalCount || attemptsData.totalCount || items.length;
@@ -348,20 +349,18 @@ const TeacherQuizAttemptsScreen = ({ route, navigation }) => {
             <Text style={styles.sectionTitle}>
               Danh sách bài làm
             </Text>
-            {totalCount > 0 && (
-              <Text style={styles.sectionCount}>({totalCount})</Text>
-            )}
+            <Text style={styles.sectionCount}>({getFilteredAttempts().length})</Text>
           </View>
           
-          {attempts.length === 0 ? (
+          {getFilteredAttempts().length === 0 ? (
             <View style={styles.emptyContainer}>
               <Ionicons name="clipboard-outline" size={scale(64)} color={colors.textLight} />
               <Text style={styles.emptyText}>
-                Chưa có bài làm nào
+                {attempts.length === 0 ? 'Chưa có bài làm nào' : 'Không có bài làm phù hợp'}
               </Text>
             </View>
           ) : (
-            attempts.map((attempt, index) => {
+            getFilteredAttempts().map((attempt, index) => {
               const attemptId = attempt.AttemptId || attempt.attemptId;
               const userName = attempt.UserName || attempt.userName || 'Học viên';
               const userEmail = attempt.UserEmail || attempt.userEmail || '';
@@ -374,7 +373,7 @@ const TeacherQuizAttemptsScreen = ({ route, navigation }) => {
 
               return (
                 <TouchableOpacity
-                  key={attemptId || index}
+                  key={`attempt-${attemptId || index}`}
                   style={styles.attemptCard}
                   onPress={() => handleAttemptPress(attempt)}
                   activeOpacity={0.7}
@@ -488,7 +487,7 @@ const TeacherQuizAttemptsScreen = ({ route, navigation }) => {
                 ) {
                   return (
                     <TouchableOpacity
-                      key={page}
+                      key={`page-${page}`}
                       style={[
                         styles.pageNumberButton,
                         page === currentPage && styles.pageNumberButtonActive,
@@ -507,7 +506,7 @@ const TeacherQuizAttemptsScreen = ({ route, navigation }) => {
                   );
                 } else if (page === currentPage - 2 || page === currentPage + 2) {
                   return (
-                    <Text key={page} style={styles.pageEllipsis}>
+                    <Text key={`ellipsis-${page}`} style={styles.pageEllipsis}>
                       ...
                     </Text>
                   );

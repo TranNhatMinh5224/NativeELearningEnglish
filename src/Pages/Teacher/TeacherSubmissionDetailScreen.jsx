@@ -289,9 +289,9 @@ const TeacherSubmissionDetailScreen = ({ route, navigation }) => {
               styles.statusBadge,
               {
                 backgroundColor:
-                  status?.toLowerCase().includes('graded')
+                  String(status || '').toLowerCase().includes('graded')
                     ? '#10B98120'
-                    : status?.toLowerCase().includes('submitted')
+                    : String(status || '').toLowerCase().includes('submitted')
                     ? '#3B82F620'
                     : '#F59E0B20',
               },
@@ -302,17 +302,17 @@ const TeacherSubmissionDetailScreen = ({ route, navigation }) => {
                 styles.statusText,
                 {
                   color:
-                    status?.toLowerCase().includes('graded')
+                    String(status || '').toLowerCase().includes('graded')
                       ? '#10B981'
-                      : status?.toLowerCase().includes('submitted')
+                      : String(status || '').toLowerCase().includes('submitted')
                       ? '#3B82F6'
                       : '#F59E0B',
                 },
               ]}
             >
-              {status?.toLowerCase().includes('graded')
+              {String(status || '').toLowerCase().includes('graded')
                 ? 'Đã chấm'
-                : status?.toLowerCase().includes('submitted')
+                : String(status || '').toLowerCase().includes('submitted')
                 ? 'Đã nộp'
                 : status || 'N/A'}
             </Text>

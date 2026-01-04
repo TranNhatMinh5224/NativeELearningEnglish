@@ -38,7 +38,7 @@ const TeacherEssaySubmissionsScreen = ({ route, navigation }) => {
   useFocusEffect(
     useCallback(() => {
       if (essayId) {
-        loadData();
+        loadData(1, true); // Always reset when screen is focused
       }
     }, [essayId])
   );
@@ -47,6 +47,7 @@ const TeacherEssaySubmissionsScreen = ({ route, navigation }) => {
     try {
       if (reset) {
         setLoading(true);
+        setSubmissions([]); // Clear submissions when resetting
       }
 
       // Load submissions
@@ -101,41 +102,6 @@ const TeacherEssaySubmissionsScreen = ({ route, navigation }) => {
     }
   };
 
-  const handleBatchGradeAI = () => {
-    Alert.alert(
-      'Chấm điểm hàng loạt bằng AI',
-      'Bạn có chắc muốn chấm tất cả bài nộp chưa chấm bằng AI?',
-      [
-        { text: 'Hủy', style: 'cancel' },
-        {
-          text: 'Xác nhận',
-          onPress: async () => {
-            try {
-              setLoading(true);
-              await teacherService.batchGradeByAI(essayId);
-              setToast({
-                visible: true,
-                message: 'Đã bắt đầu chấm điểm bằng AI. Vui lòng đợi...',
-                type: 'success',
-              });
-              setTimeout(() => {
-                loadData(1, true);
-              }, 2000);
-            } catch (error) {
-              setToast({
-                visible: true,
-                message: error?.message || 'Không thể chấm điểm bằng AI',
-                type: 'error',
-              });
-            } finally {
-              setLoading(false);
-            }
-          },
-        },
-      ]
-    );
-  };
-
   const handleSubmissionPress = (submission) => {
     navigation.navigate('TeacherSubmissionDetail', {
       submissionId: submission.SubmissionId || submission.submissionId,
@@ -157,7 +123,7 @@ const TeacherEssaySubmissionsScreen = ({ route, navigation }) => {
   };
 
   const getStatusColor = (status) => {
-    const statusLower = (status || '').toLowerCase();
+    const statusLower = String(status || '').toLowerCase();
     if (statusLower.includes('submitted')) return '#3B82F6';
     if (statusLower.includes('graded')) return '#10B981';
     if (statusLower.includes('pending')) return '#F59E0B';
@@ -165,7 +131,7 @@ const TeacherEssaySubmissionsScreen = ({ route, navigation }) => {
   };
 
   const getStatusText = (status) => {
-    const statusLower = (status || '').toLowerCase();
+    const statusLower = String(status || '').toLowerCase();
     if (statusLower.includes('submitted')) return 'Đã nộp';
     if (statusLower.includes('graded')) return 'Đã chấm';
     if (statusLower.includes('pending')) return 'Chờ chấm';
@@ -176,15 +142,49 @@ const TeacherEssaySubmissionsScreen = ({ route, navigation }) => {
     let filtered = [...submissions];
     
     // Filter by status
+    // SubmissionStatus enum: InProgress = 0, Submitted = 1, UnderReview = 2, Graded = 3, Returned = 4, Resubmitted = 5
     if (filterStatus === 'graded') {
       filtered = filtered.filter(s => {
-        const status = (s.Status || s.status || '').toLowerCase();
-        return status.includes('graded');
+        const status = s.Status !== undefined ? s.Status : (s.status !== undefined ? s.status : null);
+        // Check if status is number (enum)
+        if (typeof status === 'number') {
+          return status === 3; // Graded = 3
+        }
+        // Check if status is string
+        if (typeof status === 'string') {
+          const statusLower = status.toLowerCase();
+          return statusLower.includes('graded') || statusLower === '3' || statusLower === 'đã chấm';
+        }
+        // Fallback: Check if has score (graded submissions have score)
+        const teacherScore = s.TeacherScore !== undefined ? s.TeacherScore : (s.teacherScore !== undefined ? s.teacherScore : null);
+        const aiScore = s.AiScore !== undefined ? s.AiScore : (s.aiScore !== undefined ? s.aiScore : null);
+        const score = s.Score !== undefined ? s.Score : (s.score !== undefined ? s.score : null);
+        return (teacherScore !== null && teacherScore !== undefined) || 
+               (aiScore !== null && aiScore !== undefined) || 
+               (score !== null && score !== undefined);
       });
     } else if (filterStatus === 'pending') {
       filtered = filtered.filter(s => {
-        const status = (s.Status || s.status || '').toLowerCase();
-        return !status.includes('graded') && (status.includes('submitted') || status.includes('pending'));
+        const status = s.Status !== undefined ? s.Status : (s.status !== undefined ? s.status : null);
+        // Check if status is number (enum)
+        if (typeof status === 'number') {
+          // Pending = not graded (3), so status === 1 (Submitted) or status === 2 (UnderReview)
+          return status === 1 || status === 2;
+        }
+        // Check if status is string
+        if (typeof status === 'string') {
+          const statusLower = status.toLowerCase();
+          return (statusLower.includes('submitted') || statusLower.includes('pending') || statusLower.includes('underreview') || 
+                  statusLower === '1' || statusLower === '2' || statusLower === 'đã nộp' || statusLower === 'chờ chấm') &&
+                 !statusLower.includes('graded') && statusLower !== '3' && statusLower !== 'đã chấm';
+        }
+        // Fallback: Check if has no score (pending submissions have no score)
+        const teacherScore = s.TeacherScore !== undefined ? s.TeacherScore : (s.teacherScore !== undefined ? s.teacherScore : null);
+        const aiScore = s.AiScore !== undefined ? s.AiScore : (s.aiScore !== undefined ? s.aiScore : null);
+        const score = s.Score !== undefined ? s.Score : (s.score !== undefined ? s.score : null);
+        return (teacherScore === null || teacherScore === undefined) && 
+               (aiScore === null || aiScore === undefined) && 
+               (score === null || score === undefined);
       });
     }
     
@@ -272,25 +272,6 @@ const TeacherEssaySubmissionsScreen = ({ route, navigation }) => {
               </View>
             </View>
           </View>
-        )}
-
-        {/* Batch Grade Button */}
-        {submissions.length > 0 && (
-          <TouchableOpacity
-            style={styles.batchGradeButton}
-            onPress={handleBatchGradeAI}
-            disabled={loading}
-          >
-            <LinearGradient
-              colors={['#10B981', '#059669']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.batchGradeGradient}
-            >
-              <Ionicons name="sparkles" size={scale(20)} color="#FFFFFF" />
-              <Text style={styles.batchGradeText}>Chấm hàng loạt bằng AI</Text>
-            </LinearGradient>
-          </TouchableOpacity>
         )}
 
         {/* Filter and Sort */}
@@ -517,23 +498,6 @@ const styles = StyleSheet.create({
   statLabel: {
     fontSize: 12,
     color: colors.textSecondary,
-  },
-  batchGradeButton: {
-    borderRadius: scale(12),
-    overflow: 'hidden',
-    marginBottom: 16,
-  },
-  batchGradeGradient: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 16,
-    gap: 8,
-  },
-  batchGradeText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
   },
   filterContainer: {
     flexDirection: 'row',

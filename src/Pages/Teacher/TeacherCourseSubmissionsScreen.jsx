@@ -190,33 +190,20 @@ const TeacherCourseSubmissionsScreen = ({ route, navigation }) => {
       console.log('Loaded assessments:', assessmentsList.length);
       
       if (assessmentsList.length > 0) {
-        // If there's only one assessment, automatically load its essays
-        if (assessmentsList.length === 1) {
-          const firstAssessment = assessmentsList[0];
-          const assessmentIdValue = firstAssessment.assessmentId || firstAssessment.AssessmentId;
-          if (assessmentIdValue) {
-            console.log('Auto-loading essays for assessment:', assessmentIdValue);
-            await loadEssaysForAssessment(assessmentIdValue);
-          } else {
-            setAssessments(assessmentsList);
-            setCurrentLevel('assessment');
-          }
-        } else {
-          // Multiple assessments, show list
-          setAssessments(assessmentsList);
-          setCurrentLevel('assessment');
-        }
+        // Show list of assessments
+        setAssessments(assessmentsList);
+        setCurrentLevel('module'); // Stay at module level to show assessments
       } else {
         // No assessments found
         Toast.show('Module này chưa có assessment nào', 'error');
         setAssessments([]);
-        setCurrentLevel('assessment');
+        setCurrentLevel('module');
       }
     } catch (error) {
       console.error('Error loading assessments from module:', error);
       Toast.show(error?.message || 'Không thể tải danh sách assessments', 'error');
       setAssessments([]);
-      setCurrentLevel('assessment');
+      setCurrentLevel('module');
     } finally {
       setLoading(false);
     }
@@ -249,41 +236,6 @@ const TeacherCourseSubmissionsScreen = ({ route, navigation }) => {
       }
       
       setCurrentLevel('assessment');
-      
-      // Auto-navigate logic - use local variables
-      // If only one quiz and no essays, auto-navigate to attempts
-      if (quizzesList.length === 1 && essaysList.length === 0) {
-        const firstQuiz = quizzesList[0];
-        const quizIdValue = firstQuiz.quizId || firstQuiz.QuizId;
-        const quizTitleValue = firstQuiz.title || firstQuiz.Title || 'Quiz';
-        if (quizIdValue) {
-          navigation.navigate('TeacherQuizAttempts', {
-            quizId: quizIdValue,
-            quizTitle: quizTitleValue,
-            assessmentId: assessmentId,
-            assessmentTitle: assessmentTitle,
-            courseId: courseId,
-            courseTitle: courseTitle,
-            lessonId: lessonId,
-            lessonTitle: lessonTitle,
-            moduleId: moduleId,
-            moduleName: moduleName,
-          });
-        }
-      }
-      // If only one essay and no quizzes, auto-navigate to submissions
-      else if (essaysList.length === 1 && quizzesList.length === 0) {
-        const firstEssay = essaysList[0];
-        const essayIdValue = firstEssay.essayId || firstEssay.EssayId;
-        const essayTitleValue = firstEssay.title || firstEssay.Title || 'Bài nộp';
-        if (essayIdValue) {
-          navigation.navigate('TeacherEssaySubmissions', {
-            essayId: essayIdValue,
-            essayTitle: essayTitleValue,
-            assessmentId: assessmentId,
-          });
-        }
-      }
     } catch (error) {
       Toast.show(error?.message || 'Không thể tải danh sách quizzes và essays', 'error');
     } finally {
@@ -410,7 +362,7 @@ const TeacherCourseSubmissionsScreen = ({ route, navigation }) => {
               const lessonTitleValue = lesson.title || lesson.Title || 'Bài học';
               return (
                 <TouchableOpacity
-                  key={lessonIdValue || index}
+                  key={`lesson-${lessonIdValue || index}`}
                   style={styles.itemCard}
                   onPress={() => handleLessonPress(lesson)}
                 >
@@ -430,26 +382,27 @@ const TeacherCourseSubmissionsScreen = ({ route, navigation }) => {
     }
 
     if (currentLevel === 'lesson' || (lessonId && !moduleId)) {
+      // Filter Assessment modules first to avoid key conflicts
+      const assessmentModules = modules.filter(m => 
+        (m.contentType === 3 || m.ContentType === 3)
+      );
+      
       return (
         <View style={styles.listContainer}>
           <Text style={styles.listTitle}>Chọn module</Text>
-          {modules.length === 0 ? (
+          {assessmentModules.length === 0 ? (
             <View style={styles.emptyContainer}>
               <Ionicons name="layers-outline" size={scale(48)} color={colors.textLight} />
-              <Text style={styles.emptyText}>Chưa có module nào</Text>
+              <Text style={styles.emptyText}>Chưa có module Assessment nào</Text>
             </View>
           ) : (
-            modules.map((module, index) => {
+            assessmentModules.map((module, index) => {
               const moduleIdValue = module.moduleId || module.ModuleId;
               const moduleNameValue = module.name || module.Name || 'Module';
-              const contentType = module.contentType || module.ContentType;
-              
-              // Only show Assessment modules
-              if (contentType !== 3) return null;
               
               return (
                 <TouchableOpacity
-                  key={moduleIdValue || index}
+                  key={`module-${moduleIdValue || index}`}
                   style={styles.itemCard}
                   onPress={() => handleModulePress(module)}
                 >
@@ -469,47 +422,8 @@ const TeacherCourseSubmissionsScreen = ({ route, navigation }) => {
       );
     }
 
-    if (currentLevel === 'module' || (moduleId && !assessmentId && assessments.length === 0)) {
-      // Show assessment modules (contentType = 3) when we're at module level but haven't loaded assessments yet
-      const assessmentModules = modules.filter(m => 
-        (m.contentType === 3 || m.ContentType === 3)
-      );
-      
-      return (
-        <View style={styles.listContainer}>
-          <Text style={styles.listTitle}>Chọn assessment</Text>
-          {assessmentModules.length === 0 ? (
-            <View style={styles.emptyContainer}>
-              <Ionicons name="document-text-outline" size={scale(48)} color={colors.textLight} />
-              <Text style={styles.emptyText}>Chưa có assessment nào</Text>
-            </View>
-          ) : (
-            assessmentModules.map((module, index) => {
-              const moduleIdValue = module.moduleId || module.ModuleId;
-              const moduleNameValue = module.name || module.Name || 'Assessment';
-              return (
-                <TouchableOpacity
-                  key={moduleIdValue || index}
-                  style={styles.itemCard}
-                  onPress={() => handleModulePress(module)}
-                >
-                  <View style={styles.itemIcon}>
-                    <Ionicons name="clipboard" size={scale(24)} color={colors.primary} />
-                  </View>
-                  <View style={styles.itemInfo}>
-                    <Text style={styles.itemTitle}>{moduleNameValue}</Text>
-                    <Text style={styles.itemSubtitle}>Assessment</Text>
-                  </View>
-                  <Ionicons name="chevron-forward" size={scale(20)} color={colors.textSecondary} />
-                </TouchableOpacity>
-              );
-            })
-          )}
-        </View>
-      );
-    }
-
-    if (currentLevel === 'assessment' && assessments.length > 0 && !essays.length) {
+    // Show assessments from module when moduleId is present and assessments are loaded
+    if ((currentLevel === 'module' || (moduleId && !assessmentId)) && assessments.length > 0) {
       // Show list of assessments from module
       return (
         <View style={styles.listContainer}>
@@ -525,7 +439,7 @@ const TeacherCourseSubmissionsScreen = ({ route, navigation }) => {
               const assessmentTitleValue = assessment.title || assessment.Title || assessment.name || assessment.Name || 'Assessment';
               return (
                 <TouchableOpacity
-                  key={assessmentIdValue || index}
+                  key={`assessment-${assessmentIdValue || index}`}
                   style={styles.itemCard}
                   onPress={() => handleAssessmentPress(assessment)}
                 >
@@ -534,6 +448,46 @@ const TeacherCourseSubmissionsScreen = ({ route, navigation }) => {
                   </View>
                   <View style={styles.itemInfo}>
                     <Text style={styles.itemTitle}>{assessmentTitleValue}</Text>
+                    <Text style={styles.itemSubtitle}>Assessment</Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={scale(20)} color={colors.textSecondary} />
+                </TouchableOpacity>
+              );
+            })
+          )}
+        </View>
+      );
+    }
+
+    // Show assessment modules (contentType = 3) when we're at module level but haven't loaded assessments yet
+    if (currentLevel === 'module' || (moduleId && !assessmentId && assessments.length === 0)) {
+      const assessmentModules = modules.filter(m => 
+        (m.contentType === 3 || m.ContentType === 3)
+      );
+      
+      return (
+        <View style={styles.listContainer}>
+          <Text style={styles.listTitle}>Chọn module</Text>
+          {assessmentModules.length === 0 ? (
+            <View style={styles.emptyContainer}>
+              <Ionicons name="document-text-outline" size={scale(48)} color={colors.textLight} />
+              <Text style={styles.emptyText}>Chưa có module Assessment nào</Text>
+            </View>
+          ) : (
+            assessmentModules.map((module, index) => {
+              const moduleIdValue = module.moduleId || module.ModuleId;
+              const moduleNameValue = module.name || module.Name || 'Assessment';
+              return (
+                <TouchableOpacity
+                  key={`module-assess-${moduleIdValue || index}`}
+                  style={styles.itemCard}
+                  onPress={() => handleModulePress(module)}
+                >
+                  <View style={styles.itemIcon}>
+                    <Ionicons name="clipboard" size={scale(24)} color={colors.primary} />
+                  </View>
+                  <View style={styles.itemInfo}>
+                    <Text style={styles.itemTitle}>{moduleNameValue}</Text>
                     <Text style={styles.itemSubtitle}>Assessment</Text>
                   </View>
                   <Ionicons name="chevron-forward" size={scale(20)} color={colors.textSecondary} />
@@ -577,7 +531,7 @@ const TeacherCourseSubmissionsScreen = ({ route, navigation }) => {
                 const quizTitleValue = quiz.title || quiz.Title || 'Quiz';
                 return (
                   <TouchableOpacity
-                    key={quizIdValue || index}
+                    key={`quiz-${quizIdValue || index}`}
                     style={styles.itemCard}
                     onPress={() => handleQuizPress(quiz)}
                   >
@@ -606,7 +560,7 @@ const TeacherCourseSubmissionsScreen = ({ route, navigation }) => {
                 const essayTitleValue = essay.title || essay.Title || 'Essay';
                 return (
                   <TouchableOpacity
-                    key={essayIdValue || index}
+                    key={`essay-${essayIdValue || index}`}
                     style={styles.itemCard}
                     onPress={() => handleEssayPress(essay)}
                   >
@@ -678,7 +632,7 @@ const TeacherCourseSubmissionsScreen = ({ route, navigation }) => {
                 <Text style={styles.breadcrumbText}>Tất cả khóa học</Text>
               </TouchableOpacity>
               {breadcrumb.map((item, index) => (
-                <View key={index} style={styles.breadcrumbRow}>
+                <View key={`breadcrumb-${item.level}-${index}`} style={styles.breadcrumbRow}>
                   <Ionicons name="chevron-forward" size={scale(14)} color="rgba(255,255,255,0.7)" />
                   <TouchableOpacity
                     onPress={() => index < breadcrumb.length - 1 ? handleBreadcrumbPress(item.level) : null}
