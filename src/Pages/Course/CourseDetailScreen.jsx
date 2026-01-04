@@ -13,6 +13,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Markdown from 'react-native-markdown-display';
 import { scale, verticalScale } from '../../Theme/responsive';
 import colors from '../../Theme/colors';
 import courseService from '../../Services/courseService';
@@ -197,9 +198,17 @@ const CourseDetailScreen = ({ route, navigation }) => {
           {/* Left Card - Course Introduction */}
           <View style={styles.card}>
             <Text style={styles.cardTitle}>Giới thiệu khóa học</Text>
-            <Text style={styles.cardDescription}>
-              {courseDescription || 'Khóa học này sẽ giúp bạn nâng cao trình độ tiếng Anh.'}
-            </Text>
+            {courseDescription ? (
+              <View style={styles.cardDescriptionContainer}>
+                <Markdown style={markdownStyles}>
+                  {courseDescription}
+                </Markdown>
+              </View>
+            ) : (
+              <Text style={styles.cardDescription}>
+                Khóa học này sẽ giúp bạn nâng cao trình độ tiếng Anh.
+              </Text>
+            )}
           </View>
 
           {/* Right Card - Course Info & Enrollment */}
@@ -476,6 +485,9 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     lineHeight: 14 * 1.6,
   },
+  cardDescriptionContainer: {
+    marginTop: verticalScale(8),
+  },
   infoRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -611,5 +623,78 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
 });
+
+// Markdown styles cho course description
+const markdownStyles = {
+  body: {
+    fontSize: scale(14),
+    lineHeight: scale(22),
+    color: colors.textSecondary,
+  },
+  paragraph: {
+    marginBottom: verticalScale(12),
+  },
+  heading1: {
+    fontSize: scale(20),
+    fontWeight: '700',
+    color: colors.text,
+    marginBottom: verticalScale(12),
+  },
+  heading2: {
+    fontSize: scale(18),
+    fontWeight: '700',
+    color: colors.text,
+    marginBottom: verticalScale(10),
+  },
+  heading3: {
+    fontSize: scale(16),
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: verticalScale(8),
+  },
+  bullet_list: {
+    marginBottom: verticalScale(12),
+  },
+  ordered_list: {
+    marginBottom: verticalScale(12),
+  },
+  list_item: {
+    marginBottom: verticalScale(8),
+  },
+  strong: {
+    fontWeight: '700',
+    color: colors.text,
+  },
+  em: {
+    fontStyle: 'italic',
+  },
+  blockquote: {
+    borderLeftWidth: scale(4),
+    borderLeftColor: colors.primary,
+    paddingLeft: scale(12),
+    fontStyle: 'italic',
+    marginBottom: verticalScale(12),
+    backgroundColor: colors.backgroundLight,
+    paddingVertical: verticalScale(8),
+  },
+  code_inline: {
+    backgroundColor: colors.backgroundLight,
+    paddingHorizontal: scale(4),
+    paddingVertical: scale(2),
+    borderRadius: scale(4),
+    fontFamily: 'monospace',
+  },
+  fence: {
+    backgroundColor: colors.backgroundLight,
+    padding: scale(12),
+    borderRadius: scale(8),
+    marginBottom: verticalScale(12),
+  },
+  hr: {
+    backgroundColor: colors.border,
+    height: 1,
+    marginVertical: verticalScale(16),
+  },
+};
 
 export default CourseDetailScreen;
