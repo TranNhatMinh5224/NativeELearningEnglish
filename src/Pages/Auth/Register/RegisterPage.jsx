@@ -101,39 +101,91 @@ const RegisterPage = ({ navigation }) => {
     return { isValid: true, message: '' };
   };
 
+  const validateFirstName = (firstName) => {
+    if (!firstName || !firstName.trim()) {
+      return 'Vui lòng nhập tên';
+    }
+    if (firstName.trim().length > 20) {
+      return 'Tên không được vượt quá 20 ký tự';
+    }
+    return '';
+  };
+
+  const validateLastName = (lastName) => {
+    if (!lastName || !lastName.trim()) {
+      return 'Vui lòng nhập họ';
+    }
+    if (lastName.trim().length > 20) {
+      return 'Họ không được vượt quá 20 ký tự';
+    }
+    return '';
+  };
+
+  const validatePassword = (password) => {
+    if (!password || !password.trim()) {
+      return 'Vui lòng nhập mật khẩu';
+    }
+    if (password.length < 6) {
+      return 'Mật khẩu phải có ít nhất 6 ký tự';
+    }
+    if (password.length > 20) {
+      return 'Mật khẩu không được vượt quá 20 ký tự';
+    }
+    if (!/[A-Z]/.test(password)) {
+      return 'Mật khẩu phải có ít nhất một chữ hoa';
+    }
+    if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) {
+      return 'Mật khẩu phải có ít nhất một ký tự đặc biệt';
+    }
+    return '';
+  };
+
+  const validateConfirmPassword = (confirmPassword, password) => {
+    if (!confirmPassword || !confirmPassword.trim()) {
+      return 'Vui lòng xác nhận mật khẩu';
+    }
+    if (confirmPassword !== password) {
+      return 'Mật khẩu không khớp';
+    }
+    return '';
+  };
+
+  const validatePhone = (phone) => {
+    if (!phone || !phone.trim()) {
+      return '';
+    }
+    const phoneRegex = /^0[0-9]{9}$/;
+    if (!phoneRegex.test(phone)) {
+      if (phone.length < 10) {
+        return 'Số điện thoại phải có đúng 10 chữ số';
+      } else if (phone.length > 10) {
+        return 'Số điện thoại không được vượt quá 10 chữ số';
+      } else if (!phone.startsWith('0')) {
+        return 'Số điện thoại phải bắt đầu bằng số 0';
+      } else {
+        return 'Số điện thoại không hợp lệ';
+      }
+    }
+    return '';
+  };
+
   const validateForm = () => {
     const newErrors = {};
 
-    if (!formData.firstName.trim()) {
-      newErrors.firstName = 'Vui lòng nhập tên';
-    }
+    newErrors.firstName = validateFirstName(formData.firstName);
+    newErrors.lastName = validateLastName(formData.lastName);
 
-    if (!formData.lastName.trim()) {
-      newErrors.lastName = 'Vui lòng nhập họ';
-    }
-
-    // Validate email với hàm validateEmail mới
     const emailValidation = validateEmail(formData.email);
     if (!emailValidation.isValid) {
       newErrors.email = emailValidation.message;
     }
 
-    if (!formData.password.trim()) {
-      newErrors.password = 'Vui lòng nhập mật khẩu';
-    } else if (formData.password.length < 6) {
-      newErrors.password = 'Mật khẩu phải có ít nhất 6 ký tự';
-    }
-
-    if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = 'Mật khẩu không khớp';
-    }
-
-    if (formData.phone && (!/^0[0-9]{9}$/.test(formData.phone) || formData.phone.length !== 10)) {
-      newErrors.phone = 'Số điện thoại phải bắt đầu bằng 0 và có 10 chữ số';
-    }
+    newErrors.password = validatePassword(formData.password);
+    newErrors.confirmPassword = validateConfirmPassword(formData.confirmPassword, formData.password);
+    newErrors.phone = validatePhone(formData.phone);
 
     setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    return Object.keys(newErrors).every(key => !newErrors[key]);
   };
 
   const handleRegister = async () => {
@@ -237,22 +289,42 @@ const RegisterPage = ({ navigation }) => {
   };
 
   const updateFormData = (key, value) => {
-    setFormData({ ...formData, [key]: value });
-    // Clear error khi user đang nhập
-    if (errors[key]) {
-      setErrors({ ...errors, [key]: null });
+    const newFormData = { ...formData, [key]: value };
+    setFormData(newFormData);
+
+    // Real-time validation
+    const newErrors = { ...errors };
+    
+    if (key === 'firstName') {
+      newErrors.firstName = validateFirstName(value);
+    } else if (key === 'lastName') {
+      newErrors.lastName = validateLastName(value);
+    } else if (key === 'email') {
+      const emailValidation = validateEmail(value);
+      newErrors.email = emailValidation.isValid ? '' : emailValidation.message;
+    } else if (key === 'password') {
+      newErrors.password = validatePassword(value);
+      // Also validate confirmPassword if it has value
+      if (formData.confirmPassword) {
+        newErrors.confirmPassword = validateConfirmPassword(formData.confirmPassword, value);
+      }
+    } else if (key === 'confirmPassword') {
+      newErrors.confirmPassword = validateConfirmPassword(value, formData.password);
+    } else if (key === 'phone') {
+      newErrors.phone = validatePhone(value);
     }
+
+    setErrors(newErrors);
   };
 
-  // Validate email real-time khi user blur khỏi input
+  // Validate email real-time khi user blur khỏi input (backup validation)
   const handleEmailBlur = () => {
     if (formData.email.trim()) {
       const emailValidation = validateEmail(formData.email);
       if (!emailValidation.isValid) {
         setErrors({ ...errors, email: emailValidation.message });
       } else {
-        // Clear error nếu email hợp lệ
-        setErrors({ ...errors, email: null });
+        setErrors({ ...errors, email: '' });
       }
     }
   };

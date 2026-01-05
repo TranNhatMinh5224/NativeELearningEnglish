@@ -360,7 +360,7 @@ const EssayScreen = ({ route, navigation }) => {
       // Submit new submission
       Alert.alert(
         'Xác nhận nộp bài',
-        'Bạn có chắc muốn nộp bài? Sau khi nộp sẽ không thể chỉnh sửa.',
+        'Bạn có chắc muốn nộp bài?',
         [
           { text: 'Hủy', style: 'cancel' },
           { text: 'Nộp bài', onPress: submitEssay },
