@@ -21,6 +21,7 @@ export default {
       // - iOS Simulator: http://localhost:5030/api
       // - Device thật: http://YOUR_COMPUTER_IP:5030/api
       apiBaseUrl: process.env.REACT_APP_API_BASE_URL || 'http://192.168.88.102:5030/api',
+      googleClientId: process.env.REACT_APP_GOOGLE_CLIENT_ID || '872783330590-gc3t4a8rf2dve8s87qu2dte766k6f44p.apps.googleusercontent.com',
     },
     assetBundlePatterns: ['**/*'],
     ios: {
