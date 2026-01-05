@@ -50,27 +50,47 @@ const PaymentScreen = ({ navigation, route }) => {
           const userResponse = await userService.getProfile();
           const currentUser = userResponse?.data?.data || userResponse?.data || userResponse;
           const subscription = currentUser?.TeacherSubscription || currentUser?.teacherSubscription;
-          const currentPackageId = subscription?.TeacherPackageId || subscription?.teacherPackageId;
-          const expiresAt = subscription?.ExpiresAt || subscription?.expiresAt;
           
-          const isActive = subscription && (!expiresAt || new Date(expiresAt) > new Date());
-          
-          // Nếu đã có subscription active cho package này, không gọi API
-          if (currentPackageId && parseInt(currentPackageId) === parseInt(packageId) && isActive) {
-            Alert.alert(
-              'Thông báo',
-              'Bạn đang sử dụng gói này. Gói sẽ được gia hạn tự động khi hết hạn.',
-              [{ 
-                text: 'OK', 
-                onPress: () => navigation.goBack() 
-              }]
-            );
-            setLoading(false);
-            return;
+          // Kiểm tra xem có subscription và có đang hoạt động không
+          if (subscription) {
+            const isTeacher = subscription?.isTeacher === true || subscription?.IsTeacher === true;
+            const currentPackageId = subscription?.TeacherPackageId || subscription?.teacherPackageId;
+            const expiresAt = subscription?.ExpiresAt || subscription?.expiresAt;
+            
+            // Kiểm tra subscription có đang hoạt động (chưa hết hạn hoặc không có expiresAt)
+            // Nếu có currentPackageId và isTeacher = true, coi như đang hoạt động
+            const hasActivePackage = currentPackageId && isTeacher;
+            const isNotExpired = !expiresAt || new Date(expiresAt) > new Date();
+            const isActive = hasActivePackage && isNotExpired;
+            
+            // Nếu đã có subscription active cho package này, không gọi API
+            if (currentPackageId && parseInt(currentPackageId) === parseInt(packageId) && isActive) {
+              Alert.alert(
+                'Thông báo',
+                'Bạn đang sử dụng gói này. Gói sẽ được gia hạn tự động khi hết hạn.',
+                [{ 
+                  text: 'OK', 
+                  onPress: () => navigation.goBack() 
+                }]
+              );
+              setLoading(false);
+              return;
+            }
+            
+            // Nếu đã có gói giáo viên đang hoạt động (bất kỳ gói nào), hiển thị thông báo giới hạn
+            if (isActive && currentPackageId) {
+              Alert.alert(
+                'Thông báo',
+                'Bạn đã có gói giáo viên đang hoạt động. Vui lòng đợi gói hiện tại hết hạn trước khi nâng cấp.',
+                [{ 
+                  text: 'OK', 
+                  onPress: () => navigation.goBack() 
+                }]
+              );
+              setLoading(false);
+              return;
+            }
           }
-          
-          // Nếu có subscription active cho package khác, vẫn cho phép upgrade (backend sẽ xử lý)
-          // Không block ở đây vì user có thể muốn upgrade từ package cũ sang package mới
         } catch (userError) {
           // Nếu không lấy được user info, vẫn tiếp tục (backend sẽ check)
           // Không log warning để tránh spam log
