@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -15,6 +15,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import { Audio } from 'expo-av';
 import * as DocumentPicker from 'expo-document-picker';
 import colors from '../../../Theme/colors';
@@ -64,11 +65,34 @@ const EssayScreen = ({ route, navigation }) => {
     };
   }, [essayId]);
 
+  // Reload submission data when screen is focused (to get latest grading results)
+  useFocusEffect(
+    useCallback(() => {
+      if (essayId && submissionId) {
+        // Reload submission to get latest score and feedback
+        loadSubmissionData(submissionId);
+      }
+    }, [essayId, submissionId])
+  );
+
   useEffect(() => {
     // Đếm số ký tự (không tính khoảng trắng đầu/cuối)
     const charCount = content.trim().length;
     setCharCount(charCount);
   }, [content]);
+
+  const loadSubmissionData = async (subId) => {
+    try {
+      const submissionResponse = await essayService.getSubmission(subId);
+      const submissionData = getResponseData(submissionResponse);
+      
+      if (submissionData) {
+        setSubmission(submissionData);
+      }
+    } catch (error) {
+      // Silent fail - submission might not exist
+    }
+  };
 
   const loadEssay = async () => {
     try {
@@ -863,29 +887,48 @@ const EssayScreen = ({ route, navigation }) => {
             <View style={styles.resultContainer}>
               <Text style={styles.resultTitle}>Kết quả</Text>
               
-              {submission?.Score !== null && submission?.Score !== undefined && (
-                <View style={styles.scoreContainer}>
-                  <Text style={styles.scoreLabel}>Điểm số:</Text>
-                  <Text style={styles.scoreValue}>
-                    {submission?.Score || submission?.score || 0}/{essay?.TotalPoints || essay?.totalPoints || 10}
-                  </Text>
-                </View>
-              )}
+              {(() => {
+                // Check all possible field names from backend (PascalCase and camelCase)
+                const score = submission?.Score ?? submission?.score ?? submission?.TotalScore ?? submission?.totalScore;
+                const feedback = submission?.Feedback ?? submission?.feedback ?? submission?.TeacherFeedback ?? submission?.teacherFeedback;
+                const hasScore = score !== null && score !== undefined && score !== '';
+                const hasFeedback = feedback && String(feedback).trim().length > 0;
+                const isGraded = hasScore || hasFeedback;
 
-              {submission?.Feedback && (
-                <View style={styles.feedbackContainer}>
-                  <Text style={styles.feedbackLabel}>Nhận xét:</Text>
-                  <Text style={styles.feedbackText}>
-                    {submission.Feedback || submission.feedback}
-                  </Text>
-                </View>
-              )}
+                if (!isGraded) {
+                  return (
+                    <Text style={styles.waitingText}>
+                      Đang chờ giáo viên chấm điểm...
+                    </Text>
+                  );
+                }
 
-              {!submission?.Score && !submission?.Feedback && (
-                <Text style={styles.waitingText}>
-                  Đang chờ giáo viên chấm điểm...
-                </Text>
-              )}
+                return (
+                  <>
+                    {hasScore && (
+                      <View style={styles.scoreContainer}>
+                        <Text style={styles.scoreLabel}>Điểm đạt được:</Text>
+                        <View style={styles.scoreValueContainer}>
+                          <Text style={styles.scoreValue}>
+                            {score}/{essay?.TotalPoints || essay?.totalPoints || 10}
+                          </Text>
+                        </View>
+                      </View>
+                    )}
+
+                    {hasFeedback && (
+                      <View style={styles.feedbackContainer}>
+                        <Text style={styles.feedbackLabel}>Nhận xét của giáo viên:</Text>
+                        <View style={styles.feedbackBox}>
+                          <Text style={styles.feedbackText}>
+                            {feedback}
+                          </Text>
+                        </View>
+                      </View>
+                    )}
+                  </>
+                );
+              })()}
             </View>
           )}
         </View>
@@ -1161,34 +1204,45 @@ const styles = StyleSheet.create({
     marginBottom: verticalScale(12),
   },
   scoreContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: verticalScale(12),
+    marginBottom: verticalScale(16),
   },
   scoreLabel: {
-    fontSize: scale(16),
+    fontSize: scale(15),
     fontFamily: 'Quicksand-Medium',
-    color: colors.text,
+    color: colors.textSecondary,
+    marginBottom: verticalScale(8),
+  },
+  scoreValueContainer: {
+    backgroundColor: colors.primary + '15',
+    borderRadius: scale(12),
+    padding: verticalScale(12),
+    alignItems: 'center',
   },
   scoreValue: {
-    fontSize: scale(24),
+    fontSize: scale(28),
     fontFamily: 'Quicksand-Bold',
     color: colors.primary,
   },
   feedbackContainer: {
-    marginTop: verticalScale(12),
+    marginTop: verticalScale(8),
   },
   feedbackLabel: {
-    fontSize: scale(16),
-    fontFamily: 'Quicksand-Bold',
-    color: colors.text,
-    marginBottom: verticalScale(6),
+    fontSize: scale(15),
+    fontFamily: 'Quicksand-Medium',
+    color: colors.textSecondary,
+    marginBottom: verticalScale(8),
+  },
+  feedbackBox: {
+    backgroundColor: '#F9FAFB',
+    borderRadius: scale(12),
+    padding: verticalScale(16),
+    borderLeftWidth: 4,
+    borderLeftColor: colors.primary,
   },
   feedbackText: {
     fontSize: scale(15),
     fontFamily: 'Quicksand-Regular',
-    color: colors.textSecondary,
+    color: colors.text,
     lineHeight: scale(22),
   },
   waitingText: {
@@ -1197,6 +1251,7 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     fontStyle: 'italic',
     textAlign: 'center',
+    paddingVertical: verticalScale(12),
   },
 });
 

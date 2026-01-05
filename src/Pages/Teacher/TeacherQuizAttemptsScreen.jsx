@@ -39,17 +39,16 @@ const TeacherQuizAttemptsScreen = ({ route, navigation }) => {
   useFocusEffect(
     useCallback(() => {
       if (quizId) {
-        setCurrentPage(1); // Reset to page 1 when screen is focused
-        loadData(1); // Load page 1 when screen is focused
+        setCurrentPage(1);
       }
     }, [quizId])
   );
 
   useEffect(() => {
-    if (quizId && currentPage > 1) {
-      loadData(currentPage); // Only load when currentPage changes (pagination)
+    if (quizId) {
+      loadData(currentPage);
     }
-  }, [currentPage]);
+  }, [quizId, currentPage]);
 
   const loadData = async (page = 1) => {
     try {
@@ -65,13 +64,16 @@ const TeacherQuizAttemptsScreen = ({ route, navigation }) => {
       
       if (attemptsData) {
         const items = attemptsData.items || attemptsData.data || [];
-        setAttempts(items); // Always replace, not append
+        setAttempts(items);
         
-        // Tính totalPages từ totalCount hoặc totalPages
-        const totalCountValue = attemptsData.totalCount || attemptsData.totalCount || items.length;
-        const totalPagesValue = attemptsData.totalPages || Math.ceil(totalCountValue / pageSize);
-        setTotalPages(totalPagesValue);
-        setTotalCount(totalCountValue);
+        const totalCountValue = attemptsData.totalCount || attemptsData.TotalCount || attemptsData.total || items.length;
+        const totalPagesValue = attemptsData.totalPages || attemptsData.TotalPages || Math.ceil(totalCountValue / pageSize);
+        setTotalPages(totalPagesValue || 1);
+        setTotalCount(totalCountValue || items.length);
+      } else {
+        setAttempts([]);
+        setTotalPages(0);
+        setTotalCount(0);
       }
 
       // Load statistics (chỉ load 1 lần khi vào màn hình)
@@ -816,55 +818,75 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 20,
-    marginBottom: 10,
+    marginBottom: 20,
+    paddingVertical: 12,
+    paddingHorizontal: 8,
     flexWrap: 'wrap',
-    gap: 8,
+    gap: 6,
+    backgroundColor: '#F9FAFB',
+    borderRadius: scale(12),
   },
   paginationButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
     borderRadius: scale(8),
-    backgroundColor: colors.surface,
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: colors.border,
-    gap: 4,
+    borderColor: '#E5E7EB',
+    gap: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
   },
   paginationButtonDisabled: {
-    opacity: 0.5,
-    backgroundColor: colors.surface,
+    opacity: 0.4,
+    backgroundColor: '#F3F4F6',
   },
   paginationButtonText: {
-    fontSize: scale(14),
+    fontSize: scale(13),
     fontWeight: '600',
     color: colors.text,
   },
   paginationButtonTextDisabled: {
-    color: colors.textLight,
+    color: '#9CA3AF',
   },
   pageNumbersContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 6,
+    paddingHorizontal: 4,
   },
   pageNumberButton: {
-    minWidth: scale(36),
-    height: scale(36),
+    minWidth: scale(40),
+    height: scale(40),
     borderRadius: scale(8),
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.5,
+    borderColor: '#E5E7EB',
     justifyContent: 'center',
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
   },
   pageNumberButtonActive: {
     backgroundColor: colors.primary,
     borderColor: colors.primary,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
   },
   pageNumberText: {
     fontSize: scale(14),
-    fontWeight: '600',
+    fontWeight: '700',
     color: colors.text,
   },
   pageNumberTextActive: {
@@ -872,8 +894,9 @@ const styles = StyleSheet.create({
   },
   pageEllipsis: {
     fontSize: scale(14),
+    fontWeight: '600',
     color: colors.textSecondary,
-    paddingHorizontal: 4,
+    paddingHorizontal: 8,
   },
 });
 
