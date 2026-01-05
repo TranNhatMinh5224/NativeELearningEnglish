@@ -59,8 +59,18 @@ const FlashCardLearningScreen = ({ navigation, route }) => {
   const handleComplete = async () => {
     try {
       setCompleting(true);
-      // Gọi API startModule (cũng là api mark complete cho flashcard module)
+      
+      // 1. Gọi API startModule để đánh dấu module đã hoàn thành
       await lessonService.startModule(moduleId);
+
+      // 2. Gọi API startLearningModule để thêm flashcard vào hệ thống SRS (ôn tập từ vựng)
+      try {
+        await flashcardReviewService.startLearningModule(moduleId);
+      } catch (reviewError) {
+        // Log error nhưng không block việc hoàn thành module
+        console.error('Error adding flashcards to review system:', reviewError);
+        // Có thể hiển thị warning nhưng vẫn cho phép hoàn thành
+      }
 
       // Điều hướng sang màn hình kết quả bài học
       navigation.replace('LessonResultScreen', {

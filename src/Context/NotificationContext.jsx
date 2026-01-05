@@ -22,7 +22,14 @@ export const NotificationProvider = ({ children }) => {
       // Backend trả về ServiceResponse<int>
       setUnreadCount(response?.data || response || 0);
     } catch (error) {
+   
+      if (error?.response?.status === 401 || error?.status === 401) {
+        setUnreadCount(0);
+        return;
+      }
+      // Chỉ log error cho các lỗi khác
       console.error('Error fetching unread count:', error);
+      setUnreadCount(0);
     }
   }, []);
 

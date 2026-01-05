@@ -114,7 +114,6 @@ const PaymentScreen = ({ navigation, route }) => {
     } catch (error) {
       // Chỉ log error nếu chưa thanh toán thành công
       if (!paymentSuccess) {
-        console.error('Payment Flow Error:', error);
       }
       
       // Parse error message từ backend

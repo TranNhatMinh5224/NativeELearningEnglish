@@ -134,7 +134,6 @@ const PaymentSuccess = ({ navigation, route }) => {
           setLoading(false);
         }
       } catch (err) {
-        console.error('Confirm payment error:', err);
         const errorMsg = err.response?.data?.message || err.message || 'Có lỗi xảy ra khi xác nhận thanh toán';
         setError(errorMsg);
         setLoading(false);

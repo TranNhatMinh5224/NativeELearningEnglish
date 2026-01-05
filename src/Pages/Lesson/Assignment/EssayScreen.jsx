@@ -392,10 +392,42 @@ const EssayScreen = ({ route, navigation }) => {
         navigation.goBack();
       }, 1500);
     } catch (error) {
-      console.error('Error submitting essay:', error);
+      // Parse validation errors from backend
+      let errorMessage = 'Không thể nộp bài';
+      
+      if (error?.errors) {
+        // Backend validation errors format: { errors: { FieldName: ["Error message"] } }
+        const errorFields = Object.keys(error.errors);
+        if (errorFields.length > 0) {
+          const firstField = errorFields[0];
+          const fieldErrors = error.errors[firstField];
+          if (Array.isArray(fieldErrors) && fieldErrors.length > 0) {
+            errorMessage = fieldErrors[0];
+          } else if (typeof fieldErrors === 'string') {
+            errorMessage = fieldErrors;
+          }
+        }
+      } else if (error?.response?.data?.errors) {
+        // Handle axios error response format
+        const errorFields = Object.keys(error.response.data.errors);
+        if (errorFields.length > 0) {
+          const firstField = errorFields[0];
+          const fieldErrors = error.response.data.errors[firstField];
+          if (Array.isArray(fieldErrors) && fieldErrors.length > 0) {
+            errorMessage = fieldErrors[0];
+          } else if (typeof fieldErrors === 'string') {
+            errorMessage = fieldErrors;
+          }
+        }
+      } else if (error?.message) {
+        errorMessage = error.message;
+      } else if (error?.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      }
+      
       setToast({
         visible: true,
-        message: error?.message || 'Không thể nộp bài',
+        message: errorMessage,
         type: 'error',
       });
     } finally {
@@ -452,10 +484,42 @@ const EssayScreen = ({ route, navigation }) => {
         loadEssay();
       }, 1000);
     } catch (error) {
-      console.error('Error updating essay:', error);
+      // Parse validation errors from backend
+      let errorMessage = 'Không thể cập nhật bài';
+      
+      if (error?.errors) {
+        // Backend validation errors format: { errors: { FieldName: ["Error message"] } }
+        const errorFields = Object.keys(error.errors);
+        if (errorFields.length > 0) {
+          const firstField = errorFields[0];
+          const fieldErrors = error.errors[firstField];
+          if (Array.isArray(fieldErrors) && fieldErrors.length > 0) {
+            errorMessage = fieldErrors[0];
+          } else if (typeof fieldErrors === 'string') {
+            errorMessage = fieldErrors;
+          }
+        }
+      } else if (error?.response?.data?.errors) {
+        // Handle axios error response format
+        const errorFields = Object.keys(error.response.data.errors);
+        if (errorFields.length > 0) {
+          const firstField = errorFields[0];
+          const fieldErrors = error.response.data.errors[firstField];
+          if (Array.isArray(fieldErrors) && fieldErrors.length > 0) {
+            errorMessage = fieldErrors[0];
+          } else if (typeof fieldErrors === 'string') {
+            errorMessage = fieldErrors;
+          }
+        }
+      } else if (error?.message) {
+        errorMessage = error.message;
+      } else if (error?.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      }
+      
       setToast({
         visible: true,
-        message: error?.message || 'Không thể cập nhật bài',
+        message: errorMessage,
         type: 'error',
       });
     } finally {
