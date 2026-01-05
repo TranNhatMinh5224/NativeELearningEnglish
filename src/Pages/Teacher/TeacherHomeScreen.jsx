@@ -40,7 +40,6 @@ const TeacherHomeScreen = ({ navigation }) => {
         totalCourses: totalCount, // Dùng TotalCount từ backend
       });
     } catch (error) {
-      console.error('Error loading teacher home:', error);
     }
   };
 

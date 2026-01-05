@@ -50,7 +50,6 @@ const AddStudentModal = ({ visible, onClose, onSuccess, courseId }) => {
         setError(errorMessage);
       }
     } catch (err) {
-      console.error('Error adding student:', err);
       const errorMessage = err?.response?.data?.message || 
                           err?.response?.data?.Message || 
                           err?.message ||

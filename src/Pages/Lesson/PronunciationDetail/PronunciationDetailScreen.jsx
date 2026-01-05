@@ -31,7 +31,6 @@ const PronunciationDetailScreen = ({ route, navigation }) => {
     if (moduleId) {
       fetchData();
     } else {
-      console.error('❌ PronunciationDetailScreen - moduleId is missing!', route.params);
       setError('Module ID không hợp lệ');
       setLoading(false);
     }
@@ -95,11 +94,9 @@ const PronunciationDetailScreen = ({ route, navigation }) => {
           setSummary(summaryResponse);
         }
       } catch (summaryErr) {
-        console.warn('Error fetching summary (non-critical):', summaryErr);
         // Don't set error for summary failure
       }
     } catch (err) {
-      console.error('Error fetching pronunciation data:', err);
       const errorMessage = err?.response?.data?.message || err?.message || 'Không thể tải dữ liệu phát âm';
       setError(errorMessage);
       setFlashcards([]);
@@ -109,7 +106,9 @@ const PronunciationDetailScreen = ({ route, navigation }) => {
   };
 
   const handleBackClick = () => {
-    navigation.goBack();
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    }
   };
 
   const handleNext = () => {
@@ -158,7 +157,6 @@ const PronunciationDetailScreen = ({ route, navigation }) => {
         setSummary(summaryResponse);
       }
     } catch (err) {
-      console.error('Error loading summary:', err);
       // Still show summary even if reload fails
     }
     setShowSummary(true);

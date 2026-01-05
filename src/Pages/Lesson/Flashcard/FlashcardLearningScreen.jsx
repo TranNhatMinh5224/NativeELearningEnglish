@@ -58,7 +58,11 @@ const FlashcardLearningScreen = ({ route, navigation }) => {
           message: 'Module này chưa có flashcards',
           type: 'info',
         });
-        setTimeout(() => navigation.goBack(), 1500);
+        setTimeout(() => {
+          if (navigation.canGoBack()) {
+            navigation.goBack();
+          }
+        }, 1500);
         return;
       }
       
@@ -86,7 +90,6 @@ const FlashcardLearningScreen = ({ route, navigation }) => {
       );
       setSound(newSound);
     } catch (error) {
-      console.error('Error playing audio:', error);
     }
   };
 

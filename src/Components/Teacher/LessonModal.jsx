@@ -64,7 +64,6 @@ const LessonModal = ({ visible, onClose, courseId, lesson, onSuccess }) => {
         setImage(result.assets[0]);
       }
     } catch (error) {
-      console.error('Error picking image:', error);
       Toast.show('Không thể chọn ảnh', 'error');
     }
   };
@@ -96,7 +95,6 @@ const LessonModal = ({ visible, onClose, courseId, lesson, onSuccess }) => {
           imageTempKey = uploadData.tempKey || uploadData.TempKey || uploadData.key || uploadData.Key;
           imageType = uploadData.imageType || uploadData.ImageType || image.mimeType || 'image/jpeg';
         } catch (uploadError) {
-          console.error('Upload image error:', uploadError);
           Toast.show('Không thể tải ảnh lên', 'error');
           setUploading(false);
           return;
@@ -136,7 +134,6 @@ const LessonModal = ({ visible, onClose, courseId, lesson, onSuccess }) => {
         throw new Error(responseData?.message || responseData?.Message || 'Không thể lưu bài học');
       }
     } catch (error) {
-      console.error('Error saving lesson:', error);
       const errorMessage = error?.message || error?.Message || 'Không thể lưu bài học';
       Toast.show(errorMessage, 'error');
     } finally {

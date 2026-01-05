@@ -11,23 +11,13 @@ const LoadingPage = ({ navigation }) => {
 
   const checkConnectionAndNavigate = async () => {
     setChecking(true);
-    console.log(`📡 Connecting to Backend at: ${apiUrl}`);
 
     try {
-      // Gọi thử một API public bất kỳ để check kết nối
-      // Dùng timeout ngắn (5s) để không chờ quá lâu
       await axiosClient.get('/user/courses/system-courses', { timeout: 5000 });
-      
-      console.log('✅ Connected to Backend successfully!');
-      // Kết nối thành công -> Vào App
       navigation.replace('MainApp');
     } catch (error) {
       const errorMessage = error.response?.data?.message || error.message || 'Unknown error';
       const statusCode = error.response?.status;
-      
-      console.error('❌ Connection Failed:', errorMessage);
-      console.error('Status Code:', statusCode);
-      console.error('Full Error:', error.response?.data || error);
       
       let alertMessage = `Không thể kết nối đến máy chủ.\n\nURL: ${apiUrl}\n\n`;
       
@@ -64,11 +54,9 @@ const LoadingPage = ({ navigation }) => {
   };
 
   const handleLoadingFinish = () => {
-    // Khi animation loading kết thúc, mới bắt đầu check API
     checkConnectionAndNavigate();
   };
 
-  // Sử dụng component LoadingScreen có sẵn, nó sẽ gọi onFinish khi chạy xong animation
   return <LoadingScreen onFinish={handleLoadingFinish} duration={2000} />;
 };
 

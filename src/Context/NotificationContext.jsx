@@ -27,8 +27,6 @@ export const NotificationProvider = ({ children }) => {
         setUnreadCount(0);
         return;
       }
-      // Chỉ log error cho các lỗi khác
-      console.error('Error fetching unread count:', error);
       setUnreadCount(0);
     }
   }, []);
@@ -40,10 +38,6 @@ export const NotificationProvider = ({ children }) => {
 
   useEffect(() => {
     fetchUnreadCount();
-    
-    // Bạn có thể thêm setInterval ở đây nếu muốn real-time polling
-    // const interval = setInterval(fetchUnreadCount, 30000); // 30s check 1 lần
-    // return () => clearInterval(interval);
   }, [fetchUnreadCount]);
 
   return (

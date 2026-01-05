@@ -43,60 +43,6 @@ const PaymentScreen = ({ navigation, route }) => {
     try {
       setLoading(true);
       
-      // Nếu là teacher package, check subscription trước khi gọi API
-      if (packageId) {
-        try {
-          // Fetch user mới từ API để có subscription info mới nhất
-          const userResponse = await userService.getProfile();
-          const currentUser = userResponse?.data?.data || userResponse?.data || userResponse;
-          const subscription = currentUser?.TeacherSubscription || currentUser?.teacherSubscription;
-          
-          // Kiểm tra xem có subscription và có đang hoạt động không
-          if (subscription) {
-            const isTeacher = subscription?.isTeacher === true || subscription?.IsTeacher === true;
-            const currentPackageId = subscription?.TeacherPackageId || subscription?.teacherPackageId;
-            const expiresAt = subscription?.ExpiresAt || subscription?.expiresAt;
-            
-            // Kiểm tra subscription có đang hoạt động (chưa hết hạn hoặc không có expiresAt)
-            // Nếu có currentPackageId và isTeacher = true, coi như đang hoạt động
-            const hasActivePackage = currentPackageId && isTeacher;
-            const isNotExpired = !expiresAt || new Date(expiresAt) > new Date();
-            const isActive = hasActivePackage && isNotExpired;
-            
-            // Nếu đã có subscription active cho package này, không gọi API
-            if (currentPackageId && parseInt(currentPackageId) === parseInt(packageId) && isActive) {
-              Alert.alert(
-                'Thông báo',
-                'Bạn đang sử dụng gói này. Gói sẽ được gia hạn tự động khi hết hạn.',
-                [{ 
-                  text: 'OK', 
-                  onPress: () => navigation.goBack() 
-                }]
-              );
-              setLoading(false);
-              return;
-            }
-            
-            // Nếu đã có gói giáo viên đang hoạt động (bất kỳ gói nào), hiển thị thông báo giới hạn
-            if (isActive && currentPackageId) {
-              Alert.alert(
-                'Thông báo',
-                'Bạn đã có gói giáo viên đang hoạt động. Vui lòng đợi gói hiện tại hết hạn trước khi nâng cấp.',
-                [{ 
-                  text: 'OK', 
-                  onPress: () => navigation.goBack() 
-                }]
-              );
-              setLoading(false);
-              return;
-            }
-          }
-        } catch (userError) {
-          // Nếu không lấy được user info, vẫn tiếp tục (backend sẽ check)
-          // Không log warning để tránh spam log
-        }
-      }
-      
       // Bước 1: Gọi API process để lấy paymentId
       let processRes;
       if (courseId) {
@@ -132,33 +78,35 @@ const PaymentScreen = ({ navigation, route }) => {
         throw new Error(processRes.message || 'Lỗi khởi tạo đơn hàng');
       }
     } catch (error) {
-      // Chỉ log error nếu chưa thanh toán thành công
-      if (!paymentSuccess) {
-      }
-      
       // Parse error message từ backend
       const serverMessage = error.response?.data?.message || error.message;
       
-      // Nếu backend trả về "Bạn đã mua sản phẩm này rồi", hiển thị message thân thiện
       if (serverMessage && (serverMessage.includes('đã mua') || serverMessage.includes('already purchased'))) {
         Alert.alert(
           'Thông báo',
           serverMessage || 'Bạn đã mua sản phẩm này rồi.',
           [{ 
             text: 'OK', 
-            onPress: () => navigation.goBack() 
+            onPress: () => {
+              if (navigation.canGoBack()) {
+                navigation.goBack();
+              }
+            }
           }]
         );
         setLoading(false);
         return;
       }
       
-      // Chỉ hiển thị alert nếu chưa thanh toán thành công
       if (!paymentSuccess) {
         Alert.alert(
           'Thông báo', 
           serverMessage || 'Đã xảy ra lỗi khi khởi tạo thanh toán.',
-          [{ text: 'OK', onPress: () => navigation.goBack() }]
+          [{ text: 'OK', onPress: () => {
+            if (navigation.canGoBack()) {
+              navigation.goBack();
+            }
+          }}]
         );
       }
     } finally {
@@ -200,12 +148,13 @@ const PaymentScreen = ({ navigation, route }) => {
     const handleCancel = () => {
     stopPolling();
     Alert.alert('Đã hủy', 'Bạn đã hủy giao dịch thanh toán.');
-    navigation.goBack();
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    }
   };
 
   const onNavigationStateChange = (navState) => {
     const { url } = navState;
-    console.log('WebView Nav:', url);
 
     const lowerUrl = url.toLowerCase();
 

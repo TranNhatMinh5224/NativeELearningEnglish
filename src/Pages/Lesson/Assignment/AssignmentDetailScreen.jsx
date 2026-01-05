@@ -79,16 +79,18 @@ const AssignmentDetailScreen = ({ route, navigation }) => {
         setQuizzes(quizzesList.map((q) => ({ ...q, assessment: assessmentData })));
         setEssays(essaysList.map((e) => ({ ...e, assessment: assessmentData })));
       } catch (childErr) {
-        console.error('Error loading quizzes/essays for assessment:', childErr);
       }
     } catch (error) {
-      console.error('❌ Error loading assessment:', error);
       setToast({
         visible: true,
         message: error?.message || 'Không thể tải bài tập',
         type: 'error',
       });
-      setTimeout(() => navigation.goBack(), 2000);
+      setTimeout(() => {
+        if (navigation.canGoBack()) {
+          navigation.goBack();
+        }
+      }, 2000);
     } finally {
       setLoading(false);
     }
@@ -126,7 +128,6 @@ const AssignmentDetailScreen = ({ route, navigation }) => {
           allQuizzes.push(...quizzesList.map((q) => ({ ...q, assessment: detailData })));
           allEssays.push(...essaysList.map((e) => ({ ...e, assessment: detailData })));
         } catch (err) {
-          console.error('Error loading assessment details:', err);
         }
       }
       
@@ -135,13 +136,16 @@ const AssignmentDetailScreen = ({ route, navigation }) => {
       setEssays(allEssays);
       
     } catch (error) {
-      console.error('❌ Error loading module assessments:', error);
       setToast({
         visible: true,
         message: error?.message || 'Không thể tải bài tập',
         type: 'error',
       });
-      setTimeout(() => navigation.goBack(), 2000);
+      setTimeout(() => {
+        if (navigation.canGoBack()) {
+          navigation.goBack();
+        }
+      }, 2000);
     } finally {
       setLoading(false);
     }
@@ -206,7 +210,6 @@ const AssignmentDetailScreen = ({ route, navigation }) => {
         }
       } catch (checkError) {
         // If check fails, continue with normal flow
-        console.log('No active attempt found or error checking:', checkError);
       }
       
       // No active attempt, navigate directly to start new quiz
@@ -218,7 +221,6 @@ const AssignmentDetailScreen = ({ route, navigation }) => {
         moduleName,
       });
     } catch (error) {
-      console.error('Error starting quiz:', error);
       setToast({
         visible: true,
         message: error?.message || 'Không thể bắt đầu quiz',
@@ -242,7 +244,6 @@ const AssignmentDetailScreen = ({ route, navigation }) => {
         moduleName,
       });
     } catch (error) {
-      console.error('Error starting essay:', error);
       setToast({
         visible: true,
         message: error?.message || 'Không thể bắt đầu bài essay',

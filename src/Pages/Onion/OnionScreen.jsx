@@ -100,7 +100,6 @@ const OnionScreen = ({ navigation }) => {
 
       setCourses(mappedCourses);
     } catch (error) {
-      console.error('Load courses error:', error);
       setCourses([]);
     }
   };

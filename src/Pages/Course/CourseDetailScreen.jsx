@@ -48,7 +48,6 @@ const CourseDetailScreen = ({ route, navigation }) => {
       const courseData = response?.data || response;
       setCourse(courseData);
     } catch (error) {
-      console.error('Error loading course detail:', error);
       setToast({
         visible: true,
         message: error?.message || 'Không thể tải thông tin khóa học',
@@ -96,7 +95,6 @@ const CourseDetailScreen = ({ route, navigation }) => {
       loadCourseDetail(); 
       
     } catch (error) {
-      console.error('Error enrolling course:', error);
       setShowConfirmModal(false);
       setToast({
         visible: true,

@@ -213,7 +213,6 @@ const ModuleLearningScreen = ({ route, navigation }) => {
         }));
       }
     } catch (error) {
-      console.error(`Error fetching lecture detail ${parsedLectureId}:`, error);
     } finally {
       // Remove loading state
       setLoadingLecturesDetail(prev => {
@@ -229,21 +228,15 @@ const ModuleLearningScreen = ({ route, navigation }) => {
     const parsedModuleId = typeof moduleId === 'string' ? parseInt(moduleId) : moduleId;
     if (parsedModuleId && !isNaN(parsedModuleId) && !moduleStartedRef.current.has(parsedModuleId)) {
       try {
-        console.log(`Starting module ${parsedModuleId}...`);
         const response = await lessonService.startModule(parsedModuleId);
         moduleStartedRef.current.add(parsedModuleId);
-        console.log(`Module ${parsedModuleId} started successfully:`, response);
         
       } catch (err) {
-        console.error(`Error starting module ${parsedModuleId}:`, err);
-        console.error('Error details:', err.response?.data || err.message);
         // Tiếp tục load dữ liệu dù API có lỗi
       }
     } else {
       if (moduleStartedRef.current.has(parsedModuleId)) {
-        console.log(`Module ${parsedModuleId} already started, skipping API call`);
       } else {
-        console.warn(`Invalid moduleId: ${moduleId} (parsed: ${parsedModuleId})`);
       }
     }
   };
@@ -269,7 +262,6 @@ const ModuleLearningScreen = ({ route, navigation }) => {
           setModuleProgress(Number(progress));
         }
       } catch (moduleError) {
-        console.error('Error loading module info:', moduleError);
         // Tiếp tục load lectures dù có lỗi
       }
       
@@ -322,7 +314,6 @@ const ModuleLearningScreen = ({ route, navigation }) => {
           }
         }
       } catch (treeError) {
-        console.error('Error loading lecture tree:', treeError);
         // Lecture tree not available, try regular lectures API
       }
       
@@ -350,7 +341,6 @@ const ModuleLearningScreen = ({ route, navigation }) => {
       setLectureTree(sortedLectures);
       setLectures(sortedLectures);
     } catch (error) {
-      console.error('❌ Error loading module:', error);
       setToast({
         visible: true,
         message: error?.response?.data?.message || error?.message || 'Không thể tải nội dung học',
@@ -449,7 +439,6 @@ const ModuleLearningScreen = ({ route, navigation }) => {
         setModuleProgress(Number(progress));
       }
     } catch (error) {
-      console.error('Error refreshing module progress:', error);
     }
   };
 
@@ -472,10 +461,11 @@ const ModuleLearningScreen = ({ route, navigation }) => {
       
       // Navigate back after 1.5 seconds
       setTimeout(() => {
-        navigation.goBack();
+        if (navigation.canGoBack()) {
+          navigation.goBack();
+        }
       }, 1500);
     } catch (error) {
-      console.error('Error completing module:', error);
       setToast({
         visible: true,
         message: error?.response?.data?.message || error?.message || 'Không thể hoàn thành module',

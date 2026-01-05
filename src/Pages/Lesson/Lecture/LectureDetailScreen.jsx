@@ -69,7 +69,6 @@ const LectureDetailScreen = ({ route, navigation }) => {
           setModule(moduleData);
         }
       } catch (error) {
-        console.error('Error loading info:', error);
       }
     };
     loadInfo();
@@ -124,7 +123,6 @@ const LectureDetailScreen = ({ route, navigation }) => {
       const treeData = treeResponse?.data || treeResponse || [];
       setLectureTree(Array.isArray(treeData) ? treeData : []);
     } catch (error) {
-      console.error('Error loading lecture tree:', error);
     }
   };
 
@@ -136,13 +134,16 @@ const LectureDetailScreen = ({ route, navigation }) => {
       setLecture(lectureData);
       setLoading(false);
     } catch (error) {
-      console.error('❌ Error loading lecture:', error);
       setToast({
         visible: true,
         message: error?.message || 'Không thể tải nội dung bài giảng',
         type: 'error',
       });
-      setTimeout(() => navigation.goBack(), 2000);
+      setTimeout(() => {
+        if (navigation.canGoBack()) {
+          navigation.goBack();
+        }
+      }, 2000);
     } finally {
       setLoadingLecture(false);
       setLoading(false);
@@ -158,10 +159,11 @@ const LectureDetailScreen = ({ route, navigation }) => {
         type: 'success',
       });
       setTimeout(() => {
-        navigation.goBack();
+        if (navigation.canGoBack()) {
+          navigation.goBack();
+        }
       }, 1500);
     } catch (error) {
-      console.error('Error completing lecture:', error);
       setToast({
         visible: true,
         message: error?.message || 'Không thể hoàn thành bài giảng',

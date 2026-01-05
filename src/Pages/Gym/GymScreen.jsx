@@ -89,7 +89,6 @@ const GymScreen = ({ navigation }) => {
       setStatistics(statsData);
       setMasteredWords(masteredData);
     } catch (error) {
-      console.error('Load data error:', error);
       setStatistics({ masteredCount: 0 });
       setMasteredWords([]);
     }
@@ -105,7 +104,6 @@ const GymScreen = ({ navigation }) => {
         );
         setSound(newSound);
     } catch (error) {
-        console.log('Error playing audio', error);
     }
   };
 

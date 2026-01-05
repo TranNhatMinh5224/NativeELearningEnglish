@@ -45,7 +45,6 @@ const PaymentSuccess = ({ navigation, route }) => {
             paymentCompleted = status === 2 || status === 'Completed' || status === 'completed' || status === 'PAID';
           }
         } catch (detailErr) {
-          console.error('Get transaction detail error:', detailErr);
         }
 
         // Bước 2: Xác nhận thanh toán PayOS (nếu chưa completed)
@@ -74,7 +73,6 @@ const PaymentSuccess = ({ navigation, route }) => {
                   }
                 }
               } catch (retryErr) {
-                console.error('Retry get transaction detail error:', retryErr);
               }
             } else {
               // Lỗi khác, hiển thị lỗi
@@ -97,7 +95,6 @@ const PaymentSuccess = ({ navigation, route }) => {
                 payment = detailResponse.data.data;
               }
             } catch (detailErr) {
-              console.error('Get transaction detail error:', detailErr);
             }
           }
 
@@ -107,23 +104,16 @@ const PaymentSuccess = ({ navigation, route }) => {
               // Backend DTO yêu cầu PascalCase: CourseId
               await enrollmentService.enroll({ CourseId: payment.productId });
               setEnrolled(true);
-              console.log('✅ Đã enroll vào course:', payment.productId);
             } catch (enrollErr) {
               const enrollErrorMsg = enrollErr.response?.data?.message || '';
-              console.log('Enroll error:', enrollErrorMsg);
-              // Nếu đã enroll rồi, vẫn hiển thị thành công
               if (
                 enrollErrorMsg.includes('đã đăng ký') ||
                 enrollErrorMsg.includes('already enrolled') ||
                 enrollErrorMsg.includes('already exists')
               ) {
                 setEnrolled(true);
-                console.log('✅ Course đã được enroll trước đó');
               } else {
-                // Lỗi enroll, nhưng vẫn hiển thị thanh toán thành công
-                // User có thể enroll thủ công sau
                 setEnrolled(false);
-                console.warn('⚠️ Không thể enroll, nhưng thanh toán thành công');
               }
             }
           }

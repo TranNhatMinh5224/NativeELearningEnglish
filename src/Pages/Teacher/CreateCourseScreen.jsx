@@ -60,7 +60,6 @@ const CreateCourseScreen = ({ route, navigation }) => {
       const packageLevel = user?.teacherSubscription?.packageLevel || user?.TeacherSubscription?.PackageLevel;
       
       if (!packageLevel) {
-        console.warn('No package level found, using default maxStudent = 0');
         setFormData(prev => ({ ...prev, maxStudent: 0 }));
         return;
       }
@@ -82,11 +81,9 @@ const CreateCourseScreen = ({ route, navigation }) => {
         const maxStudents = matchedPackage.maxStudents || matchedPackage.MaxStudents || 0;
         setFormData(prev => ({ ...prev, maxStudent: maxStudents }));
       } else {
-        console.warn(`No package found matching: "${packageLevel}", using default maxStudent = 0`);
         setFormData(prev => ({ ...prev, maxStudent: 0 }));
       }
     } catch (error) {
-      console.error('Load teacher info error:', error);
       setFormData(prev => ({ ...prev, maxStudent: 0 }));
     } finally {
       setFetchingProfile(false);
@@ -112,7 +109,6 @@ const CreateCourseScreen = ({ route, navigation }) => {
         setImage(result.assets[0]);
       }
     } catch (error) {
-      console.error('Pick image error:', error);
     }
   };
 
@@ -170,19 +166,26 @@ const CreateCourseScreen = ({ route, navigation }) => {
         Alert.alert(
           'Thành công',
           'Lớp học đã được cập nhật thành công!',
-          [{ text: 'OK', onPress: () => navigation.goBack() }]
+          [{ text: 'OK', onPress: () => {
+            if (navigation.canGoBack()) {
+              navigation.goBack();
+            }
+          }}]
         );
       } else {
         await teacherService.createCourse(payload);
         Alert.alert(
           'Thành công',
           'Lớp học đã được tạo thành công!',
-          [{ text: 'OK', onPress: () => navigation.goBack() }]
+          [{ text: 'OK', onPress: () => {
+            if (navigation.canGoBack()) {
+              navigation.goBack();
+            }
+          }}]
         );
       }
 
     } catch (error) {
-      console.error(isUpdateMode ? 'Update course error:' : 'Create course error:', error);
       const msg = error?.response?.data?.message || error?.message || 'Có lỗi xảy ra';
       setToast({ visible: true, message: msg, type: 'error' });
     } finally {

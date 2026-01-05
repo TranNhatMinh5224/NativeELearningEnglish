@@ -58,7 +58,6 @@ const ProfileScreen = ({ navigation }) => {
 
         // 3. Upload file tạm lên server
         const uploadRes = await fileService.uploadFile(selectedImage.uri, selectedImage.fileName || 'avatar.jpg');
-        console.log('Upload Result:', uploadRes);
         
        
         const tempKey = uploadRes?.data?.tempKey || uploadRes?.tempKey;
@@ -74,7 +73,6 @@ const ProfileScreen = ({ navigation }) => {
         await loadProfile(); // Reload lại dữ liệu user
       }
     } catch (error) {
-      console.error('Update avatar error:', error);
       setToast({ visible: true, message: 'Không thể cập nhật ảnh đại diện', type: 'error' });
     } finally {
       setUpdatingAvatar(false);

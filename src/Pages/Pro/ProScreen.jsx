@@ -63,9 +63,7 @@ const ProScreen = ({ navigation }) => {
       });
 
       setPackages(sortedPackages);
-    } catch (error) {
-      console.error('Load data error:', error);
-      // Fallback: sử dụng mock data nếu lỗi
+      } catch (error) {
       setPackages([
         {
           id: 1,
@@ -94,7 +92,7 @@ const ProScreen = ({ navigation }) => {
     }
   };
 
-    const handleUpgrade = async (packageItem) => {
+  const handleUpgrade = async (packageItem) => {
       // Tránh double click
       if (upgrading) return;
       
@@ -103,30 +101,14 @@ const ProScreen = ({ navigation }) => {
       try {
         setUpgrading(true);
         
-        // Bước 1: Kiểm tra trạng thái gói hiện tại của user
         const userResponse = await userService.getProfile();
         const currentUser = userResponse?.data?.data || userResponse?.data || userResponse;
         const subscription = currentUser?.TeacherSubscription || currentUser?.teacherSubscription;
         
-        // Debug: Log để kiểm tra cấu trúc dữ liệu
-        console.log('=== DEBUG SUBSCRIPTION CHECK ===');
-        console.log('Current User:', JSON.stringify(currentUser, null, 2));
-        console.log('Subscription:', JSON.stringify(subscription, null, 2));
-        
-        // Kiểm tra xem user đã có gói giáo viên đang hoạt động chưa
-        // UserTeacherSubscriptionDto chỉ có IsTeacher và PackageLevel
-        // IsTeacher = true nghĩa là có subscription đang active (Status == Active)
         if (subscription) {
           const isTeacher = subscription?.isTeacher === true || subscription?.IsTeacher === true;
           
-          console.log('=== DEBUG SUBSCRIPTION CHECK ===');
-          console.log('Subscription:', JSON.stringify(subscription, null, 2));
-          console.log('isTeacher:', isTeacher);
-          console.log('packageId (target):', packageId);
-          
-          // Nếu IsTeacher = true, nghĩa là đã có gói giáo viên đang hoạt động
           if (isTeacher) {
-            console.log('BLOCK: User has active subscription');
             Alert.alert(
               'Thông báo',
               'Bạn đã có gói giáo viên đang hoạt động. Vui lòng đợi gói hiện tại hết hạn trước khi nâng cấp.',
@@ -134,13 +116,7 @@ const ProScreen = ({ navigation }) => {
             );
             return;
           }
-        } else {
-          console.log('No subscription found');
         }
-        
-        console.log('ALLOW: Proceeding to payment');
-        
-        // Bước 2: Nếu chưa có gói đang hoạt động, mới navigate đến PaymentScreen để tạo link thanh toán
         const desc = `Tạo tối đa ${packageItem.maxCourses} khóa học, ${packageItem.maxLessons} bài học và hỗ trợ ${packageItem.maxStudents} học viên.`;
         navigation.navigate('Payment', { 
           packageId: packageId,
@@ -149,7 +125,6 @@ const ProScreen = ({ navigation }) => {
           price: packageItem.price || packageItem.Price
         });
       } catch (error) {
-        // Nếu không lấy được user info, vẫn tiếp tục (backend sẽ check)
         const desc = `Tạo tối đa ${packageItem.maxCourses} khóa học, ${packageItem.maxLessons} bài học và hỗ trợ ${packageItem.maxStudents} học viên.`;
         navigation.navigate('Payment', { 
           packageId: packageId,

@@ -52,11 +52,11 @@ const PronunciationCard = ({
   useEffect(() => {
     // Cleanup previous audio
     if (recordedSound) {
-      recordedSound.unloadAsync().catch(console.error);
+      recordedSound.unloadAsync().catch(() => {});
       setRecordedSound(null);
     }
     if (referenceSound) {
-      referenceSound.unloadAsync().catch(console.error);
+      referenceSound.unloadAsync().catch(() => {});
       setReferenceSound(null);
     }
 
@@ -75,13 +75,13 @@ const PronunciationCard = ({
     return () => {
       isMountedRef.current = false;
       if (recordedSound) {
-        recordedSound.unloadAsync().catch(console.error);
+        recordedSound.unloadAsync().catch(() => {});
       }
       if (referenceSound) {
-        referenceSound.unloadAsync().catch(console.error);
+        referenceSound.unloadAsync().catch(() => {});
       }
       if (recordingRef.current) {
-        recordingRef.current.stopAndUnloadAsync().catch(console.error);
+        recordingRef.current.stopAndUnloadAsync().catch(() => {});
       }
     };
   }, []);
@@ -108,7 +108,6 @@ const PronunciationCard = ({
       recordingRef.current = recording;
       setIsRecording(true);
     } catch (err) {
-      console.error('Error starting recording:', err);
       Alert.alert('Lỗi', 'Không thể bắt đầu ghi âm. Vui lòng thử lại.');
     }
   };
@@ -149,7 +148,6 @@ const PronunciationCard = ({
       // Clear recording ref AFTER processing
       recordingRef.current = null;
     } catch (err) {
-      console.error('❌ [PronunciationCard] Error stopping recording:', err);
       Alert.alert('Lỗi', 'Không thể dừng ghi âm. Vui lòng thử lại.');
       setIsRecording(false);
       if (recordingRef.current) {
@@ -160,7 +158,6 @@ const PronunciationCard = ({
 
   const handleProcessRecording = async (audioUri, audioDuration = null) => {
     if (!flashCardId) {
-      console.error('❌ [PronunciationCard] FlashCard ID is missing');
       return;
     }
 
@@ -244,11 +241,9 @@ const PronunciationCard = ({
         }
       } else {
         const finalErrorMessage = errorMessage || 'Không thể đánh giá phát âm';
-        console.error('❌ [PronunciationCard] Assessment failed:', finalErrorMessage);
         throw new Error(finalErrorMessage);
       }
     } catch (err) {
-      console.error('❌ [PronunciationCard] Error processing recording:', err);
       
       // Extract error message from various possible locations
       let errorMessage = 'Không thể xử lý bản ghi âm. Vui lòng thử lại.';
@@ -278,7 +273,7 @@ const PronunciationCard = ({
         if (status.isLoaded) {
           if (status.didJustFinish) {
             setIsPlayingRecorded(false);
-            sound.unloadAsync().catch(console.error);
+            sound.unloadAsync().catch(() => {});
             setRecordedSound(null);
           } else {
             setIsPlayingRecorded(status.isPlaying);
@@ -288,7 +283,6 @@ const PronunciationCard = ({
 
       await sound.playAsync();
     } catch (err) {
-      console.error('Error playing recorded audio:', err);
       Alert.alert('Lỗi', 'Không thể phát lại bản ghi âm');
     }
   };
@@ -322,7 +316,7 @@ const PronunciationCard = ({
         if (status.isLoaded) {
           if (status.didJustFinish) {
             setIsPlayingReference(false);
-            sound.unloadAsync().catch(console.error);
+            sound.unloadAsync().catch(() => {});
             setReferenceSound(null);
           } else {
             setIsPlayingReference(status.isPlaying);
@@ -332,7 +326,6 @@ const PronunciationCard = ({
 
       await sound.playAsync();
     } catch (err) {
-      console.error('Error playing reference audio:', err);
       // Silent fail - don't show alert
     }
   };

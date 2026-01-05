@@ -49,7 +49,6 @@ const FlashCardLearningScreen = ({ navigation, route }) => {
       
       setFlashcards(flashcardsData);
     } catch (error) {
-      console.error('Error loading flashcards:', error);
       Alert.alert('Lỗi', error?.response?.data?.message || 'Không thể tải danh sách từ vựng.');
     } finally {
       setLoading(false);
@@ -68,7 +67,6 @@ const FlashCardLearningScreen = ({ navigation, route }) => {
         await flashcardReviewService.startLearningModule(moduleId);
       } catch (reviewError) {
         // Log error nhưng không block việc hoàn thành module
-        console.error('Error adding flashcards to review system:', reviewError);
         // Có thể hiển thị warning nhưng vẫn cho phép hoàn thành
       }
 
@@ -79,7 +77,6 @@ const FlashCardLearningScreen = ({ navigation, route }) => {
         totalItems: flashcards.length,
       });
     } catch (error) {
-      console.error('Error completing module:', error);
       Alert.alert('Lỗi', 'Không thể lưu tiến độ học tập.');
     } finally {
       setCompleting(false);

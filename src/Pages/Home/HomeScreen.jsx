@@ -69,7 +69,7 @@ const HomeScreen = ({ navigation }) => {
         setUser(currentUser);
         
       
-        await streakService.checkIn().catch(err => console.log('Auto check-in failed:', err));
+        await streakService.checkIn().catch(() => {});
 
        
         await fetchUnreadCount();
@@ -84,14 +84,12 @@ const HomeScreen = ({ navigation }) => {
 
       // Load featured courses (public - không cần đăng nhập)
       const featuredCoursesRes = await courseService.getFeaturedCourses().catch((err) => {
-        console.error('Error loading featured courses:', err);
         return { data: [] };
       });
       
       const featuredCoursesData = featuredCoursesRes?.data || featuredCoursesRes || [];
       setFeaturedCourses(Array.isArray(featuredCoursesData) ? featuredCoursesData : []);
     } catch (error) {
-      console.error('Error loading data:', error);
       setFeaturedCourses([]);
     } finally {
       setLoading(false);

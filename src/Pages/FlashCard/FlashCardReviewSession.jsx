@@ -59,9 +59,10 @@ const FlashCardReviewSession = ({ navigation }) => {
       
       setCards(list);
     } catch (error) {
-      console.error('Error loading review cards:', error);
       Alert.alert('Lỗi', 'Không thể tải danh sách ôn tập.');
-      navigation.goBack();
+      if (navigation.canGoBack()) {
+        navigation.goBack();
+      }
     } finally {
       setLoading(false);
     }
@@ -88,7 +89,6 @@ const FlashCardReviewSession = ({ navigation }) => {
               reviewing: reviewingCount
           });
       } catch (error) {
-          console.error('Error fetching completion stats:', error);
       } finally {
           setLoadingStats(false);
           setIsFinished(true);
@@ -111,7 +111,6 @@ const FlashCardReviewSession = ({ navigation }) => {
         await fetchCompletionStats();
       }
     } catch (error) {
-      console.error('Review error:', error);
       Alert.alert('Lỗi', 'Không thể lưu kết quả ôn tập.');
     } finally {
       setSubmitting(false);
@@ -119,7 +118,9 @@ const FlashCardReviewSession = ({ navigation }) => {
   };
 
   const handleFinish = () => {
-    navigation.goBack();
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    }
   };
 
   if (loading || loadingStats) {

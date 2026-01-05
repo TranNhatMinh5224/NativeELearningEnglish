@@ -239,7 +239,6 @@ const QuizScreen = ({ route, navigation }) => {
           }
         } catch (error) {
           // If check fails, continue with start
-          console.log('No active attempt found, starting new quiz');
         }
       }
 
@@ -268,7 +267,11 @@ const QuizScreen = ({ route, navigation }) => {
       const isMaxAttemptsError =
         errorMessage.includes('hết lượt') ||
         errorMessage.toLowerCase().includes('max');
-      setTimeout(() => navigation.goBack(), isMaxAttemptsError ? 4000 : 2500);
+      setTimeout(() => {
+        if (navigation.canGoBack()) {
+          navigation.goBack();
+        }
+      }, isMaxAttemptsError ? 4000 : 2500);
     } finally {
       setLoading(false);
     }
@@ -288,7 +291,11 @@ const QuizScreen = ({ route, navigation }) => {
         message: 'Quiz không có câu hỏi. Vui lòng liên hệ giáo viên.',
         type: 'error',
       });
-      setTimeout(() => navigation.goBack(), 3000);
+      setTimeout(() => {
+        if (navigation.canGoBack()) {
+          navigation.goBack();
+        }
+      }, 3000);
       return;
     }
 
@@ -310,35 +317,19 @@ const QuizScreen = ({ route, navigation }) => {
         const quizResponse = await quizService.getQuizById(quizIdToFetch);
         const quizData = getResponseData(quizResponse);
         duration = quizData?.Duration || quizData?.duration || quizData?.TimeLimit || quizData?.timeLimit;
-        console.log('[QuizScreen] Fetched quiz separately for duration:', duration);
       } catch (error) {
-        console.log('[QuizScreen] Error fetching quiz for duration:', error);
       }
     }
     
-    console.log('[QuizScreen] startQuiz - duration check:', {
-      duration,
-      quizId: quizIdForDuration || quizId,
-      quizInfo,
-      dtoKeys: Object.keys(dto || {}),
-    });
     
     // Setup timer
     if (duration && duration > 0) {
       const startedAtValue = new Date(dto?.startedAt || dto?.StartedAt);
       const endTimeValue = new Date(startedAtValue.getTime() + duration * 60 * 1000);
       
-      console.log('[QuizScreen] Setting timer:', {
-        duration,
-        startedAt: startedAtValue,
-        endTime: endTimeValue,
-      });
-      
       setTimeLimit(duration);
       setStartedAt(startedAtValue);
       setEndTime(endTimeValue);
-    } else {
-      console.log('[QuizScreen] No duration found, timer will not be displayed');
     }
 
     setAttemptId(attemptIdValue);
@@ -361,7 +352,11 @@ const QuizScreen = ({ route, navigation }) => {
         message: 'Quiz không có câu hỏi. Vui lòng liên hệ giáo viên.',
         type: 'error',
       });
-      setTimeout(() => navigation.goBack(), 3000);
+      setTimeout(() => {
+        if (navigation.canGoBack()) {
+          navigation.goBack();
+        }
+      }, 3000);
       return;
     }
 
@@ -386,18 +381,9 @@ const QuizScreen = ({ route, navigation }) => {
         const quizResponse = await quizService.getQuizById(quizIdValue);
         const quizData = getResponseData(quizResponse);
         duration = quizData?.Duration || quizData?.duration || quizData?.TimeLimit || quizData?.timeLimit;
-        console.log('[QuizScreen] Fetched quiz separately for duration (resume):', duration);
       } catch (error) {
-        console.log('[QuizScreen] Error fetching quiz for duration (resume):', error);
       }
     }
-    
-    console.log('[QuizScreen] resumeQuiz - duration check:', {
-      duration,
-      quizId: quizIdValue,
-      quizInfo,
-      dtoKeys: Object.keys(dto || {}),
-    });
     
     // Setup timer
     if (duration && duration > 0) {
@@ -406,17 +392,9 @@ const QuizScreen = ({ route, navigation }) => {
         ? new Date(dto.endTime || dto.EndTime)
         : new Date(startedAtValue.getTime() + duration * 60 * 1000);
       
-      console.log('[QuizScreen] Setting timer (resume):', {
-        duration,
-        startedAt: startedAtValue,
-        endTime: endTimeValue,
-      });
-      
       setTimeLimit(duration);
       setStartedAt(startedAtValue);
       setEndTime(endTimeValue);
-    } else {
-      console.log('[QuizScreen] No duration found (resume), timer will not be displayed');
     }
 
     setAttemptId(attemptIdValue);
@@ -470,7 +448,6 @@ const QuizScreen = ({ route, navigation }) => {
       try {
         await quizService.saveAnswer(attemptId, questionId, newAnswers);
       } catch (error) {
-        console.error('Error saving multiple answers:', error);
       }
       return;
     }
@@ -485,7 +462,6 @@ const QuizScreen = ({ route, navigation }) => {
     try {
       await quizService.saveAnswer(attemptId, questionId, answerId);
     } catch (error) {
-      console.error('Error saving answer:', error);
       // Không hiển thị toast lỗi để không làm phiền user
     }
   };
@@ -500,7 +476,6 @@ const QuizScreen = ({ route, navigation }) => {
     try {
       await quizService.saveAnswer(attemptId, questionId, matches);
     } catch (error) {
-      console.error('Error saving matching answer:', error);
     }
   };
 
@@ -514,7 +489,6 @@ const QuizScreen = ({ route, navigation }) => {
     try {
       await quizService.saveAnswer(attemptId, questionId, orderedIds);
     } catch (error) {
-      console.error('Error saving ordering answer:', error);
     }
   };
 
@@ -529,7 +503,6 @@ const QuizScreen = ({ route, navigation }) => {
     try {
       await quizService.saveAnswer(attemptId, questionId, textAnswer);
     } catch (error) {
-      console.error('Error saving text answer:', error);
       // Không hiển thị toast lỗi để không làm phiền user
     }
   };
@@ -795,7 +768,6 @@ const QuizScreen = ({ route, navigation }) => {
         leftTexts = metadata.left || [];
         rightTexts = metadata.right || [];
       } catch (e) {
-        console.error('Error parsing metadata for Matching:', e);
       }
 
       // Determine left and right options
@@ -1011,7 +983,6 @@ const QuizScreen = ({ route, navigation }) => {
             });
             return ordered.length > 0 ? ordered : [...answers];
           } catch (e) {
-            console.error('Error initializing ordering options:', e);
             return [...answers];
           }
         }

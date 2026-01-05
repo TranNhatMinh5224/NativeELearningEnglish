@@ -111,7 +111,6 @@ const EssayScreen = ({ route, navigation }) => {
                   const storageKey = `essay_file_name_${subId}`;
                   savedFileName = await AsyncStorage.getItem(storageKey);
                 } catch (error) {
-                  console.error('Error reading file name from storage:', error);
                 }
                 
                 // Extract file name from URL
@@ -133,7 +132,6 @@ const EssayScreen = ({ route, navigation }) => {
                     extractedFileName = decodedFileName;
                   }
                 } catch (error) {
-                  console.error('Error extracting file name from URL:', error);
                 }
                 
                 // Ưu tiên: savedFileName > extractedFileName > uploadedFileName > fallback
@@ -145,10 +143,8 @@ const EssayScreen = ({ route, navigation }) => {
         }
       } catch (statusError) {
         // No submission exists yet, that's fine
-        console.log('ℹ️ No existing submission found');
       }
     } catch (error) {
-      console.error('❌ Error loading essay:', error);
       setToast({
         visible: true,
         message: error?.message || 'Không thể tải bài essay',
@@ -180,7 +176,6 @@ const EssayScreen = ({ route, navigation }) => {
         await handleUploadFile(file);
       }
     } catch (error) {
-      console.error('Error picking document:', error);
       setToast({
         visible: true,
         message: 'Không thể chọn file. Vui lòng thử lại.',
@@ -237,7 +232,6 @@ const EssayScreen = ({ route, navigation }) => {
         throw new Error('Không thể upload file');
       }
     } catch (error) {
-      console.error('Error uploading file:', error);
       setToast({
         visible: true,
         message: error?.message || 'Không thể upload file. Vui lòng thử lại.',
@@ -295,7 +289,6 @@ const EssayScreen = ({ route, navigation }) => {
         setIsPlaying(true);
       }
     } catch (error) {
-      console.error('Error playing audio:', error);
       setToast({
         visible: true,
         message: 'Không thể phát âm thanh. Vui lòng thử lại.',
@@ -378,7 +371,6 @@ const EssayScreen = ({ route, navigation }) => {
             await AsyncStorage.setItem(storageKey, uploadedFileName);
           }
         } catch (error) {
-          console.error('Error saving file name to storage:', error);
         }
       }
       
@@ -389,7 +381,9 @@ const EssayScreen = ({ route, navigation }) => {
       });
       
       setTimeout(() => {
-        navigation.goBack();
+        if (navigation.canGoBack()) {
+          navigation.goBack();
+        }
       }, 1500);
     } catch (error) {
       // Parse validation errors from backend
@@ -469,7 +463,6 @@ const EssayScreen = ({ route, navigation }) => {
           // Cập nhật state ngay để hiển thị
           setExistingAttachmentFileName(uploadedFileName);
         } catch (error) {
-          console.error('Error saving file name to storage:', error);
         }
       }
       
@@ -567,7 +560,6 @@ const EssayScreen = ({ route, navigation }) => {
         loadEssay();
       }, 1000);
     } catch (error) {
-      console.error('Error deleting essay:', error);
       setToast({
         visible: true,
         message: error?.message || 'Không thể xóa bài',

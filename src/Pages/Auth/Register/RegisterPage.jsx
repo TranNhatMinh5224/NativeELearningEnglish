@@ -166,7 +166,6 @@ const RegisterPage = ({ navigation }) => {
         IsMale: formData.gender === 'Nam'
       };
       
-      console.log('Register payload:', userData);
 
       const response = await authService.register(userData);
       
@@ -183,7 +182,6 @@ const RegisterPage = ({ navigation }) => {
         });
       }, 1500);
     } catch (error) {
-      console.error('Register Error Detail:', error);
 
       // Parse error message (Backend trả về ServiceResponse hoặc Validation errors)
       let errorMessage = 'Đăng ký thất bại. Vui lòng thử lại.';
