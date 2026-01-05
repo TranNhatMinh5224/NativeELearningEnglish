@@ -74,7 +74,11 @@ const TeacherQuizAttemptDetailScreen = ({ route, navigation }) => {
           <View style={styles.headerTop}>
             <TouchableOpacity
               style={styles.backButton}
-              onPress={() => navigation.goBack()}
+              onPress={() => {
+                if (navigation.canGoBack()) {
+                  navigation.goBack();
+                }
+              }}
             >
               <Ionicons name="arrow-back" size={scale(24)} color="#FFFFFF" />
             </TouchableOpacity>
@@ -128,6 +132,106 @@ const TeacherQuizAttemptDetailScreen = ({ route, navigation }) => {
       hour: '2-digit',
       minute: '2-digit',
     });
+  };
+
+  const getQuestionTypeText = (type) => {
+    const typeMap = {
+      'MultipleChoice': 'MultipleChoice',
+      'MultipleAnswers': 'MultipleAnswers',
+      'TrueFalse': 'TrueFalse',
+      'FillBlank': 'FillBlank',
+      'Matching': 'Matching',
+      'Ordering': 'Ordering',
+    };
+    return typeMap[type] || type || 'N/A';
+  };
+
+  const renderQuestionDetail = (question, index) => {
+    const questionId = question.questionId || question.QuestionId;
+    const questionText = question.questionText || question.QuestionText || '';
+    const questionType = question.type || question.Type || '';
+    const points = question.points || question.Points || 0;
+    const score = question.score || question.Score || 0;
+    const isCorrect = question.isCorrect || question.IsCorrect || false;
+    const userAnswerText = question.userAnswerText || question.UserAnswerText || 'Chưa trả lời';
+    const correctAnswerText = question.correctAnswerText || question.CorrectAnswerText || '';
+    const options = question.options || question.Options || [];
+
+    return (
+      <View key={questionId || index} style={styles.questionCard}>
+        <View style={styles.questionHeader}>
+          <View style={styles.questionHeaderLeft}>
+            <View style={styles.questionNumberBadge}>
+              <Text style={styles.questionNumberText}>Câu {index + 1}</Text>
+            </View>
+            <View style={styles.questionTypeBadge}>
+              <Text style={styles.questionTypeText}>{getQuestionTypeText(questionType)}</Text>
+            </View>
+            <View style={[styles.questionStatusBadge, isCorrect ? styles.questionStatusCorrect : styles.questionStatusIncorrect]}>
+              <Ionicons
+                name={isCorrect ? 'checkmark-circle' : 'close-circle'}
+                size={scale(14)}
+                color={isCorrect ? colors.success : colors.error}
+              />
+              <Text style={[styles.questionStatusText, isCorrect ? styles.questionStatusTextCorrect : styles.questionStatusTextIncorrect]}>
+                {isCorrect ? 'Đúng' : 'Sai'}
+              </Text>
+            </View>
+          </View>
+          <View style={styles.questionScoreBadge}>
+            <Text style={styles.questionScoreText}>
+              {score.toFixed(1)}/{points.toFixed(1)} điểm
+            </Text>
+          </View>
+        </View>
+
+        <Text style={styles.questionText}>{questionText}</Text>
+
+        {options.length > 0 && (
+          <View style={styles.optionsContainer}>
+            <Text style={styles.optionsLabel}>Các lựa chọn:</Text>
+            {options.map((option, optIndex) => {
+              const optionId = option.optionId || option.OptionId;
+              const optionText = option.optionText || option.OptionText || '';
+              const isOptionCorrect = option.isCorrect || option.IsCorrect || false;
+              const isSelected = option.isSelected || option.IsSelected || false;
+
+              return (
+                <View
+                  key={optionId || optIndex}
+                  style={[
+                    styles.optionItem,
+                    isOptionCorrect && styles.optionItemCorrect,
+                  ]}
+                >
+                  <Text style={styles.optionText}>{optionText}</Text>
+                  {isOptionCorrect && (
+                    <View style={styles.correctIndicator} />
+                  )}
+                </View>
+              );
+            })}
+          </View>
+        )}
+
+        <View style={styles.answerSection}>
+          <View style={styles.answerRow}>
+            <Text style={styles.answerLabel}>Đáp án của học sinh:</Text>
+            <Text style={[styles.answerValue, !isCorrect && styles.answerValueIncorrect]}>
+              {userAnswerText}
+            </Text>
+          </View>
+          {correctAnswerText && (
+            <View style={styles.answerRow}>
+              <Text style={styles.answerLabel}>Đáp án đúng:</Text>
+              <Text style={[styles.answerValue, styles.answerValueCorrect]}>
+                {correctAnswerText}
+              </Text>
+            </View>
+          )}
+        </View>
+      </View>
+    );
   };
 
   return (
@@ -249,6 +353,25 @@ const TeacherQuizAttemptDetailScreen = ({ route, navigation }) => {
             </View>
           </View>
         </View>
+
+        {/* Questions Detail Section */}
+        {(() => {
+          const questions = attemptDetail?.Questions || attemptDetail?.questions || [];
+          if (Array.isArray(questions) && questions.length > 0) {
+            return (
+              <View style={styles.card}>
+                <View style={styles.cardHeader}>
+                  <Ionicons name="list" size={scale(20)} color={colors.primary} />
+                  <Text style={styles.cardTitle}>Chi tiết câu hỏi</Text>
+                </View>
+                {questions.map((question, index) => {
+                  return renderQuestionDetail(question, index);
+                })}
+              </View>
+            );
+          }
+          return null;
+        })()}
       </ScrollView>
 
       {toast.visible && (
@@ -424,6 +547,157 @@ const styles = StyleSheet.create({
     fontSize: scale(14),
     color: colors.textSecondary,
     marginTop: 16,
+  },
+  questionCard: {
+    marginTop: scale(16),
+    padding: scale(16),
+    borderRadius: scale(12),
+    backgroundColor: colors.surface,
+    borderLeftWidth: 4,
+    borderLeftColor: colors.border,
+  },
+  questionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: scale(12),
+  },
+  questionHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: scale(8),
+    flex: 1,
+    flexWrap: 'wrap',
+  },
+  questionNumberBadge: {
+    backgroundColor: colors.primary + '15',
+    paddingHorizontal: scale(10),
+    paddingVertical: verticalScale(4),
+    borderRadius: scale(6),
+  },
+  questionNumberText: {
+    fontSize: scale(12),
+    fontWeight: '600',
+    color: colors.primary,
+  },
+  questionTypeBadge: {
+    backgroundColor: colors.textSecondary + '15',
+    paddingHorizontal: scale(10),
+    paddingVertical: verticalScale(4),
+    borderRadius: scale(6),
+  },
+  questionTypeText: {
+    fontSize: scale(11),
+    fontWeight: '500',
+    color: colors.textSecondary,
+  },
+  questionStatusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: scale(8),
+    paddingVertical: verticalScale(4),
+    borderRadius: scale(6),
+    gap: scale(4),
+  },
+  questionStatusCorrect: {
+    backgroundColor: colors.success + '15',
+  },
+  questionStatusIncorrect: {
+    backgroundColor: colors.error + '15',
+  },
+  questionStatusText: {
+    fontSize: scale(11),
+    fontWeight: '600',
+  },
+  questionStatusTextCorrect: {
+    color: colors.success,
+  },
+  questionStatusTextIncorrect: {
+    color: colors.error,
+  },
+  questionScoreBadge: {
+    backgroundColor: colors.textSecondary + '10',
+    paddingHorizontal: scale(10),
+    paddingVertical: verticalScale(4),
+    borderRadius: scale(6),
+  },
+  questionScoreText: {
+    fontSize: scale(12),
+    fontWeight: '600',
+    color: colors.text,
+  },
+  questionText: {
+    fontSize: scale(15),
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: scale(12),
+    lineHeight: scale(22),
+  },
+  optionsContainer: {
+    marginBottom: scale(12),
+  },
+  optionsLabel: {
+    fontSize: scale(13),
+    fontWeight: '600',
+    color: colors.textSecondary,
+    marginBottom: scale(8),
+  },
+  optionItem: {
+    padding: scale(12),
+    borderRadius: scale(8),
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    marginBottom: scale(8),
+    position: 'relative',
+  },
+  optionItemCorrect: {
+    borderColor: colors.success,
+    backgroundColor: colors.success + '08',
+  },
+  optionText: {
+    fontSize: scale(14),
+    color: colors.text,
+  },
+  correctIndicator: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 2,
+    backgroundColor: colors.success,
+  },
+  answerSection: {
+    marginTop: scale(12),
+    paddingTop: scale(12),
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    gap: scale(8),
+  },
+  answerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
+  answerLabel: {
+    fontSize: scale(13),
+    color: colors.textSecondary,
+    fontWeight: '600',
+    flex: 1,
+  },
+  answerValue: {
+    fontSize: scale(13),
+    color: colors.text,
+    fontWeight: '500',
+    flex: 2,
+    textAlign: 'right',
+  },
+  answerValueIncorrect: {
+    color: colors.error,
+  },
+  answerValueCorrect: {
+    color: colors.success,
+    fontWeight: '600',
   },
 });
 

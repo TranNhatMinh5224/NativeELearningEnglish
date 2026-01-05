@@ -232,7 +232,7 @@ const QuizScreen = ({ route, navigation }) => {
           if (activeAttemptData?.hasActiveAttempt || activeAttemptData?.HasActiveAttempt) {
             const activeAttemptId = activeAttemptData?.attemptId || activeAttemptData?.AttemptId;
             if (activeAttemptId) {
-              // Resume active attempt
+              // Resume active attempt (load lại answers đã lưu)
               await resumeQuiz(activeAttemptId);
               return;
             }
@@ -243,6 +243,8 @@ const QuizScreen = ({ route, navigation }) => {
       }
 
       // Start new quiz attempt
+      // Backend sẽ tự động xử lý: nếu có attempt cũ chưa submit, sẽ tạo attempt mới
+      // Mỗi quiz chỉ có 1 active attempt tại một thời điểm
       await startQuiz(quizId, quizIdForDuration);
     } catch (error) {
       let errorMessage = 'Không thể bắt đầu quiz';
@@ -310,13 +312,15 @@ const QuizScreen = ({ route, navigation }) => {
       quizInfo?.TimeLimit ||
       quizInfo?.timeLimit;
     
-    // Nếu không có duration trong DTO, thử fetch quiz riêng
-    if (!duration && (quizIdForDuration || quizId)) {
+    // Fetch quiz để lấy đầy đủ thông tin (duration, etc.)
+    let fullQuizData = quizInfo || dto;
+    if (quizIdForDuration || quizId) {
       try {
         const quizIdToFetch = quizIdForDuration || quizId;
         const quizResponse = await quizService.getQuizById(quizIdToFetch);
         const quizData = getResponseData(quizResponse);
-        duration = quizData?.Duration || quizData?.duration || quizData?.TimeLimit || quizData?.timeLimit;
+        duration = duration || quizData?.Duration || quizData?.duration || quizData?.TimeLimit || quizData?.timeLimit;
+        fullQuizData = { ...fullQuizData, ...quizData };
       } catch (error) {
       }
     }
@@ -334,7 +338,13 @@ const QuizScreen = ({ route, navigation }) => {
 
     setAttemptId(attemptIdValue);
     setQuestions(questionsData);
-    setQuiz(quizInfo || dto);
+    setQuiz(fullQuizData);
+    
+    // Reset matching và ordering states khi start quiz mới
+    setMatchingMatches({});
+    setOrderingOptions({});
+    setMatchingSelectedLeft({});
+    setMatchingSelectedRight({});
   };
 
   const resumeQuiz = async (attemptIdToResume) => {
@@ -360,9 +370,170 @@ const QuizScreen = ({ route, navigation }) => {
       return;
     }
 
-    // Load saved answers
+    // Load saved answers (bao gồm cả Matching và Ordering)
     const savedAnswers = loadSavedAnswers(sections);
     setSelectedAnswers(savedAnswers);
+    
+    // Load saved matching và ordering answers
+    const savedMatchingMatches = {};
+    const savedOrderingOptions = {};
+    
+    sections.forEach((section) => {
+      const items = section?.Items || section?.items;
+      if (Array.isArray(items) && items.length > 0) {
+        items.forEach((item) => {
+          const type = item?.ItemType || item?.itemType;
+          if (type === 'Question') {
+            const questionId = item?.QuestionId || item?.questionId;
+            const questionType = item?.Type || item?.type;
+            const userAnswer = item?.UserAnswer !== undefined ? item.UserAnswer : (item?.userAnswer !== undefined ? item.userAnswer : null);
+            
+            if (questionId && userAnswer !== null && userAnswer !== undefined) {
+              // Matching question (Type = 5)
+              if (questionType === 5 && typeof userAnswer === 'object' && !Array.isArray(userAnswer)) {
+                savedMatchingMatches[questionId] = userAnswer;
+              }
+              // Ordering question (Type = 6)
+              if (questionType === 6 && Array.isArray(userAnswer)) {
+                // Load ordering từ userAnswer (array of IDs)
+                const allOptions = item?.Options || item?.options || [];
+                const orderedOptions = userAnswer.map(id => {
+                  return allOptions.find(opt => {
+                    const optId = opt?.AnswerId || opt?.answerId || opt?.OptionId || opt?.optionId;
+                    return optId === id;
+                  });
+                }).filter(item => item !== undefined && item !== null);
+                
+                // Thêm các options chưa được order
+                const orderedIds = new Set(userAnswer);
+                allOptions.forEach(opt => {
+                  const optId = opt?.AnswerId || opt?.answerId || opt?.OptionId || opt?.optionId;
+                  if (!orderedIds.has(optId)) {
+                    orderedOptions.push(opt);
+                  }
+                });
+                
+                if (orderedOptions.length > 0) {
+                  savedOrderingOptions[questionId] = orderedOptions;
+                }
+              }
+            }
+          } else if (type === 'Group') {
+            const groupQuestions = item?.Questions || item?.questions || [];
+            groupQuestions.forEach((q) => {
+              const questionId = q?.QuestionId || q?.questionId;
+              const questionType = q?.Type || q?.type;
+              const userAnswer = q?.UserAnswer !== undefined ? q.UserAnswer : (q?.userAnswer !== undefined ? q.userAnswer : null);
+              
+              if (questionId && userAnswer !== null && userAnswer !== undefined) {
+                // Matching question
+                if (questionType === 5 && typeof userAnswer === 'object' && !Array.isArray(userAnswer)) {
+                  savedMatchingMatches[questionId] = userAnswer;
+                }
+                // Ordering question
+                if (questionType === 6 && Array.isArray(userAnswer)) {
+                  const allOptions = q?.Options || q?.options || [];
+                  const orderedOptions = userAnswer.map(id => {
+                    return allOptions.find(opt => {
+                      const optId = opt?.AnswerId || opt?.answerId || opt?.OptionId || opt?.optionId;
+                      return optId === id;
+                    });
+                  }).filter(item => item !== undefined && item !== null);
+                  
+                  const orderedIds = new Set(userAnswer);
+                  allOptions.forEach(opt => {
+                    const optId = opt?.AnswerId || opt?.answerId || opt?.OptionId || opt?.optionId;
+                    if (!orderedIds.has(optId)) {
+                      orderedOptions.push(opt);
+                    }
+                  });
+                  
+                  if (orderedOptions.length > 0) {
+                    savedOrderingOptions[questionId] = orderedOptions;
+                  }
+                }
+              }
+            });
+          }
+        });
+      } else {
+        // Legacy structure
+        const questions = section?.Questions || section?.questions || [];
+        const groups = section?.QuizGroups || section?.quizGroups || [];
+        
+        questions.forEach((q) => {
+          const questionId = q?.QuestionId || q?.questionId;
+          const questionType = q?.Type || q?.type;
+          const userAnswer = q?.UserAnswer !== undefined ? q.UserAnswer : (q?.userAnswer !== undefined ? q.userAnswer : null);
+          
+          if (questionId && userAnswer !== null && userAnswer !== undefined) {
+            if (questionType === 5 && typeof userAnswer === 'object' && !Array.isArray(userAnswer)) {
+              savedMatchingMatches[questionId] = userAnswer;
+            }
+            if (questionType === 6 && Array.isArray(userAnswer)) {
+              const allOptions = q?.Options || q?.options || [];
+              const orderedOptions = userAnswer.map(id => {
+                return allOptions.find(opt => {
+                  const optId = opt?.AnswerId || opt?.answerId || opt?.OptionId || opt?.optionId;
+                  return optId === id;
+                });
+              }).filter(item => item !== undefined && item !== null);
+              
+              const orderedIds = new Set(userAnswer);
+              allOptions.forEach(opt => {
+                const optId = opt?.AnswerId || opt?.answerId || opt?.OptionId || opt?.optionId;
+                if (!orderedIds.has(optId)) {
+                  orderedOptions.push(opt);
+                }
+              });
+              
+              if (orderedOptions.length > 0) {
+                savedOrderingOptions[questionId] = orderedOptions;
+              }
+            }
+          }
+        });
+        
+        groups.forEach((group) => {
+          const groupQuestions = group?.Questions || group?.questions || [];
+          groupQuestions.forEach((q) => {
+            const questionId = q?.QuestionId || q?.questionId;
+            const questionType = q?.Type || q?.type;
+            const userAnswer = q?.UserAnswer !== undefined ? q.UserAnswer : (q?.userAnswer !== undefined ? q.userAnswer : null);
+            
+            if (questionId && userAnswer !== null && userAnswer !== undefined) {
+              if (questionType === 5 && typeof userAnswer === 'object' && !Array.isArray(userAnswer)) {
+                savedMatchingMatches[questionId] = userAnswer;
+              }
+              if (questionType === 6 && Array.isArray(userAnswer)) {
+                const allOptions = q?.Options || q?.options || [];
+                const orderedOptions = userAnswer.map(id => {
+                  return allOptions.find(opt => {
+                    const optId = opt?.AnswerId || opt?.answerId || opt?.OptionId || opt?.optionId;
+                    return optId === id;
+                  });
+                }).filter(item => item !== undefined && item !== null);
+                
+                const orderedIds = new Set(userAnswer);
+                allOptions.forEach(opt => {
+                  const optId = opt?.AnswerId || opt?.answerId || opt?.OptionId || opt?.optionId;
+                  if (!orderedIds.has(optId)) {
+                    orderedOptions.push(opt);
+                  }
+                });
+                
+                if (orderedOptions.length > 0) {
+                  savedOrderingOptions[questionId] = orderedOptions;
+                }
+              }
+            }
+          });
+        });
+      }
+    });
+    
+    setMatchingMatches(savedMatchingMatches);
+    setOrderingOptions(savedOrderingOptions);
 
     // Get quiz info for duration
     // Backend không trả về quiz object trong DTO, nên cần fetch quiz riêng
@@ -375,12 +546,14 @@ const QuizScreen = ({ route, navigation }) => {
       quizInfo?.TimeLimit ||
       quizInfo?.timeLimit;
     
-    // Nếu không có duration trong DTO, thử fetch quiz riêng
-    if (!duration && quizIdValue) {
+    // Fetch quiz để lấy đầy đủ thông tin (duration, etc.)
+    let fullQuizData = quizInfo || dto;
+    if (quizIdValue) {
       try {
         const quizResponse = await quizService.getQuizById(quizIdValue);
         const quizData = getResponseData(quizResponse);
-        duration = quizData?.Duration || quizData?.duration || quizData?.TimeLimit || quizData?.timeLimit;
+        duration = duration || quizData?.Duration || quizData?.duration || quizData?.TimeLimit || quizData?.timeLimit;
+        fullQuizData = { ...fullQuizData, ...quizData };
       } catch (error) {
       }
     }
@@ -399,7 +572,7 @@ const QuizScreen = ({ route, navigation }) => {
 
     setAttemptId(attemptIdValue);
     setQuestions(questionsData);
-    setQuiz(quizInfo || dto);
+    setQuiz(fullQuizData);
   };
 
   const handleTimeUp = () => {
@@ -556,6 +729,8 @@ const QuizScreen = ({ route, navigation }) => {
       const percentage = result?.percentage ?? result?.Percentage ?? 0;
       const timeSpentSeconds = result?.timeSpentSeconds ?? result?.TimeSpentSeconds ?? 0;
       const scoresByQuestion = result?.scoresByQuestion || result?.ScoresByQuestion || {};
+      const attemptIdFromResult = result?.attemptId || result?.AttemptId || attemptId;
+
 
       const totalQuestions = questions.length || (scoresByQuestion ? Object.keys(scoresByQuestion).length : 0);
 
@@ -576,6 +751,7 @@ const QuizScreen = ({ route, navigation }) => {
         percentage,
         isPassed,
         timeSpentSeconds,
+        attemptId: attemptIdFromResult,
       });
     } catch (error) {
       setToast({
