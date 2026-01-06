@@ -67,7 +67,6 @@ const LessonDetailScreen = ({ route, navigation }) => {
       
       setModules(sortedModules);
     } catch (error) {
-      console.error('Error loading lesson detail:', error);
       setToast({
         visible: true,
         message: error?.response?.data?.message || 'Không thể tải dữ liệu bài học',
@@ -81,14 +80,12 @@ const LessonDetailScreen = ({ route, navigation }) => {
   const handleModulePress = async (module) => {
     const rawModuleId = module.ModuleId || module.moduleId;
     if (!rawModuleId) {
-      console.error('Module ID is missing');
       return;
     }
 
     // Parse moduleId to number
     const moduleId = typeof rawModuleId === 'string' ? parseInt(rawModuleId) : rawModuleId;
     if (!moduleId || isNaN(moduleId)) {
-      console.error('Invalid module ID:', rawModuleId);
       return;
     }
 
@@ -150,11 +147,9 @@ const LessonDetailScreen = ({ route, navigation }) => {
         
         setModules(sortedModules);
       } catch (refreshErr) {
-        console.error('Error refreshing modules list:', refreshErr);
         // Continue navigation even if refresh fails
       }
     } catch (err) {
-      console.error(`Error starting module ${moduleId}:`, err);
       // Still continue navigation even if API fails
     }
 
@@ -208,7 +203,6 @@ const LessonDetailScreen = ({ route, navigation }) => {
     const moduleName = module?.Name || module?.name || 'Module';
     
     if (!moduleId) {
-      console.error('Module ID is missing');
       return;
     }
 

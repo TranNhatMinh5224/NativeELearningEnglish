@@ -83,13 +83,11 @@ const FlashCardItem = ({ card, active }) => {
       );
       setSound(newSound);
     } catch (error) {
-      console.log('Error playing audio', error);
     }
   };
 
   const startRecording = async () => {
     try {
-      console.log('Starting recording...');
       await Audio.setAudioModeAsync({
         allowsRecordingIOS: true,
         playsInSilentModeIOS: true,
@@ -125,7 +123,6 @@ const FlashCardItem = ({ card, active }) => {
       setIsRecording(true);
       setScore(null);
     } catch (err) {
-      console.error('Failed to start recording', err);
       Alert.alert('Lỗi', 'Không thể khởi động Micro');
     }
   };
@@ -154,7 +151,6 @@ const FlashCardItem = ({ card, active }) => {
           setScore(result.accuracyScore || result.pronunciationScore || 0);
       }
     } catch (error) {
-      console.error('Assessment error:', error);
       const msg = error?.response?.data?.message || error?.message || 'Lỗi chấm điểm';
       Alert.alert('Lỗi', msg);
     } finally {

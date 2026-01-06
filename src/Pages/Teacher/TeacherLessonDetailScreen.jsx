@@ -47,7 +47,6 @@ const TeacherLessonDetailScreen = ({ route, navigation }) => {
       const data = getResponseData(response);
       setLesson(data);
     } catch (error) {
-      console.error('Error loading lesson detail:', error);
       Toast.show('Không thể tải thông tin bài học', 'error');
     }
   };
@@ -74,7 +73,6 @@ const TeacherLessonDetailScreen = ({ route, navigation }) => {
             }
             return module;
           } catch (err) {
-            console.error(`Error fetching module ${module.moduleId || module.ModuleId} detail:`, err);
             return module;
           }
         })
@@ -82,7 +80,6 @@ const TeacherLessonDetailScreen = ({ route, navigation }) => {
 
       setModules(modulesWithImages);
     } catch (error) {
-      console.error('Error loading modules:', error);
       Toast.show('Không thể tải danh sách modules', 'error');
     } finally {
       setLoading(false);
@@ -135,7 +132,6 @@ const TeacherLessonDetailScreen = ({ route, navigation }) => {
               Toast.show('Đã xóa module thành công', 'success');
               loadModules();
             } catch (error) {
-              console.error('Error deleting module:', error);
               const errorMessage = error?.message || error?.Message || 'Không thể xóa module';
               Toast.show(errorMessage, 'error');
             }
@@ -163,9 +159,10 @@ const TeacherLessonDetailScreen = ({ route, navigation }) => {
             try {
               await teacherService.deleteLesson(lessonId);
               Toast.show('Đã xóa bài học thành công', 'success');
-              navigation.goBack();
+              if (navigation.canGoBack()) {
+                navigation.goBack();
+              }
             } catch (error) {
-              console.error('Error deleting lesson:', error);
               const errorMessage = error?.message || error?.Message || 'Không thể xóa bài học';
               Toast.show(errorMessage, 'error');
             }

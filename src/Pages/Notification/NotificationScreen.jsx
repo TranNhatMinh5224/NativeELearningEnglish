@@ -37,7 +37,6 @@ const NotificationScreen = ({ navigation }) => {
         setNotifications(response.data || []);
       }
     } catch (error) {
-      console.error('Error loading notifications:', error);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -59,7 +58,6 @@ const NotificationScreen = ({ navigation }) => {
         prev.map(n => n.id === item.id ? { ...n, isRead: true } : n)
       );
     } catch (error) {
-      console.error(error);
     }
   };
 
@@ -68,7 +66,6 @@ const NotificationScreen = ({ navigation }) => {
       await notificationService.markAllAsRead();
       setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
     } catch (error) {
-      console.error(error);
     }
   };
 

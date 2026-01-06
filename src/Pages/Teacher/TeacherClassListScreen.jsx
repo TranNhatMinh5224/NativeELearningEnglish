@@ -29,7 +29,6 @@ const TeacherClassListScreen = ({ navigation }) => {
       const coursesList = response?.data?.items || response?.items || response?.data || [];
       setCourses(coursesList);
     } catch (error) {
-      console.error('Error loading teacher courses:', error);
     } finally {
       setLoading(false);
     }

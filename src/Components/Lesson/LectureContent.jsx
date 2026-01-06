@@ -32,20 +32,6 @@ const LectureContent = ({ lecture, onComplete }) => {
   const mediaKey = lecture?.MediaKey || lecture?.mediaKey || lecture?.MediaUrl || lecture?.mediaUrl;
   const mediaType = lecture?.MediaType || lecture?.mediaType;
   
-  // Debug log để kiểm tra
-  useEffect(() => {
-    if (lecture) {
-      console.log('📄 LectureContent - Lecture data:', {
-        hasRenderedHtml: !!(lecture.RenderedHtml || lecture.renderedHtml),
-        hasMarkdownContent: !!(lecture.MarkdownContent || lecture.markdownContent),
-        htmlContentLength: htmlContent?.length || 0,
-        markdownContentLength: markdownContent?.length || 0,
-        title,
-        lectureType,
-        lectureKeys: Object.keys(lecture),
-      });
-    }
-  }, [lecture, htmlContent, markdownContent, title, lectureType]);
 
   // Render Content Type (Text/HTML)
   const renderContent = () => {
@@ -194,7 +180,6 @@ const LectureContent = ({ lecture, onComplete }) => {
           }
         });
       } catch (error) {
-        console.error('Error playing audio:', error);
       } finally {
         setLoading(false);
       }

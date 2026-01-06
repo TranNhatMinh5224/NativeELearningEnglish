@@ -66,7 +66,6 @@ const ModuleModal = ({ visible, onClose, lessonId, module, onSuccess }) => {
         setImage(result.assets[0]);
       }
     } catch (error) {
-      console.error('Error picking image:', error);
       Toast.show('Không thể chọn ảnh', 'error');
     }
   };
@@ -103,7 +102,6 @@ const ModuleModal = ({ visible, onClose, lessonId, module, onSuccess }) => {
           imageTempKey = uploadData.tempKey || uploadData.TempKey || uploadData.key || uploadData.Key;
           imageType = uploadData.imageType || uploadData.ImageType || image.mimeType || 'image/jpeg';
         } catch (uploadError) {
-          console.error('Upload image error:', uploadError);
           Toast.show('Không thể tải ảnh lên', 'error');
           setUploading(false);
           return;
@@ -147,7 +145,6 @@ const ModuleModal = ({ visible, onClose, lessonId, module, onSuccess }) => {
         throw new Error(responseData?.message || responseData?.Message || 'Không thể lưu module');
       }
     } catch (error) {
-      console.error('Error saving module:', error);
       const errorMessage = error?.message || error?.Message || 'Không thể lưu module';
       Toast.show(errorMessage, 'error');
     } finally {

@@ -55,7 +55,6 @@ const TeacherCourseSubmissionsScreen = ({ route, navigation }) => {
   const loadEssaysForAssessment = async (assessmentIdToLoad) => {
     try {
       setLoading(true);
-      console.log('Loading quizzes and essays for assessmentId:', assessmentIdToLoad);
       
       // Load both quizzes and essays in parallel
       const [quizzesResponse, essaysResponse] = await Promise.all([
@@ -79,7 +78,6 @@ const TeacherCourseSubmissionsScreen = ({ route, navigation }) => {
         setEssays(essaysList);
       }
       
-      console.log('Loaded quizzes:', quizzesList.length, 'essays:', essaysList.length);
       setCurrentLevel('assessment');
       
       // Auto-navigate logic
@@ -117,7 +115,6 @@ const TeacherCourseSubmissionsScreen = ({ route, navigation }) => {
         }
       }
     } catch (error) {
-      console.error('Error loading quizzes and essays:', error);
       Toast.show(error?.message || 'Không thể tải danh sách quizzes và essays', 'error');
       setEssays([]);
       setQuizzes([]);
@@ -182,12 +179,10 @@ const TeacherCourseSubmissionsScreen = ({ route, navigation }) => {
   const loadAssessmentsFromModule = async () => {
     try {
       setLoading(true);
-      console.log('Loading assessments from moduleId:', moduleId);
       // Get assessments by module ID
       const response = await teacherService.getAssessmentsByModule(moduleId);
       const data = getResponseData(response);
       const assessmentsList = Array.isArray(data) ? data : (data?.items || []);
-      console.log('Loaded assessments:', assessmentsList.length);
       
       if (assessmentsList.length > 0) {
         // Show list of assessments
@@ -200,7 +195,6 @@ const TeacherCourseSubmissionsScreen = ({ route, navigation }) => {
         setCurrentLevel('module');
       }
     } catch (error) {
-      console.error('Error loading assessments from module:', error);
       Toast.show(error?.message || 'Không thể tải danh sách assessments', 'error');
       setAssessments([]);
       setCurrentLevel('module');
@@ -609,7 +603,9 @@ const TeacherCourseSubmissionsScreen = ({ route, navigation }) => {
                 const prevLevel = breadcrumb[breadcrumb.length - 2].level;
                 handleBreadcrumbPress(prevLevel);
               } else {
-                navigation.goBack();
+                if (navigation.canGoBack()) {
+                  navigation.goBack();
+                }
               }
             }}
           >

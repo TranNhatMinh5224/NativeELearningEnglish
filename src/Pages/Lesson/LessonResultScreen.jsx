@@ -21,6 +21,7 @@ const LessonResultScreen = ({ navigation, route }) => {
     isPassed = false,
     timeSpentSeconds = 0,
     totalItems = 0,
+    attemptId,
   } = route.params || {};
 
   const isQuiz = type === 'quiz';
@@ -323,6 +324,24 @@ const styles = StyleSheet.create({
     fontSize: scale(14),
     fontWeight: '600',
     color: colors.text,
+  },
+  viewDetailButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: verticalScale(16),
+    paddingVertical: verticalScale(12),
+    paddingHorizontal: scale(16),
+    borderRadius: scale(12),
+    borderWidth: 1,
+    borderColor: colors.primary,
+    backgroundColor: colors.primary + '10',
+    gap: scale(8),
+  },
+  viewDetailButtonText: {
+    fontSize: scale(14),
+    fontWeight: '600',
+    color: colors.primary,
   },
 });
 

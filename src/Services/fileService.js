@@ -24,7 +24,6 @@ const fileService = {
       });
       return response;
     } catch (error) {
-      console.error('Upload Error:', error);
       throw error.response?.data || error;
     }
   },

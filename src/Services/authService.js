@@ -209,14 +209,21 @@ const authService = {
   loginWithGoogleCode: async (code, state) => {
     try {
       const response = await axiosClient.post('/auth/google-login', {
-        code: code,
-        state: state,
+        Code: code,
+        State: state,
       });
 
+      // Backend returns ServiceResponse<AuthResponseDto>
+      // Format: { success: true, data: { AccessToken, RefreshToken, User }, message, statusCode }
       let authData = null;
-      if (response && response.data) {
+      if (response?.data?.success && response?.data?.data) {
+        // ServiceResponse format
+        authData = response.data.data;
+      } else if (response?.data && (response.data.AccessToken || response.data.accessToken)) {
+        // Direct AuthResponseDto format
         authData = response.data;
       } else if (response && (response.AccessToken || response.accessToken)) {
+        // Direct response format
         authData = response;
       }
 

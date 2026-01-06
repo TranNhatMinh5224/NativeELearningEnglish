@@ -73,7 +73,6 @@ const VocabularyScreen = ({ navigation }) => {
           }
           setDueCards(cards);
       } catch (error) {
-          console.error('Error loading due cards:', error);
           setDueCards([]);
       }
   }
@@ -85,7 +84,6 @@ const VocabularyScreen = ({ navigation }) => {
       const statsData = res?.data || res;
       setStatistics(statsData);
     } catch (error) {
-      console.error('Load statistics error:', error);
       setStatistics({ dueToday: 0 });
     }
   };
@@ -119,7 +117,6 @@ const VocabularyScreen = ({ navigation }) => {
 
       navigation.navigate('FlashCardReviewSession');
     } catch (error) {
-      console.error('Start review error:', error);
       setToast({
         visible: true,
         message: 'Có lỗi xảy ra khi bắt đầu ôn tập',

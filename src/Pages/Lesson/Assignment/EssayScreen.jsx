@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -15,6 +15,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import { Audio } from 'expo-av';
 import * as DocumentPicker from 'expo-document-picker';
 import colors from '../../../Theme/colors';
@@ -64,11 +65,34 @@ const EssayScreen = ({ route, navigation }) => {
     };
   }, [essayId]);
 
+  // Reload submission data when screen is focused (to get latest grading results)
+  useFocusEffect(
+    useCallback(() => {
+      if (essayId && submissionId) {
+        // Reload submission to get latest score and feedback
+        loadSubmissionData(submissionId);
+      }
+    }, [essayId, submissionId])
+  );
+
   useEffect(() => {
     // Đếm số ký tự (không tính khoảng trắng đầu/cuối)
     const charCount = content.trim().length;
     setCharCount(charCount);
   }, [content]);
+
+  const loadSubmissionData = async (subId) => {
+    try {
+      const submissionResponse = await essayService.getSubmission(subId);
+      const submissionData = getResponseData(submissionResponse);
+      
+      if (submissionData) {
+        setSubmission(submissionData);
+      }
+    } catch (error) {
+      // Silent fail - submission might not exist
+    }
+  };
 
   const loadEssay = async () => {
     try {
@@ -111,7 +135,6 @@ const EssayScreen = ({ route, navigation }) => {
                   const storageKey = `essay_file_name_${subId}`;
                   savedFileName = await AsyncStorage.getItem(storageKey);
                 } catch (error) {
-                  console.error('Error reading file name from storage:', error);
                 }
                 
                 // Extract file name from URL
@@ -133,7 +156,6 @@ const EssayScreen = ({ route, navigation }) => {
                     extractedFileName = decodedFileName;
                   }
                 } catch (error) {
-                  console.error('Error extracting file name from URL:', error);
                 }
                 
                 // Ưu tiên: savedFileName > extractedFileName > uploadedFileName > fallback
@@ -145,10 +167,8 @@ const EssayScreen = ({ route, navigation }) => {
         }
       } catch (statusError) {
         // No submission exists yet, that's fine
-        console.log('ℹ️ No existing submission found');
       }
     } catch (error) {
-      console.error('❌ Error loading essay:', error);
       setToast({
         visible: true,
         message: error?.message || 'Không thể tải bài essay',
@@ -180,7 +200,6 @@ const EssayScreen = ({ route, navigation }) => {
         await handleUploadFile(file);
       }
     } catch (error) {
-      console.error('Error picking document:', error);
       setToast({
         visible: true,
         message: 'Không thể chọn file. Vui lòng thử lại.',
@@ -237,7 +256,6 @@ const EssayScreen = ({ route, navigation }) => {
         throw new Error('Không thể upload file');
       }
     } catch (error) {
-      console.error('Error uploading file:', error);
       setToast({
         visible: true,
         message: error?.message || 'Không thể upload file. Vui lòng thử lại.',
@@ -295,7 +313,6 @@ const EssayScreen = ({ route, navigation }) => {
         setIsPlaying(true);
       }
     } catch (error) {
-      console.error('Error playing audio:', error);
       setToast({
         visible: true,
         message: 'Không thể phát âm thanh. Vui lòng thử lại.',
@@ -343,7 +360,7 @@ const EssayScreen = ({ route, navigation }) => {
       // Submit new submission
       Alert.alert(
         'Xác nhận nộp bài',
-        'Bạn có chắc muốn nộp bài? Sau khi nộp sẽ không thể chỉnh sửa.',
+        'Bạn có chắc muốn nộp bài?',
         [
           { text: 'Hủy', style: 'cancel' },
           { text: 'Nộp bài', onPress: submitEssay },
@@ -378,7 +395,6 @@ const EssayScreen = ({ route, navigation }) => {
             await AsyncStorage.setItem(storageKey, uploadedFileName);
           }
         } catch (error) {
-          console.error('Error saving file name to storage:', error);
         }
       }
       
@@ -389,13 +405,47 @@ const EssayScreen = ({ route, navigation }) => {
       });
       
       setTimeout(() => {
-        navigation.goBack();
+        if (navigation.canGoBack()) {
+          navigation.goBack();
+        }
       }, 1500);
     } catch (error) {
-      console.error('Error submitting essay:', error);
+      // Parse validation errors from backend
+      let errorMessage = 'Không thể nộp bài';
+      
+      if (error?.errors) {
+        // Backend validation errors format: { errors: { FieldName: ["Error message"] } }
+        const errorFields = Object.keys(error.errors);
+        if (errorFields.length > 0) {
+          const firstField = errorFields[0];
+          const fieldErrors = error.errors[firstField];
+          if (Array.isArray(fieldErrors) && fieldErrors.length > 0) {
+            errorMessage = fieldErrors[0];
+          } else if (typeof fieldErrors === 'string') {
+            errorMessage = fieldErrors;
+          }
+        }
+      } else if (error?.response?.data?.errors) {
+        // Handle axios error response format
+        const errorFields = Object.keys(error.response.data.errors);
+        if (errorFields.length > 0) {
+          const firstField = errorFields[0];
+          const fieldErrors = error.response.data.errors[firstField];
+          if (Array.isArray(fieldErrors) && fieldErrors.length > 0) {
+            errorMessage = fieldErrors[0];
+          } else if (typeof fieldErrors === 'string') {
+            errorMessage = fieldErrors;
+          }
+        }
+      } else if (error?.message) {
+        errorMessage = error.message;
+      } else if (error?.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      }
+      
       setToast({
         visible: true,
-        message: error?.message || 'Không thể nộp bài',
+        message: errorMessage,
         type: 'error',
       });
     } finally {
@@ -437,7 +487,6 @@ const EssayScreen = ({ route, navigation }) => {
           // Cập nhật state ngay để hiển thị
           setExistingAttachmentFileName(uploadedFileName);
         } catch (error) {
-          console.error('Error saving file name to storage:', error);
         }
       }
       
@@ -452,10 +501,42 @@ const EssayScreen = ({ route, navigation }) => {
         loadEssay();
       }, 1000);
     } catch (error) {
-      console.error('Error updating essay:', error);
+      // Parse validation errors from backend
+      let errorMessage = 'Không thể cập nhật bài';
+      
+      if (error?.errors) {
+        // Backend validation errors format: { errors: { FieldName: ["Error message"] } }
+        const errorFields = Object.keys(error.errors);
+        if (errorFields.length > 0) {
+          const firstField = errorFields[0];
+          const fieldErrors = error.errors[firstField];
+          if (Array.isArray(fieldErrors) && fieldErrors.length > 0) {
+            errorMessage = fieldErrors[0];
+          } else if (typeof fieldErrors === 'string') {
+            errorMessage = fieldErrors;
+          }
+        }
+      } else if (error?.response?.data?.errors) {
+        // Handle axios error response format
+        const errorFields = Object.keys(error.response.data.errors);
+        if (errorFields.length > 0) {
+          const firstField = errorFields[0];
+          const fieldErrors = error.response.data.errors[firstField];
+          if (Array.isArray(fieldErrors) && fieldErrors.length > 0) {
+            errorMessage = fieldErrors[0];
+          } else if (typeof fieldErrors === 'string') {
+            errorMessage = fieldErrors;
+          }
+        }
+      } else if (error?.message) {
+        errorMessage = error.message;
+      } else if (error?.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      }
+      
       setToast({
         visible: true,
-        message: error?.message || 'Không thể cập nhật bài',
+        message: errorMessage,
         type: 'error',
       });
     } finally {
@@ -503,7 +584,6 @@ const EssayScreen = ({ route, navigation }) => {
         loadEssay();
       }, 1000);
     } catch (error) {
-      console.error('Error deleting essay:', error);
       setToast({
         visible: true,
         message: error?.message || 'Không thể xóa bài',
@@ -807,29 +887,48 @@ const EssayScreen = ({ route, navigation }) => {
             <View style={styles.resultContainer}>
               <Text style={styles.resultTitle}>Kết quả</Text>
               
-              {submission?.Score !== null && submission?.Score !== undefined && (
-                <View style={styles.scoreContainer}>
-                  <Text style={styles.scoreLabel}>Điểm số:</Text>
-                  <Text style={styles.scoreValue}>
-                    {submission?.Score || submission?.score || 0}/{essay?.TotalPoints || essay?.totalPoints || 10}
-                  </Text>
-                </View>
-              )}
+              {(() => {
+                // Check all possible field names from backend (PascalCase and camelCase)
+                const score = submission?.Score ?? submission?.score ?? submission?.TotalScore ?? submission?.totalScore;
+                const feedback = submission?.Feedback ?? submission?.feedback ?? submission?.TeacherFeedback ?? submission?.teacherFeedback;
+                const hasScore = score !== null && score !== undefined && score !== '';
+                const hasFeedback = feedback && String(feedback).trim().length > 0;
+                const isGraded = hasScore || hasFeedback;
 
-              {submission?.Feedback && (
-                <View style={styles.feedbackContainer}>
-                  <Text style={styles.feedbackLabel}>Nhận xét:</Text>
-                  <Text style={styles.feedbackText}>
-                    {submission.Feedback || submission.feedback}
-                  </Text>
-                </View>
-              )}
+                if (!isGraded) {
+                  return (
+                    <Text style={styles.waitingText}>
+                      Đang chờ giáo viên chấm điểm...
+                    </Text>
+                  );
+                }
 
-              {!submission?.Score && !submission?.Feedback && (
-                <Text style={styles.waitingText}>
-                  Đang chờ giáo viên chấm điểm...
-                </Text>
-              )}
+                return (
+                  <>
+                    {hasScore && (
+                      <View style={styles.scoreContainer}>
+                        <Text style={styles.scoreLabel}>Điểm đạt được:</Text>
+                        <View style={styles.scoreValueContainer}>
+                          <Text style={styles.scoreValue}>
+                            {score}/{essay?.TotalPoints || essay?.totalPoints || 10}
+                          </Text>
+                        </View>
+                      </View>
+                    )}
+
+                    {hasFeedback && (
+                      <View style={styles.feedbackContainer}>
+                        <Text style={styles.feedbackLabel}>Nhận xét của giáo viên:</Text>
+                        <View style={styles.feedbackBox}>
+                          <Text style={styles.feedbackText}>
+                            {feedback}
+                          </Text>
+                        </View>
+                      </View>
+                    )}
+                  </>
+                );
+              })()}
             </View>
           )}
         </View>
@@ -1105,34 +1204,45 @@ const styles = StyleSheet.create({
     marginBottom: verticalScale(12),
   },
   scoreContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: verticalScale(12),
+    marginBottom: verticalScale(16),
   },
   scoreLabel: {
-    fontSize: scale(16),
+    fontSize: scale(15),
     fontFamily: 'Quicksand-Medium',
-    color: colors.text,
+    color: colors.textSecondary,
+    marginBottom: verticalScale(8),
+  },
+  scoreValueContainer: {
+    backgroundColor: colors.primary + '15',
+    borderRadius: scale(12),
+    padding: verticalScale(12),
+    alignItems: 'center',
   },
   scoreValue: {
-    fontSize: scale(24),
+    fontSize: scale(28),
     fontFamily: 'Quicksand-Bold',
     color: colors.primary,
   },
   feedbackContainer: {
-    marginTop: verticalScale(12),
+    marginTop: verticalScale(8),
   },
   feedbackLabel: {
-    fontSize: scale(16),
-    fontFamily: 'Quicksand-Bold',
-    color: colors.text,
-    marginBottom: verticalScale(6),
+    fontSize: scale(15),
+    fontFamily: 'Quicksand-Medium',
+    color: colors.textSecondary,
+    marginBottom: verticalScale(8),
+  },
+  feedbackBox: {
+    backgroundColor: '#F9FAFB',
+    borderRadius: scale(12),
+    padding: verticalScale(16),
+    borderLeftWidth: 4,
+    borderLeftColor: colors.primary,
   },
   feedbackText: {
     fontSize: scale(15),
     fontFamily: 'Quicksand-Regular',
-    color: colors.textSecondary,
+    color: colors.text,
     lineHeight: scale(22),
   },
   waitingText: {
@@ -1141,6 +1251,7 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     fontStyle: 'italic',
     textAlign: 'center',
+    paddingVertical: verticalScale(12),
   },
 });
 

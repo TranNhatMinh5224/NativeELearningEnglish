@@ -223,7 +223,6 @@ const StudentsTab = ({ courseId, refreshing, onRefresh }) => {
       
       setStudents(studentsList);
     } catch (err) {
-      console.error('Error loading students:', err);
       setError('Không thể tải danh sách học viên');
       setStudents([]);
     } finally {
@@ -248,7 +247,6 @@ const StudentsTab = ({ courseId, refreshing, onRefresh }) => {
             Toast.show('Đã xóa học viên khỏi khóa học', 'success');
             loadStudents();
           } catch (err) {
-            console.error('Error removing student:', err);
             Toast.show('Không thể xóa học viên', 'error');
           }
         },
@@ -269,7 +267,6 @@ const StudentsTab = ({ courseId, refreshing, onRefresh }) => {
         setShowStudentDetailModal(true);
       }
     } catch (err) {
-      console.error('Error fetching student detail:', err);
       Toast.show('Không thể tải thông tin học viên', 'error');
     }
   };
@@ -435,7 +432,6 @@ const TeacherCourseDetailScreen = ({ route, navigation }) => {
       const data = getResponseData(response);
       setCourse(data);
     } catch (error) {
-      console.error('Error loading course detail:', error);
       setToast({ visible: true, message: 'Không thể tải thông tin khóa học', type: 'error' });
     } finally {
       setLoading(false);
@@ -448,7 +444,6 @@ const TeacherCourseDetailScreen = ({ route, navigation }) => {
       const data = getResponseData(response);
       setLessons(Array.isArray(data) ? data : []);
     } catch (error) {
-      console.error('Error loading lessons:', error);
     }
   };
 

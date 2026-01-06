@@ -49,7 +49,6 @@ const FlashCardLearningScreen = ({ navigation, route }) => {
       
       setFlashcards(flashcardsData);
     } catch (error) {
-      console.error('Error loading flashcards:', error);
       Alert.alert('Lỗi', error?.response?.data?.message || 'Không thể tải danh sách từ vựng.');
     } finally {
       setLoading(false);
@@ -59,8 +58,17 @@ const FlashCardLearningScreen = ({ navigation, route }) => {
   const handleComplete = async () => {
     try {
       setCompleting(true);
-      // Gọi API startModule (cũng là api mark complete cho flashcard module)
+      
+      // 1. Gọi API startModule để đánh dấu module đã hoàn thành
       await lessonService.startModule(moduleId);
+
+      // 2. Gọi API startLearningModule để thêm flashcard vào hệ thống SRS (ôn tập từ vựng)
+      try {
+        await flashcardReviewService.startLearningModule(moduleId);
+      } catch (reviewError) {
+        // Log error nhưng không block việc hoàn thành module
+        // Có thể hiển thị warning nhưng vẫn cho phép hoàn thành
+      }
 
       // Điều hướng sang màn hình kết quả bài học
       navigation.replace('LessonResultScreen', {
@@ -69,7 +77,6 @@ const FlashCardLearningScreen = ({ navigation, route }) => {
         totalItems: flashcards.length,
       });
     } catch (error) {
-      console.error('Error completing module:', error);
       Alert.alert('Lỗi', 'Không thể lưu tiến độ học tập.');
     } finally {
       setCompleting(false);

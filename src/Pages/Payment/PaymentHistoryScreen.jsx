@@ -54,7 +54,6 @@ const PaymentHistoryScreen = ({ navigation }) => {
         }
       }
     } catch (error) {
-      console.error('Error loading transactions:', error);
     } finally {
       setLoading(false);
       setRefreshing(false);

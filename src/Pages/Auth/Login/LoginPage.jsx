@@ -101,13 +101,6 @@ const LoginPage = ({ navigation }) => {
     }
   };
 
-  const handleGoogleLogin = async () => {
-    Alert.alert('Google Login', 'Chức năng đang được phát triển');
-  };
-
-  const handleFacebookLogin = async () => {
-    Alert.alert('Facebook Login', 'Chức năng đang được phát triển');
-  };
 
   const handleGuestLogin = () => {
     navigation.reset({
@@ -271,28 +264,6 @@ const LoginPage = ({ navigation }) => {
               <Text style={styles.registerText}>Chưa có tài khoản? </Text>
               <TouchableOpacity onPress={() => navigation.navigate('Register')}>
                 <Text style={styles.registerLink}>Đăng ký ngay</Text>
-              </TouchableOpacity>
-            </View>
-
-            {/* Divider */}
-            <View style={styles.divider}>
-              <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>hoặc tiếp tục với</Text>
-              <View style={styles.dividerLine} />
-            </View>
-
-            {/* Social Login Buttons */}
-            <View style={styles.socialButtonsRow}>
-              <TouchableOpacity style={styles.socialButton} onPress={handleGoogleLogin}>
-                <Ionicons name="logo-google" size={scale(24)} color="#DB4437" />
-              </TouchableOpacity>
-
-              <TouchableOpacity style={[styles.socialButton, styles.facebookSocialButton]} onPress={handleFacebookLogin}>
-                <Ionicons name="logo-facebook" size={scale(24)} color="#FFFFFF" />
-              </TouchableOpacity>
-
-              <TouchableOpacity style={[styles.socialButton, styles.appleSocialButton]} onPress={handleGuestLogin}>
-                <Ionicons name="logo-apple" size={scale(24)} color="#FFFFFF" />
               </TouchableOpacity>
             </View>
 
@@ -488,50 +459,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.primary,
     fontWeight: '600',
-  },
-  divider: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: colors.border,
-  },
-  dividerText: {
-    marginHorizontal: 16,
-    fontSize: 13,
-    color: colors.textSecondary,
-  },
-  socialButtonsRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 16,
-    marginBottom: 24,
-  },
-  socialButton: {
-    width: scale(60),
-    height: scale(60),
-    borderRadius: scale(30),
-    backgroundColor: colors.surface,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.border,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  facebookSocialButton: {
-    backgroundColor: '#1877F2',
-    borderColor: '#1877F2',
-  },
-  appleSocialButton: {
-    backgroundColor: '#000000',
-    borderColor: '#000000',
   },
   guestButton: {
     flexDirection: 'row',

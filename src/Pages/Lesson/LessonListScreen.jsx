@@ -58,7 +58,6 @@ const LessonListScreen = ({ route, navigation }) => {
       
       setLessons(sortedLessons);
     } catch (error) {
-      console.error('Error loading lessons:', error);
       setToast({
         visible: true,
         message: error?.response?.data?.message || error?.message || 'Không thể tải danh sách bài giảng',

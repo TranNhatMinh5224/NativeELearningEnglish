@@ -57,7 +57,6 @@ const SearchScreen = ({ navigation, route }) => {
       
       setSearchResults(Array.isArray(results) ? results : []);
     } catch (error) {
-      console.error('Error searching courses:', error);
       setSearchResults([]);
       setToast({
         visible: true,

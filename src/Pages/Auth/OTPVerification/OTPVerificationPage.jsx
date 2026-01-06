@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { scale } from '../../../Theme/responsive';
+import { scale, verticalScale } from '../../../Theme/responsive';
 import colors from '../../../Theme/colors';
 import authService from '../../../Services/authService';
 import Toast from '../../../Components/Common/Toast';
@@ -26,6 +26,8 @@ const OTPVerificationPage = ({ route, navigation }) => {
   const [countdown, setCountdown] = useState(60);
   const [canResend, setCanResend] = useState(false);
   const [toast, setToast] = useState({ visible: false, message: '', type: 'success' });
+  const [wrongAttempts, setWrongAttempts] = useState(0);
+  const [isBlocked, setIsBlocked] = useState(false);
   const inputRefs = useRef([]);
 
   useEffect(() => {
@@ -44,6 +46,8 @@ const OTPVerificationPage = ({ route, navigation }) => {
   }, []);
 
   const handleOtpChange = (text, index) => {
+    if (isBlocked) return;
+    
     // Only allow numbers
     if (text && !/^\d+$/.test(text)) return;
 
@@ -70,6 +74,8 @@ const OTPVerificationPage = ({ route, navigation }) => {
   };
 
   const handleVerify = async (otpCode = null) => {
+    if (isBlocked) return;
+    
     const otpString = otpCode || otp.join('');
     
     if (otpString.length !== 6) {
@@ -87,6 +93,7 @@ const OTPVerificationPage = ({ route, navigation }) => {
         
         // Backend trả về ServiceResponse<bool> sau khi verify
         // User đã được activate (EmailVerified = true), giờ cần login để lấy tokens
+        setWrongAttempts(0);
         setToast({
           visible: true,
           message: 'Xác thực email thành công! Vui lòng đăng nhập.',
@@ -99,6 +106,7 @@ const OTPVerificationPage = ({ route, navigation }) => {
       } else {
         // For forgot password, just verify OTP
         await authService.verifyOtp(email, otpString);
+        setWrongAttempts(0);
         setToast({
           visible: true,
           message: 'Xác thực OTP thành công!',
@@ -109,13 +117,37 @@ const OTPVerificationPage = ({ route, navigation }) => {
         }, 1500);
       }
     } catch (error) {
+      const newAttempts = wrongAttempts + 1;
+      setWrongAttempts(newAttempts);
+      
       const errorMessage = error?.message || error?.response?.data?.message || 'Mã OTP không hợp lệ';
-      setError(errorMessage);
-      setToast({
-        visible: true,
-        message: errorMessage,
-        type: 'error',
-      });
+      
+      // Nếu đã nhập sai 5 lần
+      if (newAttempts >= 5) {
+        setIsBlocked(true);
+        setError('Bạn đã nhập sai OTP quá 5 lần. Vui lòng lấy mã OTP mới.');
+        setToast({
+          visible: true,
+          message: 'Bạn đã nhập sai OTP quá 5 lần. Vui lòng lấy mã OTP mới.',
+          type: 'error',
+        });
+        
+        // Chuyển về màn hình đăng ký sau 2 giây
+        setTimeout(() => {
+          if (type === 'register') {
+            navigation.replace('Register');
+          } else {
+            navigation.goBack();
+          }
+        }, 2000);
+      } else {
+        setError(`${errorMessage} (Còn lại ${5 - newAttempts} lần thử)`);
+        setToast({
+          visible: true,
+          message: `${errorMessage} (Còn lại ${5 - newAttempts} lần thử)`,
+          type: 'error',
+        });
+      }
     } finally {
       setLoading(false);
     }
@@ -202,6 +234,7 @@ const OTPVerificationPage = ({ route, navigation }) => {
                   styles.otpInput,
                   digit && styles.otpInputFilled,
                   error && styles.otpInputError,
+                  isBlocked && styles.otpInputDisabled,
                 ]}
                 value={digit}
                 onChangeText={(text) => handleOtpChange(text, index)}
@@ -209,34 +242,28 @@ const OTPVerificationPage = ({ route, navigation }) => {
                 keyboardType="number-pad"
                 maxLength={1}
                 selectTextOnFocus
+                editable={!isBlocked}
               />
             ))}
           </View>
+          
+          {isBlocked && (
+            <View style={styles.blockedContainer}>
+              <Ionicons name="lock-closed" size={scale(24)} color={colors.error} />
+              <Text style={styles.blockedText}>
+                Bạn đã nhập sai OTP quá 5 lần. Vui lòng đăng ký lại.
+              </Text>
+            </View>
+          )}
 
           {error && <Text style={styles.errorText}>{error}</Text>}
 
-          {/* Verify Button */}
-          <TouchableOpacity
-            style={styles.verifyButton}
-            onPress={() => handleVerify()}
-            disabled={loading || otp.join('').length !== 6}
-          >
-            <LinearGradient
-              colors={[colors.primary, colors.secondary]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={[
-                styles.verifyGradient,
-                (loading || otp.join('').length !== 6) && styles.verifyGradientDisabled,
-              ]}
-            >
-              {loading ? (
-                <ActivityIndicator color="#FFFFFF" />
-              ) : (
-                <Text style={styles.verifyButtonText}>Xác thực</Text>
-              )}
-            </LinearGradient>
-          </TouchableOpacity>
+          {loading && (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color={colors.primary} />
+              <Text style={styles.loadingText}>Đang xác thực...</Text>
+            </View>
+          )}
 
           {/* Resend OTP */}
           <View style={styles.resendContainer}>
@@ -334,28 +361,33 @@ const styles = StyleSheet.create({
   otpInputError: {
     borderColor: colors.error,
   },
+  otpInputDisabled: {
+    backgroundColor: '#F3F4F6',
+    borderColor: '#D1D5DB',
+    opacity: 0.6,
+  },
   errorText: {
     color: colors.error,
     fontSize: 12,
     textAlign: 'center',
     marginBottom: 16,
   },
-  verifyButton: {
-    borderRadius: scale(12),
-    overflow: 'hidden',
-    marginBottom: 24,
-  },
-  verifyGradient: {
-    paddingVertical: 24,
+  blockedContainer: {
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FEE2E2',
+    padding: verticalScale(16),
+    borderRadius: scale(12),
+    marginBottom: 16,
+    gap: 8,
   },
-  verifyGradientDisabled: {
-    opacity: 0.5,
-  },
-  verifyButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: 'bold',
+  blockedText: {
+    color: colors.error,
+    fontSize: 14,
+    fontWeight: '600',
+    textAlign: 'center',
+    flex: 1,
   },
   resendContainer: {
     flexDirection: 'row',
